@@ -1,0 +1,129 @@
+This file tries to explain how the classes.
+
+
+BCP_LP_USER
+
+-------Fonctions that can be overriden
+
+virtual void  unpack_module_data(BCP_buffer & buf);
+virtual void process_message(BCP_buffer& buf);
+virtual OsiSolverInterface * initialize_solver_interface();
+virtual void initialize_int_and_sos_list(std::vector<OsiObject *>& intAndSosObjects);
+virtual void initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
+				    const BCP_vec<BCP_cut*>& cuts,
+				    const BCP_vec<BCP_obj_status>& var_status,
+				    const BCP_vec<BCP_obj_status>& cut_status,
+				    BCP_vec<int>& var_changed_pos,
+				    BCP_vec<double>& var_new_bd,
+				    BCP_vec<int>& cut_changed_pos,
+				    BCP_vec<double>& cut_new_bd);
+virtual void load_problem(OsiSolverInterface& osi, BCP_problem_core* core, BCP_var_set& vars, BCP_cut_set& cuts);
+virtual void modify_lp_parameters(OsiSolverInterface* lp, const int changeType, bool in_strong_branching);
+virtual void process_lp_result(const BCP_lp_result& lpres,
+		      const BCP_vec<BCP_var*>& vars,
+		      const BCP_vec<BCP_cut*>& cuts,
+		      const double old_lower_bound,
+		      double& true_lower_bound,
+		      BCP_solution*& sol,
+		      BCP_vec<BCP_cut*>& new_cuts,
+		      BCP_vec<BCP_row*>& new_rows,
+		      BCP_vec<BCP_var*>& new_vars,
+		      BCP_vec<BCP_col*>& new_cols);
+virtual double compute_lower_bound(const double old_lower_bound,
+			const BCP_lp_result& lpres,
+			const BCP_vec<BCP_var*>& vars,
+			const BCP_vec<BCP_cut*>& cuts);
+virtual BCP_solution* test_feasibility(const BCP_lp_result& lp_result,
+		     const BCP_vec<BCP_var*>& vars,
+		     const BCP_vec<BCP_cut*>& cuts);
+virtual void pack_feasible_solution(BCP_buffer& buf, const BCP_solution* sol);
+virtual void pack_primal_solution(BCP_buffer& buf,
+			 const BCP_lp_result& lp_result,
+			 const BCP_vec<BCP_var*>& vars,
+			 const BCP_vec<BCP_cut*>& cuts);
+virtual void pack_dual_solution(BCP_buffer& buf,
+		       const BCP_lp_result& lp_result,
+		       const BCP_vec<BCP_var*>& vars,
+		       const BCP_vec<BCP_cut*>& cuts);
+virtual void display_lp_solution(const BCP_lp_result& lp_result,
+			const BCP_vec<BCP_var*>& vars,
+			const BCP_vec<BCP_cut*>& cuts,
+			const bool final_lp_solution);
+virtual void restore_feasibility(const BCP_lp_result& lpres,
+			const std::vector<double*> dual_rays,
+			const BCP_vec<BCP_var*>& vars,
+			const BCP_vec<BCP_cut*>& cuts,
+			BCP_vec<BCP_var*>& vars_to_add,
+			BCP_vec<BCP_col*>& cols_to_add);
+virtual void cuts_to_rows(const BCP_vec<BCP_var*>& vars, // on what to expand
+		 BCP_vec<BCP_cut*>& cuts,       // what to expand
+		 BCP_vec<BCP_row*>& rows,       // the expanded rows
+		 // things that the user can use for lifting cuts if allowed
+		 const BCP_lp_result& lpres,
+		 BCP_object_origin origin, bool allow_multiple);
+virtual void vars_to_cols(const BCP_vec<BCP_cut*>& cuts, // on what to expand
+		 BCP_vec<BCP_var*>& vars,       // what to expand
+		 BCP_vec<BCP_col*>& cols,       // the expanded cols
+		 // things that the user can use for lifting vars if allowed
+		 const BCP_lp_result& lpres,
+		 BCP_object_origin origin, bool allow_multiple);
+virtual void generate_cuts_in_lp(const BCP_lp_result& lpres,
+			const BCP_vec<BCP_var*>& vars,
+			const BCP_vec<BCP_cut*>& cuts,
+			BCP_vec<BCP_cut*>& new_cuts,
+			BCP_vec<BCP_row*>& new_rows);
+virtual void generate_vars_in_lp(const BCP_lp_result& lpres,
+			const BCP_vec<BCP_var*>& vars,
+			const BCP_vec<BCP_cut*>& cuts,
+			const bool before_fathom,
+			BCP_vec<BCP_var*>& new_vars,
+			BCP_vec<BCP_col*>& new_cols);
+virtual BCP_object_compare_result compare_cuts(const BCP_cut* c0, const BCP_cut* c1);
+virtual BCP_object_compare_result compare_vars(const BCP_var* v0, const BCP_var* v1);
+virtual void select_vars_to_delete(const BCP_lp_result& lpres,
+			  const BCP_vec<BCP_var*>& vars,
+			  const BCP_vec<BCP_cut*>& cuts,
+			  const bool before_fathom,
+			  BCP_vec<int>& deletable);
+virtual void  select_cuts_to_delete(const BCP_lp_result& lpres,
+			  const BCP_vec<BCP_var*>& vars,
+			  const BCP_vec<BCP_cut*>& cuts,
+			  const bool before_fathom,
+			  BCP_vec<int>& deletable);
+
+virtual void logical_fixing(const BCP_lp_result& lpres,
+		   const BCP_vec<BCP_var*>& vars,
+		   const BCP_vec<BCP_cut*>& cuts,
+		   const BCP_vec<BCP_obj_status>& var_status,
+		   const BCP_vec<BCP_obj_status>& cut_status,
+		   const int var_bound_changes_since_logical_fixing,
+		   BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd);
+
+virtual BCP_branching_decision select_branching_candidates(const BCP_lp_result& lpres,
+				const BCP_vec<BCP_var*>& vars,
+				const BCP_vec<BCP_cut*>& cuts,
+				const BCP_lp_var_pool& local_var_pool,
+				const BCP_lp_cut_pool& local_cut_pool,
+				BCP_vec<BCP_lp_branching_object*>& cands,
+				bool force_branch = false);
+virtual int try_to_branch(OsiBranchingInformation& branchInfo,
+		  OsiSolverInterface* solver,
+		  OsiChooseVariable* choose,
+		  OsiBranchingObject*& branchObject,
+		  bool allowVarFix);
+virtual BCP_branching_object_relation compare_branching_candidates(BCP_presolved_lp_brobj* new_solved,
+				 BCP_presolved_lp_brobj* old_solved);
+virtual void set_actions_for_children(BCP_presolved_lp_brobj* best);
+virtual void set_user_data_for_children(BCP_presolved_lp_brobj* best, 
+			       const int selected);
+virtual void set_user_data_for_children(BCP_presolved_lp_brobj* best);
+virtual void purge_slack_pool(const BCP_vec<BCP_cut*>& slack_pool,
+		     BCP_vec<int>& to_be_purged);
+
+
+
+
+
+
+
+

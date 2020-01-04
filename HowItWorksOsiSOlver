@@ -1,0 +1,221 @@
+This file tries to explain how the classes.
+
+
+OsiSolverInterface
+
+---------virtual methods
+okvol-  virtual bool setIntParam(OsiIntParam key, int value) 
+okvol- virtual bool setDblParam(OsiDblParam key, double value) 
+okvol- virtual bool setStrParam(OsiStrParam key, const std::string & value)
+ virtual bool setHintParam(OsiHintParam key, bool yesNo=true, OsiHintStrength strength=OsiHintTry, void * /*otherInformation*/ = NULL) 
+okvol- virtual bool getIntParam(OsiIntParam key, int& value) const
+okvol- virtual bool getDblParam(OsiDblParam key, double& value) const
+okvol- virtual bool getStrParam(OsiStrParam key, std::string& value) const  
+ virtual bool getHintParam(OsiHintParam key, bool& yesNo, OsiHintStrength& strength, void *& otherInformation) const
+ virtual bool getHintParam(OsiHintParam key, bool& yesNo, OsiHintStrength& strength) const
+ virtual bool getHintParam(OsiHintParam key, bool& yesNo) const 
+ virtual CoinWarmStart* getPointerToWarmStart(bool & mustDelete) ;
+okvol- virtual void markHotStart();
+okvol- virtual void solveFromHotStart();
+okvol- virtual void unmarkHotStart();
+ virtual int getNumIntegers() const
+ virtual bool isBinary(int colIndex) const;
+ virtual bool isInteger(int colIndex) const;
+ virtual bool isIntegerNonBinary(int colIndex) const;
+ virtual bool isFreeBinary(int colIndex) const; 
+ virtual bool isPrimalObjectiveLimitReached() const;
+ virtual bool isDualObjectiveLimitReached() const;
+ virtual const char * getColType(bool refresh=false) const;
+ virtual CoinPackedMatrix * getMutableMatrixByRow() const
+ virtual CoinPackedMatrix * getMutableMatrixByCol() const
+ virtual const double * getStrictColSolution();
+ virtual OsiVectorInt getFractionalIndices(const double etol=1.e-05) const;
+ virtual void setObjCoeffSet(const int* indexFirst, const int* indexLast, const double* coeffList);
+ virtual void setObjective(const double * array);
+ virtual void setColLower(const double * array);
+ virtual void setColUpper(const double * array);
+okvol- virtual void setColBounds( int elementIndex, double lower, double upper )
+okvol- virtual void setColSetBounds(const int* indexFirst, const int* indexLast, const double* boundList);
+okvol- virtual void setRowBounds( int elementIndex,double lower, double upper )
+okvol- virtual void setRowSetBounds(const int* indexFirst,const int* indexLast,const double* boundList);
+okvol- virtual void setRowSetTypes(const int* indexFirst,const int* indexLast,const char* senseList,const double* rhsList,const double* rangeList);
+ virtual int reducedCostFix(double gap, bool justInteger=true);
+okvol- virtual void setContinuous(const int* indices, int len);
+okvol- virtual void setInteger(const int* indices, int len);
+ virtual std::string dfltRowColName(char rc, int ndx, unsigned digits = 7) const ;
+ virtual std::string getObjName (unsigned maxLen = static_cast<unsigned>(std::string::npos)) const ;
+ virtual inline void setObjName (std::string name)
+ virtual std::string getRowName(int rowIndex,unsigned maxLen = static_cast<unsigned>(std::string::npos)) const ;
+ virtual const OsiNameVec &getRowNames() ;
+ virtual void setRowName(int ndx, std::string name) ;
+ virtual void setRowNames(OsiNameVec &srcNames,
+ virtual void deleteRowNames(int tgtStart, int len) ;
+ virtual std::string getColName(int colIndex, unsigned maxLen = static_cast<unsigned>(std::string::npos)) const ;
+ virtual const OsiNameVec &getColNames() ;
+ virtual void setColName(int ndx, std::string name) ;
+ virtual void setColNames(OsiNameVec &srcNames,
+ virtual void deleteColNames(int tgtStart, int len) ;
+ virtual void addCol(const CoinPackedVectorBase& vec, const double collb, const double colub,const double obj, std::string name) ;
+ virtual void addCol(int numberElements, const int* rows, const double* elements, const double collb, const double colub,const double obj) ;
+ virtual void addCol(int numberElements, const int* rows, const double* elements, const double collb, const double colub, const double obj, std::string name) ;
+okvol- virtual void addCols(const int numcols, const CoinPackedVectorBase * const * cols, const double* collb, const double* colub, const double* obj);
+ virtual void addCols(const int numcols, const int* columnStarts, const int* rows, const double* elements, const double* collb, const double* colub, const double* obj);
+ virtual void addRow(const CoinPackedVectorBase& vec,const double rowlb, const double rowub,std::string name) ; 
+ virtual void addRow(const CoinPackedVectorBase& vec,const char rowsen, const double rowrhs,const double rowrng, std::string name) ;
+ virtual void addRow(int numberElements,const int *columns, const double *element,const double rowlb, const double rowub) ;
+okvol- virtual void addRows(const int numrows,const CoinPackedVectorBase * const * rows,const double* rowlb, const double* rowub);
+okvol- virtual void addRows(const int numrows,const CoinPackedVectorBase * const * rows,const char* rowsen, const double* rowrhs, const double* rowrng);
+ virtual void addRows(const int numrows, const int *rowStarts,const int *columns, const double *element,const double *rowlb, const double *rowub);
+ virtual void replaceMatrixOptional(const CoinPackedMatrix & )
+ virtual void replaceMatrix(const CoinPackedMatrix & )
+ virtual void saveBaseModel()
+ virtual void restoreBaseModel(int numberRows);
+okvol- virtual ApplyCutsReturnCode applyCuts(const OsiCuts & cs,double effectivenessLb = 0.0);
+ virtual void applyRowCuts(int numberCuts, const OsiRowCut * cuts);
+ virtual void applyRowCuts(int numberCuts, const OsiRowCut ** cuts);
+ virtual int loadFromCoinModel (CoinModel & modelObject, bool keepSolution=false);
+okvol- virtual int readMps (const char *filename, const char *extension = "mps") ;
+ virtual int readMps (const char *filename, const char*extension, int & numberSets, CoinSet ** & sets);
+ virtual int readGMPL (const char *filename, const char *dataname=NULL);
+ virtual void writeLp(const char *filename, const char *extension = "lp",double epsilon = 1e-5,int numberAcross = 10,int decimals = 5,double objSense = 0.0,bool useRowNames = true) const;
+ virtual void writeLp(FILE *fp,double epsilon = 1e-5, int numberAcross = 10,int decimals = 5,double objSense = 0.0,bool useRowNames = true) const;
+ virtual int readLp(const char *filename, const double epsilon = 1e-5);
+ virtual void passInMessageHandler(CoinMessageHandler * handler);
+ virtual int findIntegersAndSOS(bool justCount);
+ virtual void activateRowCutDebugger (const char *modelName);
+ virtual void activateRowCutDebugger(const double *solution,bool enforceOptimality = true);
+ virtual int canDoSimplexInterface() const ;
+ virtual void enableFactorization() const ;
+ virtual void disableFactorization() const 
+ virtual bool basisIsAvailable() const ;
+ virtual void getBasisStatus(int* cstat, int* rstat) const ;
+ virtual int setBasisStatus(const int* cstat, const int* rstat) ;
+ virtual void getReducedGradient(double* columnReducedCosts, double* duals, const double* c) const ;
+ virtual void getBInvARow(int row, double* z, double* slack = NULL) const ;
+ virtual void getBInvRow(int row, double* z) const ;
+ virtual void getBInvACol(int col, double* vec) const ;
+ virtual void getBInvCol(int col, double* vec) const ;
+ virtual void getBasics(int* index) const ;
+ virtual void enableSimplexInterface(bool doingPrimal) ;
+ virtual void disableSimplexInterface() ;
+ virtual int pivot(int colIn, int colOut, int outStatus) ;
+ virtual int primalPivotResult(int colIn, int sign, int& colOut, int& outStatus, double& t, CoinPackedVector* dx);
+ virtual int dualPivotResult(int& colIn, int& sign, int colOut, int outStatus, double& t, CoinPackedVector* dx) ;
+ virtual void reset();
+okvol- virtual ~OsiSolverInterface ();
+
+
+
+---------pure virtual methods
+ virtual void initialSolve() = 0; 
+ virtual void resolve() = 0;
+ virtual void branchAndBound() = 0;
+ virtual bool isAbandoned() const = 0;
+ virtual bool isProvenOptimal() const = 0;
+ virtual bool isProvenPrimalInfeasible() const = 0;
+ virtual bool isProvenDualInfeasible() const = 0;
+ virtual bool isIterationLimitReached() const = 0;
+ virtual CoinWarmStart *getEmptyWarmStart () const = 0 ;
+ virtual CoinWarmStart* getWarmStart() const = 0;
+ virtual bool setWarmStart(const CoinWarmStart* warmstart) = 0;
+ virtual int getNumCols() const = 0;
+ virtual int getNumRows() const = 0;
+ virtual int getNumElements() const = 0;
+ virtual const double * getColLower() const = 0;
+ virtual const double * getColUpper() const = 0;
+ virtual const char * getRowSense() const = 0;
+ virtual const double * getRightHandSide() const = 0;
+ virtual const double * getRowRange() const = 0;
+ virtual const double * getRowLower() const = 0;
+ virtual const double * getRowUpper() const = 0;
+ virtual const double * getObjCoefficients() const = 0;
+ virtual double getObjSense() const = 0;
+ virtual bool isContinuous(int colIndex) const = 0;
+ virtual const CoinPackedMatrix * getMatrixByRow() const = 0;
+ virtual const CoinPackedMatrix * getMatrixByCol() const = 0;
+ virtual double getInfinity() const = 0;
+ virtual const double * getColSolution() const = 0;
+ virtual const double * getRowPrice() const = 0;
+ virtual const double * getReducedCost() const = 0;
+ virtual const double * getRowActivity() const = 0;
+ virtual double getObjValue() const = 0;
+ virtual int getIterationCount() const = 0;
+ virtual std::vector<double*> getDualRays(int maxNumRays, bool fullRay = false) const = 0;
+ virtual std::vector<double*> getPrimalRays(int maxNumRays) const = 0;
+ virtual void setObjCoeff( int elementIndex, double elementValue ) = 0;
+ virtual void setObjSense(double s) = 0;
+ virtual void setColLower( int elementIndex, double elementValue ) = 0;
+ virtual void setColUpper( int elementIndex, double elementValue ) = 0;
+ virtual void setRowLower( int elementIndex, double elementValue ) = 0;
+ virtual void setRowUpper( int elementIndex, double elementValue ) = 0;
+ virtual void setRowType(int index, char sense, double rightHandSide, double range) = 0;
+ virtual void setColSolution(const double *colsol) = 0;
+ virtual void setRowPrice(const double * rowprice) = 0;
+ virtual void setContinuous(int index) = 0;
+ virtual void setInteger(int index) = 0;
+ virtual void addCol(const CoinPackedVectorBase& vec, const double collb, const double colub, const double obj) = 0;
+ virtual void deleteCols(const int num, const int * colIndices) = 0;
+ virtual void addRow(const CoinPackedVectorBase& vec,const double rowlb, const double rowub) = 0;
+ virtual void addRow(const CoinPackedVectorBase& vec,const char rowsen, const double rowrhs,const double rowrng) = 0;
+ virtual void deleteRows(const int num, const int * rowIndices) = 0;
+ virtual void loadProblem (const CoinPackedMatrix& matrix,const double* collb, const double* colub, const double* obj, const double* rowlb, const double* rowub) = 0;
+ virtual void assignProblem (CoinPackedMatrix*& matrix,double*& collb, double*& colub, double*& obj, double*& rowlb, double*& rowub) = 0;
+ virtual void loadProblem (const CoinPackedMatrix& matrix, const double* collb, const double* colub, const double* obj, const char* rowsen, const double* rowrhs,const double* rowrng) = 0;
+ virtual void assignProblem (CoinPackedMatrix*& matrix,double*& collb, double*& colub, double*& obj, char*& rowsen, double*& rowrhs, double*& rowrng) = 0;
+ virtual void loadProblem(co int numcols,co int numrows,co CoinBigIndex * start,co int* index,co double* value,co double* collb,co double* colub,co double* obj,co double* rowlb,co double* rowub) = 0;
+ virtual void loadProblem(co int ncols,co int nrows,co CoinBigIndex * strt,co int* idx,co double* val,co double* clb,co double* cub,co double* obj,co char* rowsen,co double* rowrhs,co double* rowrng) = 0;
+ virtual void writeMps (const char *filename,const char *extension = "mps", double objSense=0.0) const = 0;
+ virtual OsiSolverInterface * clone(bool copyData = true) const = 0;
+ virtual void applyRowCut( const OsiRowCut & rc ) = 0;
+ virtual void applyColCut( const OsiColCut & cc ) = 0;
+
+---------base methods
+ void copyParameters(OsiSolverInterface & rhs)
+ inline double getIntegerTolerance() const
+ inline const char *columnType(bool refresh=false) const
+ void setRowColNames(const CoinMpsIO &mps) ;
+ void setRowColNames(CoinModel &mod) ;
+ void setRowColNames(CoinLpIO &mod) ;
+ void addCols(const CoinBuild & buildObject);
+ int addCols(CoinModel & modelObject);
+ void addRows(const CoinBuild &buildObject);
+ int addRows(CoinModel &modelObject);
+ void deleteBranchingInfo(int numberDeleted, const int * which);
+ int writeMpsNative (const char *filename, const char ** rowNames, const char ** columnNames,int formatType=0,int numberAcross=2, double objSense=0.0, int numberSOS=0, const CoinSet * setInfo=NULL) const ;
+ int writeLpNative(co char *fname,char co * co * co rowNames,char co*co*co clmnNames,co dbl eps = 1.0e-5,co int nmbAcross = 10,co int decimals = 5,co dbl objSense = 0.0,co bool useRowNames = true)const;
+ int writeLpNative(FILE *fp,char co*co*co rowNames, char co*co*co columnNames,co dbl eps = 1.0e-5,co int numberAcross = 10,co int decimals = 5,co double objSense = 0.0,co bool useRowNames = true) const;
+ int readLp(FILE *fp, const double epsilon = 1e-5);
+ int differentModel(OsiSolverInterface & other, bool ignoreNames=true);
+ void setApplicationData (void * appData);
+ void setAuxiliaryInfo(OsiAuxInfo * auxiliaryInfo);
+ void * getApplicationData() const;
+ OsiAuxInfo * getAuxiliaryInfo() const;
+ void newLanguage(CoinMessages::Language language);
+ inline void setLanguage(CoinMessages::Language language)
+ inline CoinMessageHandler * messageHandler() const
+ inline CoinMessages messages() 
+ inline CoinMessages * messagesPointer() 
+ inline bool defaultHandler() const
+ void findIntegers(bool justCount);
+ inline int numberObjects() const
+ inline void setNumberObjects(int number) 
+ inline OsiObject ** objects() const 
+ const inline OsiObject * object(int which) const
+ inline OsiObject * modifiableObject(int which) const 
+ void deleteObjects();
+ void addObjects(int numberObjects, OsiObject ** objects);
+ double forceFeasible();
+ const OsiRowCutDebugger *getRowCutDebugger() const;
+ OsiRowCutDebugger * getRowCutDebuggerAlways() const;
+ inline bool optimalBasisIsAvailable() const
+ OsiSolverInterface(); 
+ OsiSolverInterface(const OsiSolverInterface &);
+ OsiSolverInterface & operator=(const OsiSolverInterface& rhs);
+ inline void convertBoundToSense(const double lower, const double upper, char& sense, double& right, double& range) const;
+ inline void convertSenseToBound(const char sense, const double right,const double range,double& lower, double& upper) const;
+ template <class T> inline T forceIntoRange(const T value, const T lower, const T upper) const
+ void setInitialData();
+
+
+
+

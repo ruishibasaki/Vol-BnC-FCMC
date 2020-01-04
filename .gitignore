@@ -1,0 +1,7 @@
+*.so
+*.o
+mcnd_bcp
+*.dow
+debug
+*.sh
+*.lp
