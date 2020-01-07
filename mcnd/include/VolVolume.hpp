@@ -605,7 +605,7 @@ public:
    virtual int resolve_subproblem(const VOL_dvector& dual, VOL_dvector& rc,
                            double& lcost, VOL_dvector& x,double& pcost)=0;
     
-    virtual int additional_settings(double step, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h,
+    virtual int additional_settings(int iter, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h,
                                     VOL_dvector& x, const VOL_dvector& xhist, const VOL_dvector& dstar,   int actvSSz) = 0;
    
     virtual int heuristics(const VOL_problem& p,

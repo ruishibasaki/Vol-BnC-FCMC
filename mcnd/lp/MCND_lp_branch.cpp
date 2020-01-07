@@ -65,9 +65,9 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     
     std::cout<<"select_branching_candidates"<<std::endl;
 	LBi = lpres.objval();
-    return BCP_DoNotBranch_Fathomed;
+    //return BCP_DoNotBranch_Fathomed;
 
-    if(current_level() == 0){
+    if(current_level() == 1){
         return BCP_DoNotBranch_Fathomed;
 
 	}
@@ -84,7 +84,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	}
 	
 
-    OsiVolSolverInterface * s = getOsiBabSolver();
+    OsiVolSolverInterface * s = getOsiVolBabSolver();
     MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
     
     freq.assign(data.narcs,0.0);

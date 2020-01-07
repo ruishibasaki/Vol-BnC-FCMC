@@ -437,7 +437,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     t_tt = buff.tms_utime;
     retval = hooks.solve_subproblem(pstar.x,dual.u, rc, dual.lcost, primal.x, primal.value);
     if (retval < 0)  return -1;
-    retval = hooks.additional_settings(step, dual.lcost, dual.u, rc, pstar.v, primal.x, pstar.x, dstar.u, active_size);
+    retval = hooks.additional_settings(0, dual.lcost, dual.u, rc, pstar.v, primal.x, pstar.x, dstar.u, active_size);
     if (retval < 0)  return -1;
     retval = hooks.resolve_subproblem(dual.u, rc, dual.lcost, primal.x, primal.value);
     if (retval < 0)  return -1;
@@ -446,7 +446,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     
     retval = hooks.compute_sg(primal.x, active_size, primal.v);
     if (retval < 0)  return -1;
-    
+    std::cout<<"first vole iter: "<<dual.lcost<<std::endl;
     
     // set target for the lagrangian value
     double target = readjust_target(-DBL_MAX/2, dual.lcost);
@@ -492,7 +492,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         t_tt = buff.tms_utime;
         retval = hooks.solve_subproblem(pstar.x,dual.u, rc, dual.lcost,primal.x, primal.value);
         if (retval < 0)  break;
-        retval = hooks.additional_settings(step, dual.lcost, dual.u, rc, pstar.v, primal.x, pstar.x, dstar.u, active_size);
+        retval = hooks.additional_settings(iter_, dual.lcost, dual.u, rc, pstar.v, primal.x, pstar.x, dstar.u, active_size);
         if (retval < 0)  break;
         retval = hooks.resolve_subproblem(dual.u, rc, dual.lcost, primal.x, primal.value);
         if (retval < 0)  break;

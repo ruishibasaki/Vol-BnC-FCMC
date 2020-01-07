@@ -391,6 +391,30 @@ CoverCollection::removeCover(int lim, int * actvS, int & actvSSz, double * pstar
     return 0;
 }
 
+//------------------------------------------------------------------------------------
+
+void
+CoverCollection::uncollect(Cover * trgt){
+    --sizeOfCollection;
+    if(trgt == end && trgt!=begin){
+        trgt->prev->next = 0;
+        end = trgt->prev;
+        return;
+    }else if(trgt == begin && trgt!=end){
+        trgt->next->prev = 0;
+        begin = trgt->next;
+        return;
+    }else if(trgt == begin && trgt == end){
+        begin = end = 0;
+        empty = true;
+        return;
+    }
+    trgt->next->prev = trgt->prev;
+    trgt->prev->next = trgt->next;
+    trgt->next=0;
+    trgt->prev=0;
+    
+}
 
 //------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------

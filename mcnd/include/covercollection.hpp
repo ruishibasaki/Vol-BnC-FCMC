@@ -62,9 +62,12 @@ public:
     //--------------------------------------
     // modifying methods
     //--------------------------------------
+    
     int swap_toend_destruct(Cover * out, Cover *& ret);
     int removeCover(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu);
     Cover* swap_to_end(Cover * trgt);
+    void uncollect(Cover * trgt);
+
 };
 
 //=================================================================================================

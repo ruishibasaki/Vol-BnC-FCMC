@@ -35,7 +35,8 @@ static const double OsiVolInfinity = 1.0e31;
  Instantiation of OsiVolSolverInterface for the Volume Algorithm
  */
 
-class OsiVolSolverInterface : virtual public OsiSolverInterface, public VOL_user_hooks {
+class OsiVolSolverInterface : virtual public OsiSolverInterface,
+                             virtual public OsiBabSolver, public VOL_user_hooks {
     
     
 public:
@@ -427,7 +428,7 @@ private:
                            double& lcost,
                            VOL_dvector& x,double& pcost);
     
-    int additional_settings(double step, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h, VOL_dvector& x, const VOL_dvector& xhist, const VOL_dvector& dstar,  int actvSSz);
+    int additional_settings(int iter, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h, VOL_dvector& x, const VOL_dvector& xhist, const VOL_dvector& dstar,  int actvSSz);
     
     int heuristics(const VOL_problem& p,
                    const VOL_dvector& x, double& heur_val);

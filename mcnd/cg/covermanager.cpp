@@ -27,15 +27,32 @@ CoverManager::initialize(const Data * d, int lim) {
 //-------------------------------------------------------------------------------------------
 
 void
-CoverManager::reset_collection(){
-    Cover* vi = covers.begin;
+CoverManager::reset_and_map_collection(int fsize, const double* topo, int * actvS, int & csize){
+    int idx, cont;
+    int idxf = data->nnodes*data->ndemands;
     int sz = covers.sizeOfCollection;
-    for(int i=0;i<sz;++i){
+    Cover* vi = covers.begin;
+    cont = 0;
+    while(vi !=0){
         vi->n_zerom =0;
         vi->n_nviol = 0;
-        vi->id_vi=-1;
+        if(checkViol(vi, topo)){
+            idx = idxf+cont;
+            vi->id_vi=idx;
+            idx = fsize+csize;
+            actvS[vi->id_vi] = idx;
+            std::cout<<"in: id_vi "<<vi->id_vi<<" idx: "<<idx<<std::endl;
+            csize++;
+        }else{
+            std::cout<<"out: "<<cont<<std::endl;
+            Cover* temp = vi->prev;
+            covers.uncollect(vi);
+            vi = temp;
+        }
+        cont++;
         vi = vi->next;
     }
+    gend=0;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -340,7 +357,7 @@ CoverManager::checkViol(const Cover * c, const double *y){
 //-------------------------------------------------------------------------------------------
 
 double
-CoverManager::update_dual_pos(double step, const double * dstar, std::vector<Trio1>& ws, double * dual, double * h){
+CoverManager::update_dual_pos( const double * dstar, std::vector<Trio1>& ws, double * dual, double * h){
     int idx;
     int size = ws.size();
     for(int n=size; n--;){
@@ -555,7 +572,7 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
 
 
 double
-CoverManager::recompute_mult_pos(double * dual, double * h,  double *rc, double step,
+CoverManager::recompute_mult_pos(double * dual, double * h,  double *rc,
                              const double * dstar, const double *xy, const int * actvS){
     if(covers.sizeOfCollection==0) return 0;
     int index, arc, idc, id_arc;
@@ -596,7 +613,7 @@ CoverManager::recompute_mult_pos(double * dual, double * h,  double *rc, double 
     }
     
     set_new_mult_pos(rc,  ws, dual, con_arcs, con_arcs_map, con_arcs_wnid);
-    double ret = update_dual_pos( step,  dstar,  ws, dual, h);
+    double ret = update_dual_pos(  dstar,  ws, dual, h);
     con_arcs_map.clear();
     con_arcs_wnid.clear();
     con_arcs.clear();
