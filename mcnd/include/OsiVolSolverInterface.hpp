@@ -23,8 +23,8 @@
 #include "CoinPackedMatrix.hpp"
 
 #include "OsiSolverInterface.hpp"
-#include <CoinWarmStartDual.hpp>
-
+#include "CoinWarmStartDual.hpp"
+#include "WarmStartDual.hpp"
 static const double OsiVolInfinity = 1.0e31;
 
 //#############################################################################
@@ -36,7 +36,7 @@ static const double OsiVolInfinity = 1.0e31;
  */
 
 class OsiVolSolverInterface : virtual public OsiSolverInterface,
-                             virtual public OsiBabSolver, public VOL_user_hooks {
+virtual public OsiBabSolver, public VOL_user_hooks {
     
     
 public:
@@ -400,7 +400,7 @@ private:
     //---------------------------------------------------------------------------
     /** An array to store the hotstart information between solveHotStart()
      calls */
-    double  *HotStart_;
+    const WarmStartDual *HotStart_;
     
     /// allocated size of the (dualized) row related rim vectors
     int maxNumrows_;
@@ -442,7 +442,7 @@ private:
     //---------------------------------------------------------------------------
     //  solving methods
     //---------------------------------------------------------------------------
-
+    
     double knapsack(int a, const double * rc, double*  x);
     
     //---------------------------------------------------------------------------
@@ -452,9 +452,6 @@ private:
     double arc_dg_imp(int arc, const double * xy, const double * h,  int actvSSz);
     int mark_topo( VOL_dvector& x, double lcost);
     void translate_primal(const VOL_dvector& xhist);
-
-
-
     
 public:
     void translate_sol();
@@ -479,19 +476,19 @@ public:
     double * VItopo;
     double * addrc;
     double * yhit;
-
+    
     int * arc_map;
     int * actv;
     int lim_to_remv, maxNumVI, intvlVI;
     
     CoverManager* cover_manager;
     CutSetManager* ss_manager;
-
+    int mode;
     
     /// The volume solver
     VOL_problem volprob_;
     VOL_problem* volprob() { return &volprob_; }
-
+    
 };
 
 

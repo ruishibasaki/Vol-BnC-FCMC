@@ -27,13 +27,15 @@ public:
     Pair2 *map;
     Cover *begin;
     Cover *end;
+    Cover *begin_actv;
+    Cover *end_actv;
     int newly_added;
     //--------------------------------------
     //  Construction/Destruction methods
     //---------------------------------------
     
     void initialize(int M);
-    inline CoverCollection():map(0),begin(0),end(0){
+    inline CoverCollection():map(0),begin(0),end(0), begin_actv(0), end_actv(0){
         discarted = sizeOfIdSeq = sizeOfMap = sizeOfCollection = newly_added=0; empty=true;}
     
     ~CoverCollection();
@@ -41,7 +43,7 @@ public:
     //--------------------------------------
     //  setter/getter methods
     //---------------------------------------
-    Cover * createNewCover(const std::deque<Pair2>& c, double mu, int id_vi, int id_owner_);
+    Cover * createNewCover(const std::deque<Pair2>& c, double mu, int id_vi, int id_owner_, int serial_num_);
     int addCover(Cover * tryC, const double * xystar);
     void replace(Cover * out, Cover * in);
     //--------------------------------------
@@ -49,7 +51,6 @@ public:
     //---------------------------------------
     int collected(Cover * tryC);
     int compScalar(Cover* c1, Cover* c2);
-    int check_maximal(Cover * tryC, const double * xystar);
     //--------------------------------------
     //  auxiliary methods
     //---------------------------------------
@@ -63,10 +64,10 @@ public:
     // modifying methods
     //--------------------------------------
     
-    int swap_toend_destruct(Cover * out, Cover *& ret);
+    int swap_toend_destruct(Cover * out, Cover *& ret, bool destruct);
     int removeCover(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu);
     Cover* swap_to_end(Cover * trgt);
-    void uncollect(Cover * trgt);
+    Cover* move_to_end(Cover * trgt);
 
 };
 
@@ -108,6 +109,7 @@ public:
     Cover* prev;
     CoverL * Lftd;
     int id_vi;
+    int serial_nmbr;
     int n_zerom;
     int n_nviol;
     
@@ -135,7 +137,7 @@ public:
     int get_total_sz()const;
     double get_total_rhs() const;
     //implemetn map
-    inline Cover(int M, int sz, int id_vi_, int id_owner_):size(sz), Lftd(0), next(0), prev(0), BCP_cut_algo(0, 1e40){
+    inline Cover(int M, int sz, int id_vi_, int id_owner_, int serial_nmbr_):size(sz), Lftd(0), next(0), prev(0), BCP_cut_algo(0, 1e40){
         C = new int[sz];
         id_seq = new unsigned int[M];
         for(;M--;)id_seq[M]=0;
@@ -147,7 +149,7 @@ public:
         id_owner = id_owner_;
         rhs_dimsh = 0.0;
         hs=0;
-        
+		serial_nmbr = serial_nmbr_;
     }
     inline ~Cover(){
         delete [] id_seq;

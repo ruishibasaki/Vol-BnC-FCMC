@@ -105,10 +105,10 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
                                          BCP_vec<double>& cut_new_bd){
     
     
-    std::cout<<"initialize_new_search_tree_node"<<std::endl;
+    std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
     MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
     if(nodedata!=0){
-        std::cout<<"user_data hotstart: "<<nodedata->hs<<std::endl;
+        //std::cout<<"user_data hotstart: "<<nodedata->hs<<std::endl;
         if(nodedata->hs!=0){
             getLpProblemPointer()->lp_solver->setWarmStart(nodedata->hs);
         }
@@ -160,7 +160,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
                               bool in_strong_branching){
     std::cout<<"modify lp param "<<changeType<<" "<<in_strong_branching<<" best_soln.cost: "<<best_soln.cost<<std::endl;
     lp->setDblParam(OsiPrimalTolerance, 1e-4);
-    OsiVolSolverInterface* vollp = dynamic_cast<OsiVolSolverInterface*>(lp);
+    OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = vollp->volprob_.parm;
     //par.maxsgriters = MaxIt;
     par.ubinit = best_soln.cost;
@@ -168,6 +168,8 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     if(!vollp->HotStartSet) par.maxsgriters = 500;
     else par.maxsgriters = 250;
     
+    if(in_strong_branching){ vollp->mode=0; }
+    else{ vollp->mode=1; }
     //if(in_strong_branching ){
     //  std::cout<<"setAuxiliaryInfo "<<lp->getAuxiliaryInfo()<<std::endl;
     //lp->setAuxiliaryInfo(new MCND_parent_branch_data());
@@ -218,7 +220,7 @@ MCND_lp::process_lp_result(const BCP_lp_result& lpres,
      delete [] xy;*/
     getLpProblemPointer()->user_has_lp_result_processing = false;
     return;
-    std::cout<<"process_lp_result and generate"<<std::endl;
+    /*std::cout<<"process_lp_result and generate"<<std::endl;
     getLpProblemPointer()->user_has_lp_result_processing = false;
     const double *y_vol = lpres.x();
     y.assign(y_vol, y_vol+data.narcs);
@@ -227,7 +229,7 @@ MCND_lp::process_lp_result(const BCP_lp_result& lpres,
     
     
     if(!((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf))
-        true_lower_bound = lpres.objval();
+        true_lower_bound = lpres.objval();*/
     
     
     
@@ -241,10 +243,11 @@ MCND_lp::generate_cuts_in_lp(const BCP_lp_result& lpres,
                              const BCP_vec<BCP_cut*>& cuts,
                              BCP_vec<BCP_cut*>& new_cuts,
                              BCP_vec<BCP_row*>& new_rows){
+    
     int sz = cover_manager.covers.sizeOfCollection;
     int newly_added = cover_manager.gend > sz? sz : cover_manager.gend;
     Cover *vi = cover_manager.covers.end;
-    std::cout<<"generate cuts: "<<newly_added<<" "<<sz<<std::endl;
+    std::cout<<"generate cuts: "<<newly_added<<" "<<sz<<" cutsvecsz: "<<cuts.size()<<std::endl;
     for(int i=newly_added;i--;){
         new_cuts.push_back(vi);
         vi = vi->prev;

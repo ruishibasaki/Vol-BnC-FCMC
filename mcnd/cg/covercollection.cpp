@@ -38,7 +38,7 @@ CoverCollection::initialize(int M){
     }
     newly_added=0;
     discarted=0;
-    end = begin =0;
+    begin_actv = end_actv = end = begin =0;
 }
 
 //----------------------------------------------------------------------------------
@@ -60,10 +60,10 @@ CoverCollection::~CoverCollection(){
 //------------------------------------------------------------------------------------
 
 Cover *
-CoverCollection::createNewCover(const std::deque<Pair2>& c, double mu,  int id_vi,  int id_owner_){
+CoverCollection::createNewCover(const std::deque<Pair2>& c, double mu,  int id_vi,  int id_owner_, int serial_num_){
     int arc;
     int csize =(int) c.size();
-    Cover * newC = new Cover(sizeOfIdSeq, csize,  id_vi, id_owner_);
+    Cover * newC = new Cover(sizeOfIdSeq, csize,  id_vi, id_owner_, serial_num_);
     
     for(int n=csize;n--;){
         arc = c[n].fst;
@@ -95,12 +95,14 @@ CoverCollection::addCover(Cover * tryC, const double * xystar){
         //if(ret) return 0;
         ++sizeOfCollection;
         if(empty){
-            end = begin = tryC;
+            begin_actv = end_actv = end = begin = tryC;
             empty=false;
         }else{
             tryC->prev = end;
             end->next= tryC;
             end = tryC;
+            end_actv->next= tryC;
+            end_actv = tryC;
         }
         return 1;
     }else return 0;
@@ -130,42 +132,6 @@ CoverCollection::replace(Cover * out, Cover * in){
 //----------------------------------------------------------------------------------
 //  VI methods
 //----------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------
-
-int
-CoverCollection::check_maximal(Cover * tryC, const double * xystar){
-    int vi1sz=0;
-    int vi2sz=0;
-    double avg1, avg2;
-    Cover* vi = begin;
-    for(int i=0;i<sizeOfCollection;++i){
-        if( vi->id_owner == tryC->id_owner ){
-            avg1 = 0;
-            avg2 = 0;
-            vi2sz = vi->get_total_sz();
-            vi1sz = tryC->get_total_sz();
-            
-            for(int n=0;n<vi1sz;++n){
-                avg1 += xystar[tryC->C[n]];
-            }
-            avg1 /= double(vi1sz);
-            for(int n=0;n<vi2sz;++n){
-                avg2 += xystar[vi->C[n]];
-            }
-            avg2 /= double(vi2sz);
-            if(vi1sz < vi2sz){
-                replace(vi, tryC);
-                return 1;
-            }else{
-                delete tryC;
-                return 2;
-            }
-        }
-        vi = vi->next;
-    }
-    return 0;
-}
-
 //------------------------------------------------------------------------------------
 
 int
@@ -283,6 +249,28 @@ CoverCollection::compScalar(Cover * c1, Cover * c2){
 //------------------------------------------------------------------------------------
 
 Cover*
+CoverCollection::move_to_end(Cover * trgt){
+	Cover * ret;
+    if(trgt == end ){
+        return 0;
+    }else if(trgt == begin){
+        trgt->next->prev = 0;
+        begin = trgt->next;
+    }else{
+     	trgt->next->prev = trgt->prev;
+     	trgt->prev->next = trgt->next;
+    }
+    ret = trgt->next;
+    trgt->next=0;
+    end->next = trgt;
+    trgt->prev=end;
+    end = trgt;
+    return ret; 
+}
+
+//------------------------------------------------------------------------------------
+
+Cover*
 CoverCollection::swap_to_end(Cover * trgt){
     if(trgt == end){return 0; }
     Cover * aux; Cover * ret;
@@ -309,7 +297,7 @@ CoverCollection::swap_to_end(Cover * trgt){
 //----------------------------------------------------------------------------------
 
 int
-CoverCollection::swap_toend_destruct(Cover * out, Cover *& ret){
+CoverCollection::swap_toend_destruct(Cover * out, Cover *& ret, bool destruct){
     Cover* new_end=0;
     int id;
     //std::cout<<"out: "<<out->id_vi<<" end: "<<end->id_vi<<std::endl;
@@ -330,7 +318,7 @@ CoverCollection::swap_toend_destruct(Cover * out, Cover *& ret){
     --sizeOfCollection;
     ++discarted;
     
-    delete end;
+    if(destruct) delete end;
     end = new_end;
     return id;
 }
@@ -351,7 +339,7 @@ CoverCollection::removeCover(int lim, int * actvS, int & actvSSz, double * pstar
         //std::cout<<"vi->id_vi: "<<vi->id_vi<<" "<<vi<<" "<<end<<" "<<vi->n_noviol<<" "<<idx_out<<std::endl;
         if(vi->n_nviol >= lim /*&& dualu[idx_out]<=0 */&& dstaru[idx_out]<=0){
             //std::cout<<"remove vi: "<<vi->id_vi<<" "<<idx_out<<std::endl;;
-            id_end = swap_toend_destruct(vi, ret);
+            id_end = swap_toend_destruct(vi, ret, true);
             if( id_end <0 ){
                 actvS[actvSSz-1]=-1;
                 dstaru[actvSSz-1] = 0;
@@ -392,31 +380,6 @@ CoverCollection::removeCover(int lim, int * actvS, int & actvSSz, double * pstar
 }
 
 //------------------------------------------------------------------------------------
-
-void
-CoverCollection::uncollect(Cover * trgt){
-    --sizeOfCollection;
-    if(trgt == end && trgt!=begin){
-        trgt->prev->next = 0;
-        end = trgt->prev;
-        return;
-    }else if(trgt == begin && trgt!=end){
-        trgt->next->prev = 0;
-        begin = trgt->next;
-        return;
-    }else if(trgt == begin && trgt == end){
-        begin = end = 0;
-        empty = true;
-        return;
-    }
-    trgt->next->prev = trgt->prev;
-    trgt->prev->next = trgt->next;
-    trgt->next=0;
-    trgt->prev=0;
-    
-}
-
-//------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
 //  auxiliary methods
 //----------------------------------------------------------------------------------
@@ -425,7 +388,7 @@ CoverCollection::uncollect(Cover * trgt){
 Cover*
 CoverCollection::operator[](int n){
     if(n>=sizeOfCollection){std::cout<<"PROBLEM::CoverCollection::operator[]   n>=sizeOfCollection "<<std::endl; return 0;}
-    Cover* C = begin;
+    Cover* C = begin_actv;
     for(int i=1;i<=n;++i)
         C = C->next;
     return C;
@@ -436,7 +399,7 @@ CoverCollection::operator[](int n){
 const void
 CoverCollection::advance(Cover*& C, int n){
     if(n>sizeOfCollection) return;
-    C = begin;
+    C = begin_actv;
     for(int i=1;i<=n;++i)
         C = C->next;
 }
@@ -536,7 +499,7 @@ Cover::gamma_at(int pos) const{
 void
 Cover::get_total_sz_rhs(int & sz, double &rhs) const{
     sz = size;
-    rhs = rhs;
+    rhs = rhs- rhs_dimsh;
     if(hasLftd){
         sz += Lftd->size;
         rhs += Lftd->ttgamma1;

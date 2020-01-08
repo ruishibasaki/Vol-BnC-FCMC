@@ -35,6 +35,8 @@ public:
     CoverManager cover_manager;
     CutSetManager ss_manager;
     
+    CoverCollection coverpool;
+
     std::vector<double> y;
     std::vector<double> freq;
     std::vector<int> freq_cand;
@@ -48,7 +50,7 @@ public:
     int MaxIt;
     
 public:
-    MCND_lp() : best_LB(0) {}
+    MCND_lp() : best_LB(0), cut_off(false) {}
     ~MCND_lp() {y.clear(); freq.clear(); freq_cand.clear(); }
     
     //--------------------------------------------------------------------------

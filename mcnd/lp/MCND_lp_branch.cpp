@@ -63,40 +63,33 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 				   BCP_vec<BCP_lp_branching_object*>& cands,
 				   bool force_branch){
     
-    std::cout<<"select_branching_candidates"<<std::endl;
 	LBi = lpres.objval();
     //return BCP_DoNotBranch_Fathomed;
 
     if(current_level() == 1){
         return BCP_DoNotBranch_Fathomed;
-
 	}
 	
+
 	
 	if(LBi<0 || LBi>best_soln.cost){
 		std::cout<<"LBi<0 || LBi>best_UB"<<std::endl;
 		return BCP_DoNotBranch_Fathomed;
 	}
-	
+		    std::cout<<"select_branching_candidates"<<std::endl;
+
 	if(cut_off){
 		std::cout<<"test cut off"<<std::endl;
 		return BCP_DoNotBranch_Fathomed;
 	}
+	std::cout<<"ok"<<std::endl;
 	
-
     OsiVolSolverInterface * s = getOsiVolBabSolver();
     MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
-    
     freq.assign(data.narcs,0.0);
     double div = s->getIterationCount();
-   // std::cout<<"div: "<<div<<" freq: "<<freq[201]<<" "<<freq[139]<<" "<<freq[89]<<" "<<freq[216]<<std::endl;
-    if(nodedata!=0){
-        //for(int a=data.narcs; a--;){ freq[a] += nodedata->hist[a];}
-           // if(nodedata->hist[a])std::cout<<"ahist: "<<a<<" "<<nodedata->hist[a]std::endl; }
-        div= 1;
-    }
-    //std::cout<<"div: "<<div<<" freq: "<<freq[201]<<" "<<freq[139]<<" "<<freq[89]<<" "<<freq[216]<<std::endl;
-
+    if(div==0) div=1;
+    
 	BCP_vec<double> vbd(4, 0.0);
     BCP_vec<int> vpos(1, 0);
     const double * psol = lpres.x();
@@ -106,13 +99,12 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
         freq[a] /= div;  if(freq[a] > 1.0) freq[a] = 1.0;
 		if(vars[a]->lb()==0 && vars[a]->ub()==1){
 			order.push_back(HeapCell(a,freq[a]));
-			
 		}
 	}
 	order.sort(comp());
 	int arc;
 	int ncands=0;
-	while(!order.empty() && ncands<4){
+	while(!order.empty() && ncands<1){
 		arc = order.back().k;
         order.pop_back();
         ++freq_cand[arc];
@@ -295,12 +287,12 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     const BCP_lp_result & child1  = best->lpres(1);
     
     MCND_node_branch_data * cdata;
-    //stock  for further investigation
-
+    //stock  for further investigation WarmStartDual(getNumRows(), dual, actv);
+	int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[0]);
-    cdata->hs = new CoinWarmStartDual(data.ndemands*data.nnodes, child0.pi());
+    cdata->hs = new CoinWarmStartDual(sz, child0.pi());
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
-    cdata->hs = new CoinWarmStartDual(data.ndemands*data.nnodes, child1.pi());
+    cdata->hs = new CoinWarmStartDual(sz, child1.pi());
     
     //best->user_data().push_back();
 

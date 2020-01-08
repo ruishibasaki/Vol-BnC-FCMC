@@ -22,17 +22,19 @@ public:
     const int * arc_map;
     Lift coverlift;
     CoverCollection covers;
+    int num_actv;
     int lim_to_remv;
     int gend;
+    int ttgend;
     
     //-------------------------------------------------------------------------------------------
     //  initializing methods
     //-------------------------------------------------------------------------------------------
     
-    inline CoverManager(): data(0), arc_map(0){ lim_to_remv = gend =0;}
+    inline CoverManager(): data(0), arc_map(0){ num_actv = lim_to_remv = gend =0;}
     inline void set_arc_map(const int * map){ arc_map = map;}
     void initialize(const Data * d, int lim);
-    void reset_and_map_collection(int fsize, const double* topo, int * actvS, int & csize);
+    void reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize);
     //-------------------------------------------------------------------------------------------
     //  main methods
     //-------------------------------------------------------------------------------------------
@@ -65,6 +67,7 @@ public:
     //-------------------------------------------------------------------------------------------
     
     bool checkViol(const Cover * c, const double *y);
+    bool check_updt_Viol(Cover * c, const double *y);
     bool check_viol_rc(const Cover * c, const double *rc);
     
     //-------------------------------------------------------------------------------------------
