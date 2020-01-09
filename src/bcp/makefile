@@ -158,7 +158,14 @@ includebcp_HEADERS = \
 	include/BCP_warmstart.hpp
 	
 
-libBcp_suffix =  $(libBcpcg_suffix) $(libBcptm_suffix) $(libBcpvg_suffix) $(libBcpm_suffix) $(libBcplp_suffix)
+libBcp_o =  $(bcpcg_o) $(bcptm_o) $(bcpvg_o) $(bcpm_o) $(bcplp_o)
+
+bcpcg_o= $(libBcpcg_suffix:%=build/%.o)
+bcptm_o= $(libBcptm_suffix:%=build/%.o)
+bcpvg_o= $(libBcpvg_suffix:%=build/%.o)
+bcpm_o= $(libBcpm_suffix:%=build/%.o)
+bcplp_o= $(libBcplp_suffix:%=build/%.o)
+
 LINK = -Wl,-rpath,../../lib -L../../lib -lCoinUtils -lOsi 
 
 COININC = -I../CoinUtils/include/ -I../CoinUtils/config/
@@ -173,32 +180,31 @@ OSIINC = -I../Osi/include/
 #SHARED LIBRARY
 libBcp_ = ../../lib/libBcp.so
 
-BCPOBJ = $(libBcp_suffix:%=build/%.o)
 BCPINC = -Iinclude/ -Iconfig/
 BCPH   = $(includebcp_HEADERS)
 
 # dependencies: every .o from its .C + every recursively included .h- - - - -
 
-all: $(libBcp_suffix)  $(libBcp_) 
+all: $(libBcp_o)  $(libBcp_) 
 
-$(libBcpcg_suffix):
-	g++ -fPIC -c cg/$@.cpp -o build/$@.o $(COININC) $(OSIINC) $(BCPINC) -O3
+$(bcpcg_o): build/%.o: cg/%.cpp
+	g++ -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
 
-$(libBcpvg_suffix):
-	g++ -fPIC -c vg/$@.cpp -o build/$@.o $(COININC) $(OSIINC) $(BCPINC) -O3
+$(bcpvg_o): build/%.o: vg/%.cpp
+	g++ -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
 
-$(libBcptm_suffix):
-	g++ -fPIC -c tm/$@.cpp -o build/$@.o $(COININC) $(OSIINC) $(BCPINC) -O3
+$(bcptm_o): build/%.o: tm/%.cpp
+	g++ -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
 	
-$(libBcpm_suffix):
-	g++ -fPIC -c member/$@.cpp -o build/$@.o $(COININC) $(OSIINC) $(BCPINC) -O3
+$(bcpm_o): build/%.o: member/%.cpp
+	g++ -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
 	
-$(libBcplp_suffix):
-	g++ -fPIC -c lp/$@.cpp -o build/$@.o $(COININC) $(OSIINC) $(BCPINC) -O3
+$(bcplp_o): build/%.o: lp/%.cpp
+	g++ -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
 	
 #SHARED LIBRARY
-$(libBcp_):
-	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libBcp.so -o $@ $(LINK) $(BCPOBJ)
+$(libBcp_): clean_exe
+	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libBcp.so -o $@ $(LINK) $(libBcp_o)
 
 # STATIC LIBRARY
 #$(libCoinUtils_): $(COINOBJ)
@@ -207,5 +213,7 @@ $(libBcp_):
 clean::
 	rm -f build/*.o build/*~ ../../lib/libBcp.so
 
+clean_exe:
+	rm -f ../../lib/libBcp.so
 
 ############################ End of makefile #################################

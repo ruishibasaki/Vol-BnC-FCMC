@@ -37,7 +37,8 @@ suffix_member =\
 	MCND_data	\
 	MCND_init	\
 	MCND_solution \
-	MCND_branch_score
+	MCND_branch_score \
+        WarmStartDual
 
 suffix_solver = OsiVolSolverInterface VolVolume
 	

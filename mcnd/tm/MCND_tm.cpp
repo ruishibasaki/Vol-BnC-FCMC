@@ -196,7 +196,7 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 			n = dynamic_cast<BCP_tm_node*>(*add);
             user_data =  dynamic_cast<MCND_node_branch_data*>(n->_data._user.GetRawPtr());
             (*add)->setQuality(-user_data->score);
-			std::cout<<n->getQuality()<<std::endl;
+			//std::cout<<n->getQuality()<<std::endl;
 			if(n->status > BCP_PrunedNode_Discarded ||
 			   n->status < BCP_PrunedNode_OverUB){
 				t->push(1, add);

@@ -12,10 +12,12 @@ class MCND_packer : public BCP_user_pack {
 
 public:
 
-    virtual void 
-    pack_user_data(const BCP_user_data* ud, BCP_buffer& buf);
-    virtual BCP_user_data* 
-    unpack_user_data(BCP_buffer& buf);
+    virtual void pack_user_data(const BCP_user_data* ud, BCP_buffer& buf);
+    virtual BCP_user_data* unpack_user_data(BCP_buffer& buf);
+    
+    virtual void pack_cut_algo(const BCP_cut_algo* cut, BCP_buffer& buf);
+    virtual BCP_cut_algo* unpack_cut_algo(BCP_buffer& buf);
+    
    
 };
 

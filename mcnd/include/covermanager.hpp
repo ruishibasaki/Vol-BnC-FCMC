@@ -35,6 +35,7 @@ public:
     inline void set_arc_map(const int * map){ arc_map = map;}
     void initialize(const Data * d, int lim);
     void reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize);
+    void clean_collection();
     //-------------------------------------------------------------------------------------------
     //  main methods
     //-------------------------------------------------------------------------------------------

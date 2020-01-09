@@ -70,7 +70,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
         return BCP_DoNotBranch_Fathomed;
 	}
 	
-
+	
 	
 	if(LBi<0 || LBi>best_soln.cost){
 		std::cout<<"LBi<0 || LBi>best_UB"<<std::endl;
@@ -82,8 +82,12 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 		std::cout<<"test cut off"<<std::endl;
 		return BCP_DoNotBranch_Fathomed;
 	}
-	std::cout<<"ok"<<std::endl;
 	
+	if(local_cut_pool.size() > 0) {
+    	std::cout << "returns BCP_DoNotBranch: "<<local_cut_pool.size()<< std::endl;
+    	return BCP_DoNotBranch; 	
+  	}	
+  	
     OsiVolSolverInterface * s = getOsiVolBabSolver();
     MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
     freq.assign(data.narcs,0.0);
@@ -318,39 +322,4 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best)
   std::cout<<" 0-side BCP_FathomChild/BCP_ReturnChild "<<childs_action[0]<<std::endl;
 }
 
-//#############################################################################
-//#############################################################################
-//=============================================================================
-
-void
-MCND_lp::select_vars_to_delete(const BCP_lp_result& lpres,
-				   const BCP_vec<BCP_var*>& vars,
-				   const BCP_vec<BCP_cut*>& cuts,
-				   const bool before_fathom,
-				   BCP_vec<int>& deletable)
-{
-	//std::cout<<"slect vars"<<std::endl;
-    //select_vars_to_delete(lpres,vars,cuts,before_fathom, deletable);
-}
-
-//=============================================================================
-
-void
-MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
-				   const BCP_vec<BCP_var*>& vars,
-				   const BCP_vec<BCP_cut*>& cuts,
-				   const bool before_fathom,
-				   BCP_vec<int>& deletable)
-{
-	//std::cout<<"slect cuts"<<std::endl;
-    //select_cuts_to_delete(lpres,vars,cuts,before_fathom, deletable);
-}
-
-void
-MCND_lp::purge_slack_pool(const BCP_vec<BCP_cut*>& slack_pool,
-		     BCP_vec<int>& to_be_purged){
-				 
-	//std::cout<<"try to purge"<<std::endl;	 
-				 
-}
 

@@ -311,7 +311,6 @@ void BCP_lp_send_cuts_to_cp(BCP_lp_prob& p, const int eff_cnt_limit)
 	! cut->dont_send_to_pool())
       ++cnt;
   }
-
   if (cnt > 0){
     BCP_buffer& buf = p.msg_buf;
     buf.clear();

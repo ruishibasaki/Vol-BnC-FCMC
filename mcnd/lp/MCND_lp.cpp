@@ -113,7 +113,6 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
             getLpProblemPointer()->lp_solver->setWarmStart(nodedata->hs);
         }
     }
-    
 }
 
 //-------------------------------------------------------------------------------------------
@@ -141,7 +140,20 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
                       BCP_var_set& vars, BCP_cut_set& cuts){
     
     std::cout<<"load problem "<<core->varnum()<<" "<<cuts.size()<<std::endl;
-    
+    cover_manager.clean_collection();
+    int cutnum = cuts.size();
+  	int core_rownum = core->cutnum();
+  	if (cutnum > core_rownum){
+  		for(int i=core_rownum; i<cutnum;++i){
+  			CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
+  			if(cut){
+  				cover_manager.covers.insert(cut->get_cover());
+  				std::cout<<"id_vi: "<<cut->get_cover()->serial_nmbr<<std::endl;
+  			}
+  			else std::cout<<"load_problem::problem"<<std::endl;
+  		}
+  	}
+
     osi.setApplicationData( &AppVolData);
     osi.loadProblem(core->varnum(), core->cutnum(),
                     0, 0, /*const int* start, const int* index*/
@@ -169,6 +181,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     else par.maxsgriters = 250;
     
     if(in_strong_branching){ vollp->mode=0; }
+    else if(changeType==1 && !in_strong_branching){ vollp->mode=-1;}
     else{ vollp->mode=1; }
     //if(in_strong_branching ){
     //  std::cout<<"setAuxiliaryInfo "<<lp->getAuxiliaryInfo()<<std::endl;
@@ -249,7 +262,7 @@ MCND_lp::generate_cuts_in_lp(const BCP_lp_result& lpres,
     Cover *vi = cover_manager.covers.end;
     std::cout<<"generate cuts: "<<newly_added<<" "<<sz<<" cutsvecsz: "<<cuts.size()<<std::endl;
     for(int i=newly_added;i--;){
-        new_cuts.push_back(vi);
+        new_cuts.push_back(new CoverCut(vi));
         vi = vi->prev;
     }
 }
@@ -272,8 +285,46 @@ MCND_lp::cuts_to_rows(const BCP_vec<BCP_var*>& vars,
         rows.push_back(row);
     }
 }
+//#############################################################################
+//#############################################################################
+//=============================================================================
+
+void
+MCND_lp::select_vars_to_delete(const BCP_lp_result& lpres,
+				   const BCP_vec<BCP_var*>& vars,
+				   const BCP_vec<BCP_cut*>& cuts,
+				   const bool before_fathom,
+				   BCP_vec<int>& deletable){
+	std::cout<<"slect vars"<<std::endl;
+    BCP_lp_user::select_vars_to_delete(lpres,vars,cuts,before_fathom, deletable);
+}
 
 //-------------------------------------------------------------------------------------------
+
+void
+MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
+				   const BCP_vec<BCP_var*>& vars,
+				   const BCP_vec<BCP_cut*>& cuts,
+				   const bool before_fathom,
+				   BCP_vec<int>& deletable){
+	std::cout<<"slect cuts"<<std::endl;
+	cover_manager.gend=0;
+    BCP_lp_user::select_cuts_to_delete(lpres,vars,cuts,before_fathom, deletable);
+}
+
+//-------------------------------------------------------------------------------------------
+
+void
+MCND_lp::purge_slack_pool(const BCP_vec<BCP_cut*>& slack_pool,
+		     BCP_vec<int>& to_be_purged){
+				 
+	std::cout<<"try to purge"<<std::endl;	 
+	BCP_lp_user::purge_slack_pool(slack_pool, to_be_purged);	 
+}
+
+//#############################################################################
+//#############################################################################
+//=============================================================================
 
 BCP_solution*
 MCND_lp::test_feasibility(const BCP_lp_result& lp_result,

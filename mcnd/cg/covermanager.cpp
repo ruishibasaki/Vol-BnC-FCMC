@@ -51,6 +51,16 @@ CoverManager::reset_and_map_collection(int fsize, const double* topo, double * d
 }
 
 //-------------------------------------------------------------------------------------------
+
+void
+CoverManager::clean_collection(){
+	covers.begin = covers.end = 0;
+	covers.sizeOfCollection = covers.discarted = 0;
+	covers.empty = true;
+	 num_actv = gend = 0;
+}
+
+//-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 //  main methods
 //-------------------------------------------------------------------------------------------

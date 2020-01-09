@@ -14,6 +14,7 @@
 #include <deque>
 #include <list>
 
+#include "MCND_cut.hpp"
 #include "MCND_data.hpp"
 #include "MCND_osidata.hpp"
 #include "MCND_solution.hpp"

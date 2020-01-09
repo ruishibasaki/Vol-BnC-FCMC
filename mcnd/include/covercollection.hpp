@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include "Structures.hpp"
 #include "UtilsMethods.hpp"
-#include "BCP_cut.hpp"
 
 
 class CoverVI;
@@ -27,15 +26,14 @@ public:
     Pair2 *map;
     Cover *begin;
     Cover *end;
-    Cover *begin_actv;
-    Cover *end_actv;
+    
     int newly_added;
     //--------------------------------------
     //  Construction/Destruction methods
     //---------------------------------------
     
     void initialize(int M);
-    inline CoverCollection():map(0),begin(0),end(0), begin_actv(0), end_actv(0){
+    inline CoverCollection():map(0),begin(0),end(0){
         discarted = sizeOfIdSeq = sizeOfMap = sizeOfCollection = newly_added=0; empty=true;}
     
     ~CoverCollection();
@@ -45,6 +43,7 @@ public:
     //---------------------------------------
     Cover * createNewCover(const std::deque<Pair2>& c, double mu, int id_vi, int id_owner_, int serial_num_);
     int addCover(Cover * tryC, const double * xystar);
+    void insert(Cover * tryC);
     void replace(Cover * out, Cover * in);
     //--------------------------------------
     //  VI methods
@@ -103,7 +102,7 @@ public:
 //=================================================================================================
 
 
-class Cover : public BCP_cut_algo{
+class Cover{
 public:
     Cover* next;
     Cover* prev;
@@ -137,7 +136,7 @@ public:
     int get_total_sz()const;
     double get_total_rhs() const;
     //implemetn map
-    inline Cover(int M, int sz, int id_vi_, int id_owner_, int serial_nmbr_):size(sz), Lftd(0), next(0), prev(0), BCP_cut_algo(0, 1e40){
+    inline Cover(int M, int sz, int id_vi_, int id_owner_, int serial_nmbr_):size(sz), Lftd(0), next(0), prev(0){
         C = new int[sz];
         id_seq = new unsigned int[M];
         for(;M--;)id_seq[M]=0;
@@ -157,7 +156,5 @@ public:
         if(hasLftd) delete Lftd;
     }
 };
-
-
 
 #endif /* covervi_hpp */

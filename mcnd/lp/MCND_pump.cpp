@@ -11,8 +11,8 @@ Pump::Pump(const Topology * t, const Data * d) :
 	cplex(env),
 	x(env), y(env),
 	flow_row(env), capa_row(env), strong_row(env),
-	model(0)
-{
+	model(0){
+	
 	topo = t;
 	data = d;
 	nnodes = data->nnodes;

@@ -45,11 +45,14 @@ bool
 OsiVolSolverInterface::setWarmStart(const CoinWarmStart* warmstart){
 	
     HotStart_ = dynamic_cast<const WarmStartDual*>(warmstart);
-
+	
     if (! HotStart_){
-    	HotStart_ = 0;
-    	HotStartSet = false;
-        return false;
+        const CoinWarmStartDual* hs = dynamic_cast<const CoinWarmStartDual*>(warmstart);
+        if(!hs){
+        	HotStartSet = false;
+        	return false;
+        }
+    	HotStart_ = new WarmStartDual(hs);
     }
     std::cout<<"setWarmStart "<<HotStart_->size()<<" "<<getNumRows()<<std::endl;
 
@@ -225,7 +228,7 @@ OsiVolSolverInterface::map_duals(){
 
 void
 OsiVolSolverInterface::set_start(){
-    std::cout<<"OsiVolSolverInterface::set_start"<<std::endl;
+    std::cout<<"OsiVolSolverInterface::set_start "<<std::endl;
     int idx, sz;
     int fidx = ndemands*nnodes;
     volprob_.dsol = 0.0;
@@ -276,6 +279,8 @@ OsiVolSolverInterface::initialSolve(){
 
 void
 OsiVolSolverInterface::resolve(){
+	if(mode==-1) return;
+	std::cout<<"mode: "<<mode<<std::endl;
     int i;
     map_duals();
     volprob_.active_size = fsize + csize;

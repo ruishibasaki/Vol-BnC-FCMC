@@ -261,6 +261,8 @@ struct BCP_lp_par{
 	  this parameter will be set differently. <br>
 	  Values: . Default: 100,000. */
       MaxPresolveIter,
+       
+      MaxResolveIter,
       /** Specifies how many branching variables with values close to half
 	  between two integers should be chosen by the built-in branching
 	  variable selection routine

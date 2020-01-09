@@ -27,6 +27,7 @@ MCND_packer::pack_user_data(const BCP_user_data* ud, BCP_buffer& buf){
 
 }
     
+//-----------------------------------------------------------------------------
 
 BCP_user_data* 
 MCND_packer::unpack_user_data(BCP_buffer& buf){
@@ -37,6 +38,24 @@ MCND_packer::unpack_user_data(BCP_buffer& buf){
 	 return user;
 }
 
+//-----------------------------------------------------------------------------
+
+void 
+MCND_packer::pack_cut_algo(const BCP_cut_algo* cut, BCP_buffer& buf){
+	//std::cout<<"pack_cut_algo:"<<std::endl;
+	const CoverCut * c = dynamic_cast<const CoverCut *>(cut);
+	c->pack(buf);
+}
+
+//-----------------------------------------------------------------------------
+
+BCP_cut_algo* 
+MCND_packer::unpack_cut_algo(BCP_buffer& buf){
+	//std::cout<<"unpack_cut_algo:"<<std::endl;
+	CoverCut* cut= new CoverCut();
+	cut->unpack(buf);
+	return cut;
+}
 
 
 //#############################################################################
@@ -68,6 +87,8 @@ BCP_lp_user *
 MCND_initialize::lp_init(BCP_lp_prob& p){
 	
    MCND_lp* lp = new MCND_lp;
+   p.par.set_entry(BCP_lp_par::LpVerb_GeneratedCutCount, true);
+   p.par.set_entry(BCP_lp_par::LpVerb_CutsToCutPoolCount, true);
    p.par.set_entry(BCP_lp_par::LpVerb_PresolveResult, false);
    p.par.set_entry(BCP_lp_par::LpVerb_StrongBranchResult, false);
    p.par.set_entry(BCP_lp_par::LpVerb_ChildrenInfo, false);
@@ -77,6 +98,9 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
    p.par.set_entry(BCP_lp_par::ReportWhenDefaultIsExecuted , false);
    p.par.set_entry(BCP_lp_par::WarmstartInfo, BCP_WarmstartParent);
    p.par.set_entry(BCP_lp_par::MessagePassingIsSerial, true);
+   p.par.set_entry(BCP_lp_par::MaxCutsAddedPerIteration, 1000);
+   p.par.set_entry(BCP_lp_par::MaxResolveIter, 1 );
+   
    return lp;
 }
 

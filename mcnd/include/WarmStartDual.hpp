@@ -19,18 +19,14 @@ public:
     
     //---------------------
     inline WarmStartDual():map(0), dual_(0){};
-    inline WarmStartDual(int size, const double* dual, const int* actv):CoinWarmStartDual(size, dual){
-        if(size>0) map = new int [size];
-        for(int i=size; i--;) map[i] = actv[i];
-        dual_ = CoinWarmStartDual::dual();
-    }
+    WarmStartDual(int size, const double* dual, const int* actv);
+    WarmStartDual(const CoinWarmStartDual* wsd);
+    
     inline ~WarmStartDual(){ if(map) delete [] map;}
     
-    inline double at(int n) const{
-        if(map==0 || CoinWarmStartDual::size()==0) return 0;
-        if(map[n]<0) return 0;
-        return dual_[map[n]];
-    }
+    //---------------------
+
+    double at(int n) const;
 };
 
 

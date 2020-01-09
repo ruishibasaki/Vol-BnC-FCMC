@@ -38,7 +38,7 @@ CoverCollection::initialize(int M){
     }
     newly_added=0;
     discarted=0;
-    begin_actv = end_actv = end = begin =0;
+    end = begin =0;
 }
 
 //----------------------------------------------------------------------------------
@@ -93,21 +93,26 @@ CoverCollection::addCover(Cover * tryC, const double * xystar){
     else if(ret==0){
         //ret = check_maximal(tryC , xystar);
         //if(ret) return 0;
-        ++sizeOfCollection;
-        if(empty){
-            begin_actv = end_actv = end = begin = tryC;
-            empty=false;
-        }else{
-            tryC->prev = end;
-            end->next= tryC;
-            end = tryC;
-            end_actv->next= tryC;
-            end_actv = tryC;
-        }
+        insert(tryC);
         return 1;
     }else return 0;
 
     
+}
+
+//----------------------------------------------------------------------------------
+
+void 
+CoverCollection::insert(Cover * tryC){
+	++sizeOfCollection;
+	if(empty){
+		end = begin = tryC;
+		empty=false;
+	}else{
+		tryC->prev = end;
+		end->next= tryC;
+		end = tryC;
+	}
 }
 
 //----------------------------------------------------------------------------------
@@ -388,7 +393,7 @@ CoverCollection::removeCover(int lim, int * actvS, int & actvSSz, double * pstar
 Cover*
 CoverCollection::operator[](int n){
     if(n>=sizeOfCollection){std::cout<<"PROBLEM::CoverCollection::operator[]   n>=sizeOfCollection "<<std::endl; return 0;}
-    Cover* C = begin_actv;
+    Cover* C = begin;
     for(int i=1;i<=n;++i)
         C = C->next;
     return C;
@@ -399,7 +404,7 @@ CoverCollection::operator[](int n){
 const void
 CoverCollection::advance(Cover*& C, int n){
     if(n>sizeOfCollection) return;
-    C = begin_actv;
+    C = begin;
     for(int i=1;i<=n;++i)
         C = C->next;
 }
