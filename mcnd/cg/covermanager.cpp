@@ -673,7 +673,7 @@ CoverManager::compute_cover_sg( const double * x, const int * actvS, int actvSSz
     CoverL *lifted;
     for(int n=0;n<sz;++n){
         index = actvS[vi->id_vi];
-        
+
         v[index] = vi->get_total_rhs();
         for(int a=vi->get_total_sz();a--;){
             id_arc = arc_map[vi->at(a)];

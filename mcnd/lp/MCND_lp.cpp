@@ -148,12 +148,12 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
   			CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
   			if(cut){
   				cover_manager.covers.insert_front(cut->get_cover());
-  				std::cout<<"id_vi: "<<cut->get_cover()->serial_nmbr<<std::endl;
+  				//std::cout<<"id_vi: "<<cut->get_cover()->serial_nmbr<<std::endl;
   			}
   			else std::cout<<"load_problem::problem"<<std::endl;
   		}
   	}
-
+	
     osi.setApplicationData( &AppVolData);
     osi.loadProblem(core->varnum(), core->cutnum(),
                     0, 0, /*const int* start, const int* index*/
@@ -170,13 +170,13 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
 void 
 MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
                               bool in_strong_branching){
-    std::cout<<"modify lp param "<<changeType<<" "<<in_strong_branching<<" best_soln.cost: "<<best_soln.cost<<std::endl;
+    std::cout<<"modify lp param "<<changeType<<" "<<in_strong_branching<<" iter: "<<current_level()<<std::endl;
     lp->setDblParam(OsiPrimalTolerance, 1e-4);
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = vollp->volprob_.parm;
-    //par.maxsgriters = MaxIt;
+	
     par.ubinit = best_soln.cost;
-    
+    if(current_level()>0) AppVolData.intvlVI = 100;
     if(!vollp->HotStartSet) par.maxsgriters = 500;
     else par.maxsgriters = 250;
     
@@ -295,7 +295,7 @@ MCND_lp::select_vars_to_delete(const BCP_lp_result& lpres,
 				   const BCP_vec<BCP_cut*>& cuts,
 				   const bool before_fathom,
 				   BCP_vec<int>& deletable){
-	std::cout<<"slect vars"<<std::endl;
+	//std::cout<<"slect vars"<<std::endl;
     BCP_lp_user::select_vars_to_delete(lpres,vars,cuts,before_fathom, deletable);
 }
 
@@ -307,7 +307,7 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 				   const BCP_vec<BCP_cut*>& cuts,
 				   const bool before_fathom,
 				   BCP_vec<int>& deletable){
-	std::cout<<"slect cuts"<<std::endl;
+	//std::cout<<"slect cuts"<<std::endl;
 	cover_manager.gend=0;
     BCP_lp_user::select_cuts_to_delete(lpres,vars,cuts,before_fathom, deletable);
 }
@@ -318,7 +318,7 @@ void
 MCND_lp::purge_slack_pool(const BCP_vec<BCP_cut*>& slack_pool,
 		     BCP_vec<int>& to_be_purged){
 				 
-	std::cout<<"try to purge"<<std::endl;	 
+	//std::cout<<"try to purge "<<slack_pool.size()<<std::endl;	 
 	BCP_lp_user::purge_slack_pool(slack_pool, to_be_purged);	 
 }
 
