@@ -119,7 +119,7 @@ OsiVolSolverInterface::translate_sol(){
     for(int i=cidx; i-- ;){
         idx = actv[i];
         if(idx>=0){
-            if(i>=ndemands*nnodes) std::cout<<i<<": "<<volprob_.dsol[idx]<<std::endl;
+            //if(i>=ndemands*nnodes) std::cout<<i<<": "<<volprob_.dsol[idx]<<std::endl;
             dual[i] = volprob_.dsol[idx];
             lhs_[i] = volprob_.viol[idx];
         }else{
@@ -163,26 +163,27 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
     nz_arcs.clear();
     szopnd=0;
     szunfxd=0;
-    for(int a=data->narcs;a--;){
-        if(collb[a] == 1){
-            nz_arcs.push_front(a);
-            arc_map[a] = -2;
-            VItopo[a] =  yhit[a] = 1.0;
+    for(int arc=data->narcs;arc--;){
+        if(collb[arc] == 1){
+            nz_arcs.push_back(arc);
+            arc_map[arc] = -2;
+            VItopo[arc] =  yhit[arc] = 1.0;
             ++szopnd;
-            std::cout<<"opened arc: "<<a<<std::endl;
+            std::cout<<"opened arc: "<<arc<<std::endl;
             continue;
-        }else if(colub[a] == 1){
-            arc_map[a] = szunfxd++;
-            nz_arcs.push_back(a);
+        }else if(colub[arc] == 1){
+            arc_map[arc] = szunfxd++;
+            nz_arcs.push_front(arc);
+            std::cout<<"unfix: "<<arc<<" idx: "<<arc_map[arc]<<std::endl;
         }else{
-            std::cout<<"closed arc: "<<a<<std::endl;
-            arc_map[a] = -1;
+            std::cout<<"closed arc: "<<arc<<std::endl;
+            arc_map[arc] = -1;
         }
-        VItopo[a] = yhit[a] = 0.0;
+        VItopo[arc] = yhit[arc] = 0.0;
     }
     sznz = nz_arcs.size();
     cover_manager->set_arc_map(arc_map);
-    //std::cout<<"ok"<<std::endl;
+    
 }
 
 //---------------------------------------------------------------------------
@@ -222,8 +223,8 @@ OsiVolSolverInterface::map_duals(){
     }
     if(cover_manager->reset_and_map_collection(fsize, VItopo, dual, actv, csize))
     	HotStartSet =false;
-    std::cout<<"OsiVolSolverInterface::map_duals"<<std::endl;
-
+    
+    //std::cout<<"ok"<<std::endl;
 }
 
 //---------------------------------------------------------------------------
@@ -369,7 +370,6 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
         VIub=-1e31;
     }
     
-    
     if(lcost >= VItt ){
         VItt = lcost;
         if(iter<100) return 0;
@@ -400,7 +400,8 @@ int
 OsiVolSolverInterface::compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int actvSSz){
     const Arc* item;
     int arc;
-    for(int a=szopnd; a<sznz;++a){
+
+    for(int a=szunfxd; a--;){
         arc = nz_arcs[a];
         item = &data->arcs[arc];
         rc[a] = item->f;
@@ -409,13 +410,14 @@ OsiVolSolverInterface::compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int 
             rc[szunfxd + k*sznz + a] = item->c[k] - dual[actv[k*nnodes + item->j-1]] + dual[actv[k*nnodes + item->i-1]];
         }
     }
-    for(int a=szopnd; a--;){
+    for(int a=szunfxd; a<sznz;++a){
         arc = nz_arcs[a];
         item = &data->arcs[arc];
         for(int k=ndemands; k-- ;){
             rc[szunfxd + k*sznz + a] = item->c[k] - dual[actv[k*nnodes + item->j-1]] + dual[actv[k*nnodes + item->i-1]];
         }
     }
+
     B0=0;
     for(int k=0; k<data->ndemands; ++k){
         B0 += data->d_k[k].quantity * ( dual[actv[k*nnodes + data->d_k[k].D-1]] - dual[actv[k*nnodes + data->d_k[k].O-1]]);
@@ -460,7 +462,7 @@ OsiVolSolverInterface::solve_subproblem(const VOL_dvector& xstar,
     double cost_a, ratio;
     pcost= 0;
     lcost =0;
-    for(int a=szopnd; a<sznz;++a){
+    for(int a=szunfxd; a--; ){
         arc = nz_arcs[a];
         rc[a] += knapsack(a, rc.v, x.v);
         addrc[a]+= rc[a];
@@ -469,7 +471,7 @@ OsiVolSolverInterface::solve_subproblem(const VOL_dvector& xstar,
             x[a] =1.0;
         }else x[a] = 0.0;
     }
-    for(int a=szopnd; a--;){
+    for(int a=szunfxd; a<sznz;++a){
         arc = nz_arcs[a];
         cost_a = knapsack(a, rc.v, x.v);
         lcost += cost_a + data->arcs[arc].f;
@@ -490,7 +492,7 @@ OsiVolSolverInterface::resolve_subproblem(const VOL_dvector& dual, VOL_dvector& 
     
     int arc;
     lcost += B0;
-    for(int a=szopnd; a<sznz;++a){
+    for(int a=szunfxd; a--; ){
         arc = nz_arcs[a];
         if( rc[a]<0 || (rc[a]==0 && x[a]==1.0)){
             lcost += rc[a];
@@ -522,11 +524,12 @@ OsiVolSolverInterface::additional_settings(int iter, double& lcost, VOL_dvector&
         return 0;
     }
     double ret;
+    //std::cout<<"rc[id_arc]: "<<rc[arc_map[59]]<<std::endl;
     //std::cout<<"opaa one: "<<33<<" rc: "<<addrc[33]<<" rc+: "<<rc[33]<<" x: "<<x[33]<<std::endl;
     cover_manager->recompute_mult_neg( dual.v, addrc, rc.v, x.v, actv, actvSSz);
     cover_manager->recompute_mult_pos( dual.v, h.v, addrc, dstar.v , x.v, actv);
     cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
-    for(int a=szopnd; a<sznz;++a){
+    for(int a=szunfxd; a--; ){
         if(rc[a]<1e-10 && rc[a]>-1e-10) rc[a] = 0;
         if(rc[a]==0 ){
             ret = arc_dg_imp(a, x.v, h.v , actvSSz);

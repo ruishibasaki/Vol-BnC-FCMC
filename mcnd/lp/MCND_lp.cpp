@@ -176,13 +176,15 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     VOL_parms& par = vollp->volprob_.parm;
 	
     par.ubinit = best_soln.cost;
-    if(current_level()>0) AppVolData.intvlVI = 100;
     if(!vollp->HotStartSet) par.maxsgriters = 500;
     else par.maxsgriters = 250;
     
-    if(in_strong_branching){ vollp->mode=0; }
+    if(in_strong_branching){ vollp->mode=0;  if(current_level()>0){ AppVolData.intvlVI = 100; vollp->mode=0; }}
     else if(changeType==1 && !in_strong_branching){ vollp->mode=-1;}
-    else{ vollp->mode=1; }
+    else{ vollp->mode=1;  if(current_level()>0){ AppVolData.intvlVI = 100; vollp->mode=0; }}
+    
+   
+
     //if(in_strong_branching ){
     //  std::cout<<"setAuxiliaryInfo "<<lp->getAuxiliaryInfo()<<std::endl;
     //lp->setAuxiliaryInfo(new MCND_parent_branch_data());

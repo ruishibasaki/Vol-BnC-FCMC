@@ -347,7 +347,7 @@ public:
    // v=b-Ax, for the relaxed constraints
    VOL_dvector v; 
 
-    VOL_primal(const int psize, const int dsize) : x(psize), v(dsize) {v=0.0;}
+    VOL_primal(const int psize, const int dsize) : x(psize), v(dsize) {v=0.0; x=0.0; viol=0.0; value=0.0;}
    VOL_primal(const VOL_primal& primal) :
       value(primal.value), viol(primal.viol), x(primal.x), v(primal.v) {}
    ~VOL_primal() {}
@@ -387,7 +387,7 @@ public:
    // dual vector
    VOL_dvector u; 
 
-   VOL_dual(const int dsize) : u(dsize) { u = 0.0;}
+   VOL_dual(const int dsize) : u(dsize) { u = 0.0; xrc=0; lcost=0;}
    VOL_dual(const VOL_dual& dual) :
       lcost(dual.lcost), xrc(dual.xrc), u(dual.u) {}
    ~VOL_dual() {}

@@ -44,7 +44,7 @@ CoverManager::reset_and_map_collection(int fsize, const double* topo, double * d
             ++num_actv;
             vi = vi->next;
         }else{
-        	//std::cout<<"out: "<<vi->id_vi<<std::endl;
+        	std::cout<<"out: "<<vi->id_vi<<std::endl;
         	++cont;
         	vi = covers.move_to_end(vi);
         }
@@ -538,9 +538,9 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
     Trio1 item;
     //std::cout<<"recompute_mult_neg"<<std::endl;
     std::vector<Pair2> con_arcs_map(narcs,Pair2(0,0));
-    std::vector<Pair2> con_arcs_wnid(narcs*size,Pair2());
-    std::vector<Trio1> ws(size,Trio1());
-    std::vector<const Cover *> addrs(size);
+    std::vector<Pair2> con_arcs_wnid(narcs*size,Pair2(-1,-1));
+    std::vector<Trio1> ws(size,Trio1(-1,-1,-1));
+    std::vector<const Cover *> addrs(size,0);
     std::deque<Pair2> con_arcs;
     std::deque<Pair2> con_arcs_aux;
     
@@ -549,7 +549,7 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
         addrs[n] = vi;
         index = actvS[vi->id_vi];
         if(checkViol(vi, xy)){ ws[n].fst = -index; vi = vi->next; continue; }
-    
+
         for(int a=vi->get_total_sz(); a--;){
             arc = vi->at(a);
             id_arc = arc_map[arc];
@@ -565,6 +565,7 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
             con_arcs_wnid[arc*size+idc].fst = n;
             con_arcs_wnid[arc*size+idc].snd = vi->gamma_at(a);
         }
+
         item.fst = index;
         item.snd= dual[index];
         item.trd = 0.0;
@@ -608,18 +609,21 @@ CoverManager::recompute_mult_pos(double * dual, double * h,  double *rc,
         //std::cout<<"pos c: "<<n<<" rhs: "<<vi->get_total_rhs()<<" dual: "<<dual[index]<<" h: "<<h[index]<<std::endl;
         min = 1e30;
         for(int a=vi->get_total_sz(); a--;){
+            //std::cout<<"qa "<<vi->id_vi<<std::endl;
             arc = vi->at(a);
             id_arc = arc_map[arc];
             if(id_arc < 0) continue;
-            alph = rc[id_arc];
+            //std::cout<<"arc : "<<arc<<" id: "<<id_arc<<std::endl;
+            alph = rc[id_arc]; //std::cout<<"alph : "<<alph<<std::endl;
             if(alph<0) continue;
+
             if(con_arcs_map[arc]==0)con_arcs.push_back(arc);
             if(min > alph ) min = alph;
             idc = con_arcs_map[arc]++;
             con_arcs_wnid[arc*size+idc].fst = n;
             con_arcs_wnid[arc*size+idc].snd = vi->gamma_at(a);
-            //std::cout<<"arc : "<<arc<<" rc: "<<alph<<std::endl;
         }
+
         //else std::cout<<"new idx: "<<idx<<" viol: "<<h[idx]<<std::endl;
         ws[n].fst = index;
         ws[n].snd = min;
@@ -673,22 +677,22 @@ CoverManager::compute_cover_sg( const double * x, const int * actvS, int actvSSz
     CoverL *lifted;
     for(int n=0;n<sz;++n){
         index = actvS[vi->id_vi];
-
         v[index] = vi->get_total_rhs();
         for(int a=vi->get_total_sz();a--;){
             id_arc = arc_map[vi->at(a)];
+
             if(id_arc<0) continue;
             v[index] -=  vi->gamma_at(a)*x[id_arc];
+
             //if(c->C[a]==74)std::cout<<"in c: "<<c->C[a]<<" : "<<y[c->C[a]]<<std::endl;
             //std::cout<<i<<" inc: "<<cover->C[a]<<" : "<<x[cover->C[a]]<<std::endl;
         }
-        
+
         if(v[index]<=0){
             ++vi->n_nviol;
             if(vi->n_nviol>=lim_to_remv && vi->n_zerom>0) v[index]=0;
         }else vi->n_nviol=0;
         
-        //if(v[index]>0)std::cout<<"idx: "<<index<<" i: "<<n<<" viol: "<<v[index]<<" cs: "<<vi->id_owner<<std::endl;
         vi = vi->next;
     }
     //std::cout<<"passou compute_flowpack_sg"<<std::endl;

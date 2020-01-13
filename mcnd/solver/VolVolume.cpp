@@ -428,7 +428,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     VOL_primal pstar(psize, dsize);
     VOL_dual dstar(dual);
     VOL_dual dlast(dual);
-    
+
     retval = hooks.compute_rc(dual.u, rc, active_size); // compute reduced costs
     if (retval < 0)  return -1;
     // solve relaxed problem
