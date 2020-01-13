@@ -93,7 +93,7 @@ CoverCollection::addCover(Cover * tryC, const double * xystar){
     else if(ret==0){
         //ret = check_maximal(tryC , xystar);
         //if(ret) return 0;
-        insert(tryC);
+        insert_end(tryC);
         return 1;
     }else return 0;
 
@@ -103,7 +103,7 @@ CoverCollection::addCover(Cover * tryC, const double * xystar){
 //----------------------------------------------------------------------------------
 
 void 
-CoverCollection::insert(Cover * tryC){
+CoverCollection::insert_end(Cover * tryC){
 	++sizeOfCollection;
 	if(empty){
 		end = begin = tryC;
@@ -112,6 +112,21 @@ CoverCollection::insert(Cover * tryC){
 		tryC->prev = end;
 		end->next= tryC;
 		end = tryC;
+	}
+}
+
+//----------------------------------------------------------------------------------
+
+void 
+CoverCollection::insert_front(Cover * tryC){
+	++sizeOfCollection;
+	if(empty){
+		end = begin = tryC;
+		empty=false;
+	}else{
+		tryC->next = begin;
+		begin->prev= tryC;
+		begin = tryC;
 	}
 }
 

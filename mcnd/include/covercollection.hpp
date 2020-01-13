@@ -43,7 +43,8 @@ public:
     //---------------------------------------
     Cover * createNewCover(const std::deque<Pair2>& c, double mu, int id_vi, int id_owner_, int serial_num_);
     int addCover(Cover * tryC, const double * xystar);
-    void insert(Cover * tryC);
+    void insert_front(Cover * tryC);
+    void insert_end(Cover * tryC);
     void replace(Cover * out, Cover * in);
     //--------------------------------------
     //  VI methods

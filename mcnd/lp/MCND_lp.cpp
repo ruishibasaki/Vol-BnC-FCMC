@@ -147,7 +147,7 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
   		for(int i=core_rownum; i<cutnum;++i){
   			CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
   			if(cut){
-  				cover_manager.covers.insert(cut->get_cover());
+  				cover_manager.covers.insert_front(cut->get_cover());
   				std::cout<<"id_vi: "<<cut->get_cover()->serial_nmbr<<std::endl;
   			}
   			else std::cout<<"load_problem::problem"<<std::endl;

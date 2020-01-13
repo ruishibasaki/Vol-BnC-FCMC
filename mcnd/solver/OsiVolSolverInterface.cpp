@@ -119,7 +119,7 @@ OsiVolSolverInterface::translate_sol(){
     for(int i=cidx; i-- ;){
         idx = actv[i];
         if(idx>=0){
-            //if(i>=ndemands*nnodes) std::cout<<i<<": "<<volprob_.dsol[idx]<<std::endl;
+            if(i>=ndemands*nnodes) std::cout<<i<<": "<<volprob_.dsol[idx]<<std::endl;
             dual[i] = volprob_.dsol[idx];
             lhs_[i] = volprob_.viol[idx];
         }else{
@@ -169,6 +169,7 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
             arc_map[a] = -2;
             VItopo[a] =  yhit[a] = 1.0;
             ++szopnd;
+            std::cout<<"opened arc: "<<a<<std::endl;
             continue;
         }else if(colub[a] == 1){
             arc_map[a] = szunfxd++;
@@ -216,12 +217,35 @@ OsiVolSolverInterface::map_duals(){
             }
             if(flag){
                 actv[k*nnodes + i] = fsize++;
-            }
+            }else mode =0;
         }
     }
-    cover_manager->reset_and_map_collection(fsize, VItopo, dual, actv, csize);
+    if(cover_manager->reset_and_map_collection(fsize, VItopo, dual, actv, csize))
+    	mode =0;
     std::cout<<"OsiVolSolverInterface::map_duals"<<std::endl;
 
+}
+
+//---------------------------------------------------------------------------
+
+void 
+OsiVolSolverInterface::translate_hotstart(){
+    int fidx = ndemands*nnodes;
+    int idx, sz;
+	for(int i=fidx; i--;){
+		idx = actv[i];
+		if(idx>=0){
+			if(HotStartSet)volprob_.dsol[idx] = HotStart_->at(i);
+		}
+	}
+	Cover* vi = cover_manager->covers.begin;
+	for(int i=sz; i--;){
+		idx = actv[vi->id_vi];
+		if(idx>=0){
+				if(HotStartSet) volprob_.dsol[idx] = HotStart_->at(vi->id_vi);
+		}
+		vi = vi->next;
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -239,7 +263,6 @@ OsiVolSolverInterface::set_start(){
         //std::cout<<old_dual[old_index[i]]<<std::endl;
         idx = actv[i];
         if(idx>=0){
-            if(HotStartSet)volprob_.dsol[idx] = HotStart_->at(i);
             volprob_.dual_lb[idx] = -1.0e31;
             volprob_.dual_ub[idx] = 1.0e31;
         }
@@ -247,18 +270,17 @@ OsiVolSolverInterface::set_start(){
     sz = cover_manager->num_actv;
     Cover* vi = cover_manager->covers.begin;
     for(int i=sz; i--;){
-        if(vi->id_vi<0){ vi = vi->next; continue;}
         idx = actv[vi->id_vi];
+        //std::cout<<"vi "<<vi->id_vi<<": "<<idx<<std::endl;
         if(idx>=0){
-            if(HotStartSet) volprob_.dsol[idx] = HotStart_->at(vi->id_vi);
             volprob_.dual_ub[idx] = 1.0e31;
-            //std::cout<<"srl nmbr: "<<vi->serial_nmbr<<" "<<volprob_.dsol[idx]<<std::endl;
-
+        	//std::cout<<"vi: "<<vi->serial_nmbr<<" id "<<vi->id_vi<<" : "<<volprob_.dsol[idx]<<std::endl;
         }
         vi = vi->next;
     }
-    
-
+    if(mode>0){
+		translate_hotstart();
+    }
 }
 
 //-----------------------------------------------------------------------
@@ -493,7 +515,7 @@ int
 OsiVolSolverInterface::additional_settings(int iter, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h,
                           VOL_dvector& x, const VOL_dvector& xhist, const VOL_dvector& dstar, int actvSSz){
    
-    if(cover_manager->covers.sizeOfCollection==0 ){
+    if(cover_manager->covers.sizeOfCollection==0){
         cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
         return 0;
     }

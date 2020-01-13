@@ -26,28 +26,31 @@ CoverManager::initialize(const Data * d, int lim) {
 
 //-------------------------------------------------------------------------------------------
 
-void
+int
 CoverManager::reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize){
-    int idx, cont;
+    int cont;
     int idxf = data->nnodes*data->ndemands;
     int sz = covers.sizeOfCollection;
     Cover* vi = covers.begin;
-    num_actv =0;
+    num_actv =0; cont=0;
     for(int i=0;i<sz;++i){
         vi->n_zerom =0;
         vi->n_nviol = 0;
         //std::cout<<"in: id_vi "<<vi->id_vi<<std::endl;
         if(check_updt_Viol(vi, topo)){
             actvS[vi->id_vi] = fsize+csize;
-            //std::cout<<"in: id_vi "<<vi->id_vi<<" idx: "<<idx<<std::endl;
+            //std::cout<<"in: "<<vi->id_vi<<std::endl;
             ++csize;
             ++num_actv;
             vi = vi->next;
         }else{
+        	//std::cout<<"out: "<<vi->id_vi<<std::endl;
+        	++cont;
         	vi = covers.move_to_end(vi);
         }
     }
     gend=0;
+    return cont;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -108,7 +111,8 @@ CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, dou
 
     restrict_cutset(lift_down, lift_up, ss_, ystar, delta, dss, uss);
     //std::cout<<"delta in cover1: "<<delta<<std::endl;
-    cover = make_cover(delta, ss_, ystar, lift_down, luc, actvSSz, id_owner_ );
+    int id = data->nnodes*data->ndemands + covers.sizeOfCollection;
+    cover = make_cover(delta, ss_, ystar, lift_down, luc, id, id_owner_ );
     //std::cout<<&luc<<std::endl;
     
     vi = coverlift.lift_cover(luc, lift_down , lift_up , int( delta), int(cover->rhs), int(dss));
@@ -324,25 +328,6 @@ CoverManager::form_c0(std::deque<Pair2> & lift_up, std::deque<Trio1> & ss_,
 //----------------------------------------------------------------------------------
 
 bool
-CoverManager::check_viol_rc(const Cover * c, const double *rc){
-    
-    double sum=0;
-    double comp=c->get_total_rhs();
-    int sz = c->get_total_sz();
-    int id_arc;
-    for(int a=0;a<sz;++a){
-        id_arc = arc_map[c->at(a)];
-        if(id_arc<0) continue;
-        if(rc[id_arc]<0) sum += c->gamma_at(a);
-        if(sum>=comp){return false;}
-    }
-    if(sum>=comp){return false;}
-    return true;
-}
-
-//-------------------------------------------------------------------------------------------
-
-bool
 CoverManager::checkViol(const Cover * c, const double *y){
     
     double sum=0;
@@ -370,10 +355,9 @@ CoverManager::check_updt_Viol(Cover * c, const double *y){
     int id_arc;
     c->rhs_dimsh=0;
     for(int a=0;a<sz;++a){
-        id_arc = arc_map[c->at(a)];
-        if(id_arc>=0){
-            sum+= c->gamma_at(a)*y[id_arc];
-        }
+    	id_arc = c->at(a);
+        //std::cout<<"arc: "<<id_arc<<": "<<y[id_arc]<<std::endl;
+        sum+= c->gamma_at(a)*y[id_arc];
         if(sum>=comp){return false;}
     }
     c->rhs_dimsh = sum;
@@ -565,7 +549,6 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
         addrs[n] = vi;
         index = actvS[vi->id_vi];
         if(checkViol(vi, xy)){ ws[n].fst = -index; vi = vi->next; continue; }
-        //if(!check_viol_rc(vi, fk)){ dual[index]=0; ws[n].fst = -index; vi = vi->prev; continue; }
     
         for(int a=vi->get_total_sz(); a--;){
             arc = vi->at(a);

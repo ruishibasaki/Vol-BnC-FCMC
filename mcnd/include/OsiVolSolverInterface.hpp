@@ -452,6 +452,7 @@ private:
     double arc_dg_imp(int arc, const double * xy, const double * h,  int actvSSz);
     int mark_topo( VOL_dvector& x, double lcost);
     void translate_primal(const VOL_dvector& xhist);
+    void translate_hotstart();
     
 public:
     void translate_sol();
