@@ -37,7 +37,7 @@ CoverManager::reset_and_map_collection(int fsize, const double* topo, double * d
         vi->n_zerom =0;
         vi->n_nviol = 0;
         //std::cout<<"in: id_vi "<<vi->id_vi<<std::endl;
-        if(check_updt_Viol(vi, topo)){
+        if(vi->check_updt_Viol(topo)){
             actvS[vi->id_vi] = fsize+csize;
             //std::cout<<"in: "<<vi->id_vi<<std::endl;
             ++csize;
@@ -344,25 +344,6 @@ CoverManager::checkViol(const Cover * c, const double *y){
     return comp-sum;
 }
 
-//-------------------------------------------------------------------------------------------
-
-bool
-CoverManager::check_updt_Viol(Cover * c, const double *y){
-    
-    double sum=0;
-    double comp=c->get_total_rhs();
-    int sz = c->get_total_sz();
-    int id_arc;
-    c->rhs_dimsh=0;
-    for(int a=0;a<sz;++a){
-    	id_arc = c->at(a);
-        //std::cout<<"arc: "<<id_arc<<": "<<y[id_arc]<<std::endl;
-        sum+= c->gamma_at(a)*y[id_arc];
-        if(sum>=comp){return false;}
-    }
-    c->rhs_dimsh = sum;
-    return true;
-}
 
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------

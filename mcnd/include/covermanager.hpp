@@ -68,7 +68,6 @@ public:
     //-------------------------------------------------------------------------------------------
     
     double checkViol(const Cover * c, const double *y);
-    bool check_updt_Viol(Cover * c, const double *y);
     
     //-------------------------------------------------------------------------------------------
     //  Multipliers methods

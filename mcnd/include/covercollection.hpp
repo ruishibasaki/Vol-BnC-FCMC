@@ -136,6 +136,9 @@ public:
     void get_total_sz_rhs(int & sz, double &rhs)const;
     int get_total_sz()const;
     double get_total_rhs() const;
+    
+    bool check_updt_Viol(const double *y);
+
     //implemetn map
     inline Cover(int M, int sz, int id_vi_, int id_owner_, int serial_nmbr_):size(sz), Lftd(0), next(0), prev(0){
         C = new int[sz];

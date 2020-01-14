@@ -27,6 +27,7 @@ public:
 	inline Cover* get_cover(){ return cover;}
 	inline void set_cover(Cover* c){ cover = c;}
 	
+	inline bool check_viol(const double* arcs_lb){ return cover->check_updt_Viol(arcs_lb);}
 };
 
 #endif /* MCND_cut_h */

@@ -470,7 +470,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     VOL_swing swing;
     VOL_alpha_factor alpha_factor;
     
-    double * lcost_sequence = new double[parm.ascent_check_invl];
+    //double * lcost_sequence = new double[parm.ascent_check_invl];
     
     const int ascent_first_check = VolMax(parm.ascent_first_check,
                                           parm.ascent_check_invl);
@@ -488,7 +488,6 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         retval = hooks.compute_rc(dual.u, rc, active_size);
         if (retval < 0)  break;
         // solve relaxed problem
-
         times( &buff );
         t_tt = buff.tms_utime;
         retval = hooks.solve_subproblem(pstar.x,dual.u, rc, dual.lcost,primal.x, primal.value);
@@ -581,7 +580,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         }
 
         // test for non-improvement
-        const int k = iter_ % parm.ascent_check_invl;
+        /*const int k = iter_ % parm.ascent_check_invl;
         if (iter_ > ascent_first_check) {
             if (dstar.lcost - lcost_sequence[k] <
                 VolAbs(lcost_sequence[k]) * parm.minimum_rel_ascent){
@@ -591,7 +590,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         }
         
 
-        lcost_sequence[k] = dstar.lcost;
+        lcost_sequence[k] = dstar.lcost;*/
         
 
         times( &buff );
@@ -603,7 +602,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
 
 
     }
-    delete[] lcost_sequence;
+    //delete[] lcost_sequence;
     
     if (parm.printflag)
         print_info(iter_, primal, pstar, dual);

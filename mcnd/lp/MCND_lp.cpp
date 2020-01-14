@@ -146,7 +146,7 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
   	if (cutnum > core_rownum){
   		for(int i=core_rownum; i<cutnum;++i){
   			CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
-  			if(cut){
+  			if(cut->){
   				cover_manager.covers.insert_front(cut->get_cover());
   				//std::cout<<"id_vi: "<<cut->get_cover()->serial_nmbr<<std::endl;
   			}
@@ -176,15 +176,16 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     VOL_parms& par = vollp->volprob_.parm;
 	
     par.ubinit = best_soln.cost;
-    if(!vollp->HotStartSet) par.maxsgriters = 500;
-    else par.maxsgriters = 250;
-    
+    if(!vollp->HotStartSet){
+    	if(current_level()==0)par.maxsgriters = 1000;
+    	else par.maxsgriters = 500;
+    }else par.maxsgriters = 250;
+     
     if(in_strong_branching){ vollp->mode=0;  if(current_level()>0){ AppVolData.intvlVI = 100; vollp->mode=0; }}
     else if(changeType==1 && !in_strong_branching){ vollp->mode=-1;}
     else{ vollp->mode=1;  if(current_level()>0){ AppVolData.intvlVI = 100; vollp->mode=0; }}
     
    
-
     //if(in_strong_branching ){
     //  std::cout<<"setAuxiliaryInfo "<<lp->getAuxiliaryInfo()<<std::endl;
     //lp->setAuxiliaryInfo(new MCND_parent_branch_data());
@@ -309,7 +310,7 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 				   const BCP_vec<BCP_cut*>& cuts,
 				   const bool before_fathom,
 				   BCP_vec<int>& deletable){
-	//std::cout<<"slect cuts"<<std::endl;
+	std::cout<<"slect cuts "<<before_fathom<<std::endl;
 	cover_manager.gend=0;
     BCP_lp_user::select_cuts_to_delete(lpres,vars,cuts,before_fathom, deletable);
 }

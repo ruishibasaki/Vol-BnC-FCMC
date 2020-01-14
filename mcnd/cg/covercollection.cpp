@@ -488,6 +488,21 @@ CoverCollection::cover_hasArc(const Cover * cover, int arc){
 //====================================================================================
 //====================================================================================
 
+bool 
+Cover::check_updt_Viol(const double *y) {
+	double sum=0;
+    double comp= get_total_rhs();
+    int sz = get_total_sz();
+    rhs_dimsh=0;
+    for(int a=0;a<sz;++a){
+        sum+= gamma_at(a)*y[at(a)];
+        if(sum>=comp){return false;}
+    }
+    rhs_dimsh = sum;
+    return true;
+}
+
+//----------------------------------------------------------------------------------
 
 int
 Cover::at(int pos) const{

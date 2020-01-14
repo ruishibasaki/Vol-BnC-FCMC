@@ -181,11 +181,14 @@ OsiVolSolverInterface::map_duals(){
             }
             if(flag){
                 actv[k*nnodes + i] = fsize++;
-            }else mode =0;
+            }else{
+            	HotStartSet =false;
+             }
         }
     }
-    if(cover_manager->reset_and_map_collection(fsize, VItopo, dual, actv, csize))
-    	HotStartSet =false;
+    if(cover_manager->reset_and_map_collection(fsize, VItopo, dual, actv, csize)){
+    	HotStartSet =false;	
+    }
     
     //std::cout<<"ok"<<std::endl;
 }
@@ -208,7 +211,7 @@ OsiVolSolverInterface::translate_hotstart(){
 		idx = actv[vi->id_vi];
 		if(idx>=0){
 			volprob_.dsol[idx] = HotStart_->at(vi->id_vi);
-			std::cout<<"vi: "<<vi->serial_nmbr<<" id "<<vi->id_vi<<" : "<<volprob_.dsol[idx]<<std::endl;
+			//std::cout<<"vi: "<<vi->serial_nmbr<<" id "<<vi->id_vi<<" : "<<volprob_.dsol[idx]<<std::endl;
 		}
 		vi = vi->next;
 	}
@@ -246,7 +249,7 @@ OsiVolSolverInterface::set_start(){
     }
     if(HotStartSet){
 		translate_hotstart();
-    }
+    }else volprob_.parm.maxsgriters+=250;
 }
 
 //-----------------------------------------------------------------------

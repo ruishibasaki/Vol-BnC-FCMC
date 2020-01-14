@@ -16,7 +16,7 @@ ubfeas=1e30
 infeas_trigger=1.1
 
 
-maxsgriters=500
+maxsgriters=1000
 primal_abs_precision=0.0001
 gap_abs_precision=0.0001
 gap_rel_precision=0.0001
