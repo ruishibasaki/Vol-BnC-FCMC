@@ -131,18 +131,18 @@ CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, dou
         }
         //if(added) std::cout<<"cover: "<<cover->get_total_rhs()<<std::endl;
         /*if(added){
-        std::cout<<"add cut"<<std::endl;
-        for(int a=ss_size; a--;){
-            std::cout<<SS_arcs[a]<<":("<<data->arcs[SS_arcs[a]].i<<"-"<<data->arcs[SS_arcs[a]].j<<") y: "<<y[SS_arcs[a]]<<" y*: "<<ystar[SS_arcs[a]]<<std::endl;
-        }
+        //std::cout<<"add cut"<<std::endl;
+        //for(int a=ss_size; a--;){
+         //   std::cout<<SS_arcs[a]<<":("<<data->arcs[SS_arcs[a]].i<<"-"<<data->arcs[SS_arcs[a]].j<<") y: "<<y[arc_map[SS_arcs[a]]]<<" y*: "<<ystar[arc_map[SS_arcs[a]]]<<std::endl;
+        //}
         std::cout<<"cover: "<<cover->get_total_rhs()<<std::endl;
         for(int a=cover->size; a--;){
-            std::cout<<cover->C[a]<<" y: "<<y[cover->C[a]]<<" y*: "<<ystar[cover->C[a]]<<std::endl;
+            std::cout<<cover->C[a]<<" y: "<<y[arc_map[cover->C[a]]]<<" y*: "<<ystar[arc_map[cover->C[a]]]<<std::endl;
         }
         if(cover->hasLftd){
             vi = cover->Lftd;
             for(int a=0;a<vi->size;++a){
-                std::cout<<vi->SSmC[a]<<" ry: "<<y[vi->SSmC[a]]<<" y*: "<<ystar[vi->SSmC[a]]<<std::endl;
+                std::cout<<vi->SSmC[a]<<" ry: "<<y[arc_map[vi->SSmC[a]]]<<" y*: "<<ystar[arc_map[vi->SSmC[a]]]<<std::endl;
             }
         }}*/
     }else delete cover;
@@ -226,13 +226,13 @@ CoverManager::cutset_preprocess(int sz, double dss, const int * ss_,  std::deque
         arc = ss_[i];
         id_arc = arc_map[arc];
         bl = fmin(dss,data->arcs[arc].capa);
-        //std::cout<<"arc "<<arc <<" bl: "<<bl<<std::endl;
+        //std::cout<<"arc "<<arc <<<<" bl: "<<bl<<std::endl;
         
         if(id_arc>=0){
             if(y[id_arc]>0.9){
                 lift_down.push_back(Pair2(arc, double(ystar[id_arc])));
                 U1+=bl;
-                //std::cout<<"n/c: "<<arc<<" "<<y[arc]<<" cap: "<<bl<<" y*: "<<ystar[arc]<<std::endl;
+                //std::cout<<"n/c: "<<arc<<" "<<y[id_arc]<<" cap: "<<bl<<" y*: "<<ystar[id_arc]<<std::endl;
             }else{
                 ss_deque.push_back(Trio1(arc, double(ystar[id_arc]), bl));
             }
@@ -327,7 +327,7 @@ CoverManager::form_c0(std::deque<Pair2> & lift_up, std::deque<Trio1> & ss_,
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
 
-bool
+double
 CoverManager::checkViol(const Cover * c, const double *y){
     
     double sum=0;
@@ -339,9 +339,9 @@ CoverManager::checkViol(const Cover * c, const double *y){
         if(id_arc>=0){
             sum+= c->gamma_at(a)*y[id_arc];
         }
-        if(sum>=comp){return false;}
+        if(sum>=comp){return 0.0;}
     }
-    return true;
+    return comp-sum;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -646,7 +646,7 @@ CoverManager::recompute_mult_pos(double * dual, double * h,  double *rc,
 //-------------------------------------------------------------------------------
 
 void
-CoverManager::add_cover_vi(int added, int * actvS, int & actvSSz, double * h, double * dual_lb, double * dual_ub ){
+CoverManager::add_cover_vi(int added, int * actvS, int & actvSSz, double * h, double * dual, double * dual_lb, double * dual_ub ){
     //std::cout<<"add_flowpack_vi: "<<actvSSz<<std::endl;
     
     int idx;
@@ -654,10 +654,11 @@ CoverManager::add_cover_vi(int added, int * actvS, int & actvSSz, double * h, do
     for(int cont = added; cont--;){
         idx = actvSSz+cont; if(actvS[vi->id_vi]>=0) std::cout<<actvS[vi->id_vi]<<" already taken !!!!!!! for: "<<vi->id_vi<<std::endl;
         actvS[vi->id_vi]=idx;
+        dual[idx] =0;
         dual_lb[idx] = 0;
         dual_ub[idx] = 1e31;
         h[idx] = vi->hs;
-        //std::cout<<"add vi: "<< vi->id_vi<<" idx: "<<idx<<" cont: "<<cont<<std::endl;
+        //std::cout<<"add vi: "<< vi->id_vi<<" idx: "<<idx<<" cont: "<<cont<<" h: "<<h[idx]<<std::endl;
         //vi->print();
         vi = vi->prev;
     }
@@ -677,10 +678,10 @@ CoverManager::compute_cover_sg( const double * x, const int * actvS, int actvSSz
     CoverL *lifted;
     for(int n=0;n<sz;++n){
         index = actvS[vi->id_vi];
+        
         v[index] = vi->get_total_rhs();
         for(int a=vi->get_total_sz();a--;){
             id_arc = arc_map[vi->at(a)];
-
             if(id_arc<0) continue;
             v[index] -=  vi->gamma_at(a)*x[id_arc];
 
@@ -718,18 +719,20 @@ CoverManager::compute_cover_rc(const double * dual, const int* actvS, int actvSS
             vi = vi->next;
             continue;
             
-        }else vi->n_zerom = 0;
+        }else vi->n_zerom = 0; 
         //std::cout<<"mu: "<<vi->mu<<std::endl;
 
-        
+        //std::cout<<"vi_id: "<<vi->id_vi<<" srnbr: "<<vi->serial_nmbr<<" rhs: "<<vi->get_total_rhs()<<" idx: "<<index<<std::endl;
         B0 +=  dual[index]*vi->get_total_rhs();
         for(int a=vi->get_total_sz();a--;){
             id_arc = arc_map[vi->at(a)];
+            //std::cout<<"arc"<<vi->at(a)<<" id_arc: "<<id_arc<<" gam: "<<vi->gamma_at(a)<<std::endl;
             if(id_arc<0) continue;
             rc[id_arc]-=  vi->gamma_at(a)*dual[index];
             //if(c->C[a]==74)std::cout<<"in c: "<<c->C[a]<<" : "<<y[c->C[a]]<<std::endl;
             //std::cout<<i<<" inc: "<<cover->C[a]<<" : "<<x[cover->C[a]]<<std::endl;
         }
+        
         
         //std::cout<<"idx: "<<index<<" "<<(vi->ymult)*dual[index]<<" "<<dual[index]<<" dual: "<<dual[index]<<std::endl;
         //std::cout<<"idx: "<<index<<" dual: "<<dual[index]<<" mu: "<<vi->mu<<" ws:"<<vi->ws<<std::endl;

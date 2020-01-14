@@ -443,7 +443,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     if (retval < 0)  return -1;
     times( &buff );
     ttime_solve += ( double( buff.tms_utime - t_tt ) ) / double( CLK_TCK );
-    retval = hooks.addVI(iter_,dual.lcost, pstar.x, primal.x, dual_lb, dual_ub, primal.v, pstar.v, active_size );
+    retval = hooks.addVI(iter_,dual.lcost, pstar.x, primal.x, dual.u, dual_lb, dual_ub, primal.v, pstar.v, active_size );
     if (retval < 0)  return -1;
     retval = hooks.compute_sg(primal.x, active_size, primal.v);
     if (retval < 0)  return -1;
@@ -503,7 +503,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         
         times( &buff );
         t_tt = buff.tms_utime;
-        retval = hooks.addVI(iter_,dual.lcost, pstar.x, primal.x, dual_lb, dual_ub, primal.v, pstar.v, active_size );
+        retval = hooks.addVI(iter_,dual.lcost, pstar.x, primal.x, dual.u, dual_lb, dual_ub, primal.v, pstar.v, active_size );
         if (retval < 0)  break;
         times( &buff );
         ttime_search += ( double( buff.tms_utime - t_tt ) ) / double( CLK_TCK );

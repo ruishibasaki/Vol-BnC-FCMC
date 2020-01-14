@@ -67,7 +67,7 @@ public:
     //  auxiliary methods
     //-------------------------------------------------------------------------------------------
     
-    bool checkViol(const Cover * c, const double *y);
+    double checkViol(const Cover * c, const double *y);
     bool check_updt_Viol(Cover * c, const double *y);
     
     //-------------------------------------------------------------------------------------------
@@ -92,7 +92,7 @@ public:
     
     int compute_cover_rc(const double * dual, const int* actvS, int actvSSz, double * rc, double & B0);
     int compute_cover_sg(const double * x, const int * actvS, int actvSSz,  double * v);
-    void add_cover_vi(int added, int * actvS, int & actvSSz,double * h,  double * dual_lb, double * dual_ub );
+    void add_cover_vi(int added, int * actvS, int & actvSSz,double * h, double * dual, double * dual_lb, double * dual_ub );
     void make_inactive(int index, const int* actvS, double* v);
     double recompute_mult_pos( double * dual, double * h,  double *rc, 
                               const double * dstar, const double *xy, const int * actvS);

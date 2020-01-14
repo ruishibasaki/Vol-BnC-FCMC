@@ -614,7 +614,7 @@ public:
     virtual int compute_sg(const VOL_dvector& x, int  actvSSz, VOL_dvector& v) = 0;
     
     virtual int addVI(int iter, double lcost,const VOL_dvector& xstar, const VOL_dvector& x,
-                       VOL_dvector& dual_lb,  VOL_dvector& dual_ub,
+                       VOL_dvector& dual, VOL_dvector& dual_lb,  VOL_dvector& dual_ub,
                       VOL_dvector& v, VOL_dvector& h, int & actvSSz)=0;
     
     virtual int removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector& dstaru,  VOL_dvector& dualu)=0;

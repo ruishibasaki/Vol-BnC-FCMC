@@ -22,8 +22,11 @@
 #include "OsiColCut.hpp"
 
 
-//---------------------------------------------------------------------------
-// WarmStart related methods */
+//-----------------------------------------------------------------------
+//-----------------------------------------------------------------------
+// warm start methods
+//-----------------------------------------------------------------------
+//-----------------------------------------------------------------------
 
 CoinWarmStart *
 OsiVolSolverInterface::getEmptyWarmStart () const{
@@ -81,56 +84,12 @@ OsiVolSolverInterface::unmarkHotStart(){
     HotStartSet = false;
 }
 
-//---------------------------------------------------------------------------
 
-void 
-OsiVolSolverInterface::solveFromHotStart(){
-    //std::cout<<"solveFromHotStart() maxiter: "<<volprob_.parm.maxsgriters<<" dsize: "<<numrows_<<std::endl;
-    //CoinDisjointCopyN(HotStart_, numrows_, dual);
-    //OsiVolAuxInfo * auxinfo  = static_cast<OsiVolAuxInfo*>(OsiSolverInterface::getApplicationData());
-    resolve();
-    
-}
-
-//---------------------------------------------------------------------------
-
-void 
-OsiVolSolverInterface::translate_sol(){
-    
-    CoinFillN(solution, getNumCols(), 0.0);
-
-    int arc, idx;
-    for(int a=szopnd; a<sznz;++a){
-        arc = nz_arcs[a];
-        
-        solution[arc] = volprob_.psol[a];
-        //std::cout<<arc<<" "<<volprob_.psol[a]<<" "<<h1[arc]<<std::endl;// /double(volprob_.iter())<<std::endl;
-        for(int k=ndemands; k--; )
-            solution[narcs+k*narcs+arc] = volprob_.psol[szunfxd + k*sznz + a];
-    }
-    for(int a=szopnd; a--;){
-        arc = nz_arcs[a];
-        solution[arc] = 1;
-        for(int k=ndemands; k--; )
-            solution[narcs+k*narcs+arc] = volprob_.psol[szunfxd + k*sznz + a];
-    }
-    
-    int cidx = ndemands*nnodes + cover_manager->covers.sizeOfCollection;
-    for(int i=cidx; i-- ;){
-        idx = actv[i];
-        if(idx>=0){
-            //if(i>=ndemands*nnodes) std::cout<<i<<": "<<volprob_.dsol[idx]<<std::endl;
-            dual[i] = volprob_.dsol[idx];
-            lhs_[i] = volprob_.viol[idx];
-        }else{
-            dual[i] =0;
-            lhs_[i] =0;
-        }
-    }
-}
-
-
-//---------------------------------------------------------------------------
+//-----------------------------------------------------------------------
+//-----------------------------------------------------------------------
+// 				SETTERS
+//-----------------------------------------------------------------------
+//-----------------------------------------------------------------------
 
 void 
 OsiVolSolverInterface::setRowSetBounds(const int* indexFirst,
@@ -172,15 +131,19 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
             std::cout<<"opened arc: "<<arc<<std::endl;
             continue;
         }else if(colub[arc] == 1){
-            arc_map[arc] = szunfxd++;
+            szunfxd++;
             nz_arcs.push_front(arc);
-            std::cout<<"unfix: "<<arc<<" idx: "<<arc_map[arc]<<std::endl;
+            //std::cout<<"unfix: "<<arc<<" idx: "<<arc_map[arc]<<std::endl;
         }else{
             std::cout<<"closed arc: "<<arc<<std::endl;
             arc_map[arc] = -1;
         }
         VItopo[arc] = yhit[arc] = 0.0;
     }
+    for(int i = 0; i<szunfxd;++i){
+    	arc_map[nz_arcs[i]] = i;
+    }
+    
     sznz = nz_arcs.size();
     cover_manager->set_arc_map(arc_map);
     
@@ -292,6 +255,18 @@ OsiVolSolverInterface::set_start(){
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 
+
+void 
+OsiVolSolverInterface::solveFromHotStart(){
+    //std::cout<<"solveFromHotStart() maxiter: "<<volprob_.parm.maxsgriters<<" dsize: "<<numrows_<<std::endl;
+    //CoinDisjointCopyN(HotStart_, numrows_, dual);
+    //OsiVolAuxInfo * auxinfo  = static_cast<OsiVolAuxInfo*>(OsiSolverInterface::getApplicationData());
+    resolve();
+    
+}
+
+//---------------------------------------------------------------------------
+
 void
 OsiVolSolverInterface::initialSolve(){
     // set every entry to 0.0 in the dual solution
@@ -360,8 +335,9 @@ void OsiVolSolverInterface::direct_solve(const std::deque<int>& topo, const Coin
 
 int
 OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
-          const VOL_dvector& x, VOL_dvector& dual_lb, VOL_dvector& dual_ub,
+          const VOL_dvector& x, VOL_dvector& dual, VOL_dvector& dual_lb, VOL_dvector& dual_ub,
           VOL_dvector& v, VOL_dvector& h, int & actvSSz){
+    //return 0;
     if(mode == 0) return 0;
     if(maxNumVI<=(cover_manager->covers.sizeOfCollection)) return 0;
     if(iter%intvlVI==0 ){
@@ -374,7 +350,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
         VItt = lcost;
         if(iter<100) return 0;
         int num_covers = cover_manager->cover_generation_main(xstar.v, x.v, &ss_manager->sets, actvSSz);
-        cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dual_lb.v,  dual_ub.v );
+        cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dual.v, dual_lb.v,  dual_ub.v );
         
         if(num_covers>0){
             std::cout<<std::setprecision(10)<<"iter: "<<iter<<" added cuts "<<num_covers<<" L: "<<VItt<<std::endl;
@@ -466,6 +442,7 @@ OsiVolSolverInterface::solve_subproblem(const VOL_dvector& xstar,
         arc = nz_arcs[a];
         rc[a] += knapsack(a, rc.v, x.v);
         addrc[a]+= rc[a];
+        //std::cout<<a<<", "<<arc<<" addrc: "<<addrc[a]<<std::endl;
         if(addrc[a]<1e-10 && addrc[a]>-1e-10) addrc[a] = 0;
         if( addrc[a] < 0.0){
             x[a] =1.0;
@@ -494,6 +471,7 @@ OsiVolSolverInterface::resolve_subproblem(const VOL_dvector& dual, VOL_dvector& 
     lcost += B0;
     for(int a=szunfxd; a--; ){
         arc = nz_arcs[a];
+        //std::cout<<a<<", "<<arc<<" rc: "<<addrc[a]<<std::endl;
         if( rc[a]<0 || (rc[a]==0 && x[a]==1.0)){
             lcost += rc[a];
             x[a]=1.0;
@@ -616,7 +594,7 @@ OsiVolSolverInterface::mark_topo( VOL_dvector& x, double lcost){
     if(lcost<=VIub) return 0;
     int arc;
     VIub =lcost;
-    for(int a=szopnd; a<sznz;++a){
+    for(int a=szunfxd; a--; ){
         arc = nz_arcs[a];
         VItopo[arc] = x[a];
     }
@@ -628,12 +606,54 @@ OsiVolSolverInterface::mark_topo( VOL_dvector& x, double lcost){
 void
 OsiVolSolverInterface::translate_primal( const VOL_dvector& xhist){
     int arc;
-    for(int a=szopnd; a<sznz;++a){
+    for(int a=szunfxd; a--;){
         arc = nz_arcs[a];
         yhit[arc] = xhist[a];
     }
 }
 
+
+
+//-----------------------------------------------------------------------
+//-----------------------------------------------------------------------
+//Solution
+//-----------------------------------------------------------------------
+//-----------------------------------------------------------------------
+
+void 
+OsiVolSolverInterface::translate_sol(){
+    
+    CoinFillN(solution, getNumCols(), 0.0);
+
+    int arc, idx;
+    for(int a=szunfxd; a--;){
+        arc = nz_arcs[a];
+        
+        solution[arc] = volprob_.psol[a];
+        //std::cout<<arc<<" "<<volprob_.psol[a]<<" "<<h1[arc]<<std::endl;// /double(volprob_.iter())<<std::endl;
+        for(int k=ndemands; k--; )
+            solution[narcs+k*narcs+arc] = volprob_.psol[szunfxd + k*sznz + a];
+    }
+    for(int a=szunfxd; a<sznz;++a){
+        arc = nz_arcs[a];
+        solution[arc] = 1;
+        for(int k=ndemands; k--; )
+            solution[narcs+k*narcs+arc] = volprob_.psol[szunfxd + k*sznz + a];
+    }
+    
+    int cidx = ndemands*nnodes + cover_manager->covers.sizeOfCollection;
+    for(int i=cidx; i-- ;){
+        idx = actv[i];
+        if(idx>=0){
+            //if(i>=ndemands*nnodes) std::cout<<i<<": "<<volprob_.dsol[idx]<<std::endl;
+            dual[i] = volprob_.dsol[idx];
+            lhs_[i] = volprob_.viol[idx];
+        }else{
+            dual[i] =0;
+            lhs_[i] =0;
+        }
+    }
+}
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
