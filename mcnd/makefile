@@ -13,6 +13,7 @@ DIR = ./
 SW = -O3
 
 suffix_cg = \
+	MCND_cut\
 	covercollection \
 	covermanager \
 	cutsetmanager \

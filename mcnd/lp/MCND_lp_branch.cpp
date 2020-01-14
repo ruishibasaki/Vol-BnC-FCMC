@@ -66,7 +66,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	LBi = lpres.objval();
     //return BCP_DoNotBranch_Fathomed;
 
-    if(current_level() == 2){
+    if(current_level() == 1){
         return BCP_DoNotBranch_Fathomed;
 	}
 	
