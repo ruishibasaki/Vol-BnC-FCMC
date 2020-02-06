@@ -271,7 +271,7 @@ public:
     virtual void addRow(const CoinPackedVectorBase& vec,
                         const char rowsen, const double rowrhs,
                         const double rowrng){}
-    virtual void deleteRows(const int num, const int * rowIndices){}
+    virtual void deleteRows(const int num, const int * rowIndices);
     
     //@}
     //@}

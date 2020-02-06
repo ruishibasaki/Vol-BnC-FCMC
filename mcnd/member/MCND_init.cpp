@@ -100,7 +100,7 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
    p.par.set_entry(BCP_lp_par::MessagePassingIsSerial, true);
    p.par.set_entry(BCP_lp_par::MaxCutsAddedPerIteration, 1000);
    p.par.set_entry(BCP_lp_par::MaxResolveIter, 1 );
-   
+   p.par.set_entry(BCP_lp_par::IneffectiveConstraints, BCP_IneffConstr_None);
    return lp;
 }
 

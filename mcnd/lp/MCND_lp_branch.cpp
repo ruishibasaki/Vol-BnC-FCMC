@@ -66,7 +66,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	LBi = lpres.objval();
     //return BCP_DoNotBranch_Fathomed;
 
-    if(current_level() == 1){
+    if(current_level() == 2){
         return BCP_DoNotBranch_Fathomed;
 	}
 	
@@ -151,6 +151,8 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	//return BCP_DoNotBranch_Fathomed;
 }
 
+//-------------------------------------------------------------------------------------------
+
 void
 MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		   const BCP_vec<BCP_var*>& vars,
@@ -215,6 +217,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
         }
 }
 
+//-------------------------------------------------------------------------------------------
 
 BCP_branching_object_relation
 MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
@@ -259,7 +262,7 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
     //std::cout<<"oi "<<pdata<<std::endl;
     newobj->user_data()[0] = new MCND_node_branch_data( newscore, nscore, var_, 0, 0);
     //std::cout<<"oi2"<<pdata<<std::endl;
-    newobj->user_data()[1] = new MCND_node_branch_data( newscore, pscore, var_, 1,0);
+    newobj->user_data()[1] = new MCND_node_branch_data( newscore, pscore, var_, 1, 0);
     
     //here compare phi
     if(oldobj==0){
@@ -274,6 +277,7 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
    
 }
 
+//-------------------------------------------------------------------------------------------
 
 void
 MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
@@ -282,7 +286,7 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     //BCP_lp_branching_object * cand = best->candidate();
     //std::cout<<" cand children: "<<cand->child_num<<std::endl;
     
-    std::cout<<" set child data "<<std::endl;
+    //std::cout<<" set child data "<<std::endl;
 
     BCP_vec< BCP_user_data * >& childs_data = best->user_data();
     //int var_ = *best->candidate()->forced_var_pos->begin();
@@ -297,11 +301,10 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     cdata->hs = new CoinWarmStartDual(sz, child0.pi());
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
     cdata->hs = new CoinWarmStartDual(sz, child1.pi());
-    
-    //best->user_data().push_back();
 
 }
 
+//-------------------------------------------------------------------------------------------
 
 void
 MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best)
@@ -319,7 +322,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best)
   }else childs_action[0] = BCP_ReturnChild;
   
   childs_action[1] = BCP_ReturnChild;
-  std::cout<<" 0-side BCP_FathomChild/BCP_ReturnChild "<<childs_action[0]<<std::endl;
+  //std::cout<<" 0-side BCP_FathomChild/BCP_ReturnChild "<<childs_action[0]<<std::endl;
 }
 
 

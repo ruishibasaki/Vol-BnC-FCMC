@@ -40,13 +40,12 @@ OsiVolSolverInterface::getWarmStart() const{
     std::cout<<"getWarmStart() "<<getNumRows()<<std::endl;
     return new WarmStartDual(getNumRows(), dual, actv);
     
-}
+} 
 
 //---------------------------------------------------------------------------
 
 bool 
 OsiVolSolverInterface::setWarmStart(const CoinWarmStart* warmstart){
-	
     HotStart_ = dynamic_cast<const WarmStartDual*>(warmstart);
 	
     if (! HotStart_){
@@ -733,6 +732,14 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     }
     
     
+}
+
+//-----------------------------------------------------------------------------
+
+void 
+OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){ 
+	std::cout<<"deleteRows"<<std::endl;
+	numrows_ -= num;
 }
 
 //-----------------------------------------------------------------------------

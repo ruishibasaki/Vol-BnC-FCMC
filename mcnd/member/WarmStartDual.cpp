@@ -18,7 +18,7 @@ WarmStartDual::WarmStartDual(int size, const double* dual, const int* actv):Coin
 //-------------------------------------------------------------------------------------------
 
 
-WarmStartDual::WarmStartDual(const CoinWarmStartDual* wsd):CoinWarmStartDual(*wsd){
+WarmStartDual::WarmStartDual(const CoinWarmStartDual* wsd) : CoinWarmStartDual(*wsd){
     	int sz =  wsd->size();
         if(sz>0) map = new int [sz];
         for(int i=0; i<sz;++i) map[i] = i;

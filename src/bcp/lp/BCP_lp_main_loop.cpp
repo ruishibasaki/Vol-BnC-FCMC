@@ -20,7 +20,7 @@ int BCP_try_to_branch(bool &cutset_changed, bool &varset_changed, BCP_lp_prob& p
                           CoinCpuTime() - nodeStart);
             // Note that BCP_lp_branch() has already sent the node description
             // to the TM, info is printed, node is cleaned up, so just return
-            
+
             return 1;
             
         case BCP_BranchingDivedIntoNewNode:
@@ -89,9 +89,7 @@ void BCP_lp_main_loop(BCP_lp_prob& p)
                   "LP: **** Processing NODE %i on LEVEL %i (from TM) ****\n",
                   p.node->index, p.node->level);
     // let the user do whatever she wants before the new node starts
-    
     BCP_lp_prepare_for_new_node(p);
-    
     while (true){
         ++p.node->iteration_count;
         if(p.node->iteration_count > p.param(BCP_lp_par::MaxResolveIter)){
@@ -100,6 +98,7 @@ void BCP_lp_main_loop(BCP_lp_prob& p)
         }
         
         BCP_lp_purge_slack_pool(p);
+        
         
         p.user->print(p.param(BCP_lp_par::LpVerb_IterationCount), "\n");
         p.user->print(p.param(BCP_lp_par::LpVerb_IterationCount),
@@ -321,6 +320,7 @@ void BCP_lp_main_loop(BCP_lp_prob& p)
             }
 
         }
+
         // Try to branch
         if(BCP_try_to_branch(cutset_changed, varset_changed, p, nodeStart)) return;
     }

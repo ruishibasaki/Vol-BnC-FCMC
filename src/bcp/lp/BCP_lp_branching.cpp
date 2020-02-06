@@ -623,7 +623,7 @@ BCP_lp_branch(BCP_lp_prob& p)
     // do_branch (this complaint might arise from inlining)
     BCP_branching_decision do_branch = BCP_DoBranch;
     do_branch = BCP_lp_select_branching_object(p, best_presolved);
-    
+
     switch (do_branch){
         case BCP_DoNotBranch_Fathomed:
             BCP_lp_send_cuts_to_cp(p, -1);
@@ -640,7 +640,7 @@ BCP_lp_branch(BCP_lp_prob& p)
         case BCP_DoBranch:
             break;
     }
-    
+
     // Now p.node has the final set of vars/cuts for this node, and this
     // routine will extract the final warmstart information. Send this all off
     // to the the TM. This function also sends off the branching info, and gets

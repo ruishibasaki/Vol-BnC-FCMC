@@ -148,7 +148,10 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
   			CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
   			if(cut){
   				if(cut->check_viol(vars)){ cover_manager.covers.insert_front(cut->get_cover());}
-  				else{cuts[i]->make_to_be_removed();}
+  				else{
+  					//std::cout<<"out id_vi: "<<cut->get_cover()->id_vi<<std::endl;
+  					cuts[i]->make_to_be_removed(); 
+  					cover_manager.covers.insert_front(cut->get_cover());}
   				//else{ std::cout<<"out id_vi: "<<cut->get_cover()->id_vi<<" , "<<cut->get_cover()->serial_nmbr<<std::endl; cut->get_cover()->print();}
   			}
   			else std::cout<<"load_problem::problem"<<std::endl;
@@ -264,7 +267,7 @@ MCND_lp::generate_cuts_in_lp(const BCP_lp_result& lpres,
     int sz = cover_manager.covers.sizeOfCollection;
     int newly_added = cover_manager.gend > sz? sz : cover_manager.gend;
     Cover *vi = cover_manager.covers.end;
-    std::cout<<"generate cuts: "<<newly_added<<" "<<sz<<" cutsvecsz: "<<cuts.size()<<std::endl;
+    std::cout<<"generate cuts: "<<newly_added<<" "<<sz<<" cutsvecsz: "<<new_cuts.size()<<std::endl;
     for(int i=newly_added;i--;){
         new_cuts.push_back(new CoverCut(vi));
         vi = vi->prev;
@@ -311,9 +314,17 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 				   const BCP_vec<BCP_cut*>& cuts,
 				   const bool before_fathom,
 				   BCP_vec<int>& deletable){
-	std::cout<<"slect cuts "<<before_fathom<<std::endl;
-	cover_manager.gend=0;
-    BCP_lp_user::select_cuts_to_delete(lpres,vars,cuts,before_fathom, deletable);
+	std::cout<<"select_cuts_to_delete "<<before_fathom<<std::endl;
+	if(!before_fathom){
+	    const int cutnum = cuts.size();
+		for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
+			BCP_cut *cut = cuts[i];
+			if (cut->is_to_be_removed()) {
+				deletable.push_back(i);
+			}
+		}
+	}
+    	//BCP_lp_user::select_cuts_to_delete(lpres,vars,cuts,before_fathom, deletable);
 }
 
 //-------------------------------------------------------------------------------------------
