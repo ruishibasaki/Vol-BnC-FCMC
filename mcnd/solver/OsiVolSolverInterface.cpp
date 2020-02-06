@@ -156,7 +156,7 @@ OsiVolSolverInterface::map_duals(){
     fsize= csize = 0;
     bool flag=false;
     const Arc* item; const Demand* itemd;
-    CoinFillN(actv, maxNumcols_, -1);
+    CoinFillN(actv, maxNumrows_, -1);
     for(int k=0; k<ndemands; ++k ){
         for(int i=0; i<nnodes; ++i ){
             flag = false;
@@ -209,9 +209,9 @@ OsiVolSolverInterface::translate_hotstart(){
 	for(int i=sz; i--;){
 		idx = actv[vi->id_vi];
 		if(idx>=0){
+			//std::cout<<idx<<" vi: "<<vi->serial_nmbr<<" id "<<vi->id_vi<<" : "<<volprob_.dsol[idx];
 			volprob_.dsol[idx] = HotStart_->at(vi->id_vi);
-			//std::cout<<"vi: "<<vi->serial_nmbr<<" id "<<vi->id_vi<<" : "<<volprob_.dsol[idx]<<std::endl;
-		}
+		}//else std::cout<<idx<<"vi: "<<vi->serial_nmbr<<" id "<<vi->id_vi<<std::endl;
 		vi = vi->next;
 	}
 }
@@ -287,8 +287,7 @@ OsiVolSolverInterface::resolve(){
     map_duals();
     volprob_.active_size = fsize + csize;
     
-    if(maxNumrows_ < fsize + csize+1000)
-        maxNumrows_ = fsize + csize+1000;
+    
     
     volprob_.dsize = maxNumrows_;
     volprob_.psize = szunfxd + data->ndemands*sznz;
@@ -297,7 +296,7 @@ OsiVolSolverInterface::resolve(){
     volprob_.dual_ub.allocate(maxNumrows_);
     set_start();
 
-    std::cout<<"re solve "<<szunfxd<<" dsize: "<<numrows_<<" maxdsz: "<<maxNumrows_<<std::endl;
+    std::cout<<"re solve "<<szunfxd<<" dsize: "<<volprob_.active_size<<" maxdsz: "<<maxNumrows_<<std::endl;
     
     
     // Set the dual starting point
@@ -627,7 +626,7 @@ OsiVolSolverInterface::translate_sol(){
     
     CoinFillN(solution, getNumCols(), 0.0);
 
-    int arc, idx;
+    int arc;
     for(int a=szunfxd; a--;){
         arc = nz_arcs[a];
         
@@ -643,8 +642,15 @@ OsiVolSolverInterface::translate_sol(){
             solution[narcs+k*narcs+arc] = volprob_.psol[szunfxd + k*sznz + a];
     }
     
-    int cidx = ndemands*nnodes + cover_manager->covers.sizeOfCollection;
-    for(int i=cidx; i-- ;){
+    translate_dualsol();
+}
+
+//-----------------------------------------------------------------------
+
+void 
+OsiVolSolverInterface::translate_dualsol(){
+	int idx;
+	for(int i=ndemands*nnodes; i-- ;){
         idx = actv[i];
         if(idx>=0){
             //if(i>=ndemands*nnodes) std::cout<<i<<": "<<volprob_.dsol[idx]<<std::endl;
@@ -655,6 +661,51 @@ OsiVolSolverInterface::translate_sol(){
             lhs_[i] =0;
         }
     }
+    int fidx = ndemands*nnodes;
+    int sz = cover_manager->covers.sizeOfCollection;
+    Cover* vi = cover_manager->covers.end;    
+	for(int i=fidx+sz; i-->fidx;){
+		idx = actv[vi->id_vi];
+		if(idx>=0){
+            //if(i>=ndemands*nnodes) std::cout<<i<<": "<<volprob_.dsol[idx]<<std::endl;
+            dual[i] = volprob_.dsol[idx];
+            lhs_[i] = volprob_.viol[idx];
+        }else{
+            dual[i] =0;
+            lhs_[i] =0;
+        }
+		vi = vi->prev;
+	}
+
+}
+
+//-----------------------------------------------------------------------
+
+void 
+OsiVolSolverInterface::translate_dualws(){
+	if(!HotStart_) return;
+	int idx;
+	for(int i=ndemands*nnodes; i-- ;){
+        idx = actv[i];
+        if(idx>=0){
+            dual[i] = HotStart_->at(i);
+        }else{
+            dual[i] =0;
+        }
+    }
+    int fidx = ndemands*nnodes;
+    int sz = cover_manager->covers.sizeOfCollection;
+    Cover* vi = cover_manager->covers.end;    
+	for(int i=fidx+sz; i-->fidx;){
+		idx = actv[vi->id_vi];
+		if(idx>=0){
+            dual[i] = HotStart_->at(vi->id_vi);
+        }else{
+            dual[i] =0;
+        }
+		vi = vi->prev;
+	}
+
 }
 
 //-----------------------------------------------------------------------
@@ -690,7 +741,7 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     gutsOfDestructor_();
     maxNumcols_ = numcols_ = numcols;
     maxNumrows_ = numrows+maxNumVI;
-    numrows_ = numrows+cover_manager->covers.sizeOfCollection;
+    numrows_ = numrows + cover_manager->covers.sizeOfCollection;
     //cover_manager->reset_collection();
     
     if (maxNumrows_ > 0) {
@@ -740,6 +791,39 @@ void
 OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){ 
 	std::cout<<"deleteRows"<<std::endl;
 	numrows_ -= num;
+	int i =0;
+	int idx;
+	int fidx = nnodes*ndemands;
+	double dvalue;
+	
+	translate_dualws();
+	
+	Cover* vi = cover_manager->covers.begin;
+	int sz = cover_manager->covers.sizeOfCollection;
+	for(int n=0;n<num;++n){
+		i = rowIndices[n];
+		if(i<fidx){std::cout<<"OsiVolSolverInterface::deleteRows Problem"<<std::endl; abort();}
+		while(vi != cover_manager->covers.end){
+			std::cout<<vi->id_vi<<std::endl;
+			if(n+1<num && vi->id_vi > rowIndices[n+1]){ break;}
+			if(n+1<num && vi->id_vi == rowIndices[n+1]){vi = vi->next; break;}
+			if(i < vi->id_vi){
+				idx = actv[vi->id_vi];
+				dvalue = dual[vi->id_vi];
+				vi->id_vi -= (n+1);
+				actv[vi->id_vi] = idx;
+				dual[vi->id_vi] = dvalue;
+			}else if(i == vi->id_vi){
+				if(actv[vi->id_vi]>=0){
+					dual[actv[vi->id_vi]] = 0;
+					actv[vi->id_vi] = -1;
+				}
+			 	vi->id_vi=-1;
+			}			
+			vi = vi->next;
+		}
+	}
+	
 }
 
 //-----------------------------------------------------------------------------

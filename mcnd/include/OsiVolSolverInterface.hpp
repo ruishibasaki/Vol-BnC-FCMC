@@ -456,6 +456,8 @@ private:
     
 public:
     void translate_sol();
+    void translate_dualsol();
+    void translate_dualws();
     void set_start();
     
     void map_duals();
@@ -479,7 +481,7 @@ public:
     double * yhit;
     
     int * arc_map;
-    int * actv;
+    int * actv;  
     int lim_to_remv, maxNumVI, intvlVI;
     
     CoverManager* cover_manager;

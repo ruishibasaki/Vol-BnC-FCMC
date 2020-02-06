@@ -147,12 +147,7 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
   		for(int i=core_rownum; i<cutnum;++i){
   			CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
   			if(cut){
-  				if(cut->check_viol(vars)){ cover_manager.covers.insert_front(cut->get_cover());}
-  				else{
-  					//std::cout<<"out id_vi: "<<cut->get_cover()->id_vi<<std::endl;
-  					cuts[i]->make_to_be_removed(); 
-  					cover_manager.covers.insert_front(cut->get_cover());}
-  				//else{ std::cout<<"out id_vi: "<<cut->get_cover()->id_vi<<" , "<<cut->get_cover()->serial_nmbr<<std::endl; cut->get_cover()->print();}
+  				cover_manager.covers.insert_front(cut->get_cover());
   			}
   			else std::cout<<"load_problem::problem"<<std::endl;
   		}
@@ -318,8 +313,8 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 	if(!before_fathom){
 	    const int cutnum = cuts.size();
 		for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
-			BCP_cut *cut = cuts[i];
-			if (cut->is_to_be_removed()) {
+			CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
+			if (!cut->check_viol(vars)) {
 				deletable.push_back(i);
 			}
 		}
