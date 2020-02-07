@@ -147,6 +147,7 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
   		for(int i=core_rownum; i<cutnum;++i){
   			CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
   			if(cut){
+  				//std::cout<<"collec: "<<i<<" "<<cut->get_cover()->id_vi<<std::endl;
   				cover_manager.covers.insert_front(cut->get_cover());
   			}
   			else std::cout<<"load_problem::problem"<<std::endl;
@@ -180,10 +181,11 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     	else par.maxsgriters = 500;
     }else par.maxsgriters = 250;
      
-    if(in_strong_branching){ vollp->mode=0;  if(current_level()>0){ AppVolData.intvlVI = 100; vollp->mode=0; }}
+    if(current_level()>0)  AppVolData.intvlVI = 100;
+    if(in_strong_branching){ vollp->mode=0;}
     else if(changeType==1 && !in_strong_branching){ vollp->mode=-1;}
-    else{ vollp->mode=1;  if(current_level()>0){ AppVolData.intvlVI = 100; vollp->mode=0; }}
-    
+    else{ vollp->mode=1;}
+    vollp->in_strong_branch = in_strong_branching;
    
     //if(in_strong_branching ){
     //  std::cout<<"setAuxiliaryInfo "<<lp->getAuxiliaryInfo()<<std::endl;
@@ -260,9 +262,10 @@ MCND_lp::generate_cuts_in_lp(const BCP_lp_result& lpres,
                              BCP_vec<BCP_row*>& new_rows){
     
     int sz = cover_manager.covers.sizeOfCollection;
-    int newly_added = cover_manager.gend > sz? sz : cover_manager.gend;
-    Cover *vi = cover_manager.covers.end;
-    std::cout<<"generate cuts: "<<newly_added<<" "<<sz<<" cutsvecsz: "<<new_cuts.size()<<std::endl;
+    int newly_added = cover_manager.gend;
+    Cover *vi = cover_manager.covers.begin;
+    cover_manager.covers.advance(vi, cover_manager.num_actv-1);
+    std::cout<<"generate cuts: "<<newly_added<<" sz: "<<sz<<" cutsvecsz: "<<new_cuts.size()<<std::endl;
     for(int i=newly_added;i--;){
         new_cuts.push_back(new CoverCut(vi));
         vi = vi->prev;
@@ -315,6 +318,7 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 		for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
 			CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
 			if (!cut->check_viol(vars)) {
+				std::cout<<"out: "<<i<<" "<<cut->get_cover()->id_vi<<std::endl;
 				deletable.push_back(i);
 			}
 		}

@@ -145,7 +145,18 @@ CoverCollection::replace(Cover * out, Cover * in){
     else out->next->prev = in;
     
     delete out;
-    
+}
+
+//----------------------------------------------------------------------------------
+
+void 
+CoverCollection::pop_back_nodel(){
+	if(sizeOfCollection==1){
+		begin = 0;
+		empty = true;
+	}
+	end = end->prev;
+	--sizeOfCollection;
 }
 
 //------------------------------------------------------------------------------------
@@ -416,7 +427,7 @@ CoverCollection::operator[](int n){
 
 //----------------------------------------------------------------------------------
 
-const void
+void
 CoverCollection::advance(Cover*& C, int n){
     if(n>sizeOfCollection) return;
     C = begin;
@@ -426,7 +437,7 @@ CoverCollection::advance(Cover*& C, int n){
 
 //----------------------------------------------------------------------------------
 
-const void
+void
 CoverCollection::print(){
     Cover* c = begin;
     for(int i=0;i<sizeOfCollection;++i){

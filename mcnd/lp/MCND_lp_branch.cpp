@@ -286,7 +286,7 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     //BCP_lp_branching_object * cand = best->candidate();
     //std::cout<<" cand children: "<<cand->child_num<<std::endl;
     
-    //std::cout<<" set child data "<<std::endl;
+    std::cout<<" set child data "<<std::endl;
 
     BCP_vec< BCP_user_data * >& childs_data = best->user_data();
     //int var_ = *best->candidate()->forced_var_pos->begin();

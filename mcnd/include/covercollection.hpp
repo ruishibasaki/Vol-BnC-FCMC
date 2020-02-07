@@ -46,6 +46,7 @@ public:
     void insert_front(Cover * tryC);
     void insert_end(Cover * tryC);
     void replace(Cover * out, Cover * in);
+    void pop_back_nodel();
     //--------------------------------------
     //  VI methods
     //---------------------------------------
@@ -54,8 +55,8 @@ public:
     //--------------------------------------
     //  auxiliary methods
     //---------------------------------------
-    const void print();
-    const void advance(Cover*& C, int n);
+    void print();
+    void advance(Cover*& C, int n); 
     Cover* operator[](int n);
     void mapCover(Cover * c1, Cover * c2, std::vector<PairF> & mapset);
     double cover_hasArc(const Cover * cover, int arc);

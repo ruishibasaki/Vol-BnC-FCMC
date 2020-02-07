@@ -453,6 +453,7 @@ private:
     int mark_topo( VOL_dvector& x, double lcost);
     void translate_primal(const VOL_dvector& xhist);
     void translate_hotstart();
+    void reposition_covers(int num_covers);
     
 public:
     void translate_sol();
@@ -470,9 +471,9 @@ public:
     int szopnd, szunfxd, sznz;
     int fsize, csize;
     
-    
-    bool HotStartSet;
     int retval;
+    bool HotStartSet;
+    bool in_strong_branch;
     
     //Volume attributes
     double VIub, VItt, B0;
