@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include "Structures.hpp"
 #include "UtilsMethods.hpp"
-
+#include <map>
 
 class CoverVI;
 class Cover;
@@ -60,7 +60,7 @@ public:
     Cover* operator[](int n);
     void mapCover(Cover * c1, Cover * c2, std::vector<PairF> & mapset);
     double cover_hasArc(const Cover * cover, int arc);
-
+	void map_collection(std::map<int, int>& mapd);
     //--------------------------------------
     // modifying methods
     //--------------------------------------

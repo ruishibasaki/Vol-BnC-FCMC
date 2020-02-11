@@ -9,19 +9,28 @@
 #include "WarmStartDual.hpp"
 
 
-WarmStartDual::WarmStartDual(int size, const double* dual, const int* actv):CoinWarmStartDual(size, dual){
-        if(size>0) map = new int [size];
-        for(int i=size; i--;) map[i] = actv[i];
+WarmStartDual::WarmStartDual(int size, const double* dual, const CoverCollection* covers):CoinWarmStartDual(size, dual){
+        int sz = covers->sizeOfCollection;
+        Cover *vi = covers->begin;
+        for(;sz--;){
+        	mapd.insert(std::pair<char,int>(vi->serial_nmbr,vi->id_vi));
+        	vi = vi->next;
+        }
         dual_ = CoinWarmStartDual::dual();
+}
+
+//-------------------------------------------------------------------------------------------
+
+WarmStartDual::WarmStartDual(int size, const double* dual, const std::map<int, int>& map_ ):CoinWarmStartDual(size, dual){
+		dual_ = CoinWarmStartDual::dual();
+		mapd = map_;
 }
 
 //-------------------------------------------------------------------------------------------
 
 
 WarmStartDual::WarmStartDual(const CoinWarmStartDual* wsd) : CoinWarmStartDual(*wsd){
-    	int sz =  wsd->size();
-        if(sz>0) map = new int [sz];
-        for(int i=0; i<sz;++i) map[i] = i;
+    	mapd = wsd->mapd;
         dual_ = CoinWarmStartDual::dual();
 }
 
@@ -30,10 +39,14 @@ WarmStartDual::WarmStartDual(const CoinWarmStartDual* wsd) : CoinWarmStartDual(*
 //-------------------------------------------------------------------------------------------
 
 double 
-WarmStartDual::at(int n) const{
-        if(map==0 || CoinWarmStartDual::size()==0) return 0;
-        if(map[n]<0) return 0;
-        return dual_[map[n]];
+WarmStartDual::get_mapped(int key) const{ // the key is the serial number of the cover
+        if(map.size()==0 || CoinWarmStartDual::size()==0){ 
+        	std::cout<<"Attention: map.size()==0 || CoinWarmStartDual::size()==0" <<std::endl;
+        	return 0;
+        }
+        std::map<int,int>::iterator it = map.find(key);
+        if(it == map.end()) return 0;
+        return dual_[it->second];
 }
 
 //-------------------------------------------------------------------------------------------

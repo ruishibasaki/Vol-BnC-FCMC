@@ -492,6 +492,17 @@ CoverCollection::cover_hasArc(const Cover * cover, int arc){
     return 0;
 }
 
+//----------------------------------------------------------------------------------
+
+void 
+CoverCollection::map_collection(std::map<int, int>& mapd){
+	int sz = sizeOfCollection;
+	Cover *vi = begin;
+	for(;sz--;){
+		mapd.insert(std::pair<int,int>(vi->serial_nmbr,vi->id_vi));
+		vi = vi->next;
+	}
+}
 
 //====================================================================================
 //====================================================================================

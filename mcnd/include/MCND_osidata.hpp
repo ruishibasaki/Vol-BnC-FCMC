@@ -29,9 +29,7 @@ public:
         maxNumVI =1000;
         intvlVI =50;
         appData_ = this;
-    }
-    
-    
+    }  
     
 };
 

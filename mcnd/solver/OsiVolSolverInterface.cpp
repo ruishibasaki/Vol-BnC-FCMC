@@ -49,12 +49,8 @@ OsiVolSolverInterface::setWarmStart(const CoinWarmStart* warmstart){
     HotStart_ = dynamic_cast<const WarmStartDual*>(warmstart);
 	
     if (! HotStart_){
-        const CoinWarmStartDual* hs = dynamic_cast<const CoinWarmStartDual*>(warmstart);
-        if(!hs){
-        	HotStartSet = false;
-        	return false;
-        }
-    	HotStart_ = new WarmStartDual(hs);
+        HotStartSet = false;
+        return false;
     }
     std::cout<<"setWarmStart "<<HotStart_->size()<<" "<<getNumRows()<<std::endl;
 
@@ -68,7 +64,7 @@ void
 OsiVolSolverInterface::markHotStart(){
     std::cout<<"markHotStart() "<<getNumRows()<<std::endl;
     if(HotStart_) delete HotStart_;
-    HotStart_ = new WarmStartDual(getNumRows(), dual, actv); 
+    HotStart_ = new WarmStartDual(getNumRows(), dual, &cover_manager->covers); 
     //std::cout<<"markHotStart() now "<<std::endl;
     HotStartSet = true;
 }
@@ -202,7 +198,7 @@ OsiVolSolverInterface::translate_hotstart(){
 	for(int i=fidx; i--;){
 		idx = actv[i];
 		if(idx>=0){
-			volprob_.dsol[idx] = HotStart_->at(i);
+			volprob_.dsol[idx] = HotStart_->dual_[i];
 		}
 	}
 	sz = cover_manager->covers.sizeOfCollection;
@@ -210,7 +206,7 @@ OsiVolSolverInterface::translate_hotstart(){
 	for(int i=sz; i--;){
 		idx = actv[vi->id_vi];
 		if(idx>=0){
-			volprob_.dsol[idx] = HotStart_->dual_[idx];
+			volprob_.dsol[idx] = HotStart_->get_mapped(vi->serial_nmbr);
 			//std::cout<<idx<<" wsvi id "<<vi->id_vi<<" : "<<volprob_.dsol[idx]<<std::endl;
 		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
 		vi = vi->next;
@@ -713,13 +709,13 @@ OsiVolSolverInterface::translate_dualsol(){
 		idx = actv[vi->id_vi];
 		if(idx>=0){
             //if(i>=ndemands*nnodes) std::cout<<i<<": "<<volprob_.dsol[idx]<<std::endl;
-            dual[i] = volprob_.dsol[idx];
-            lhs_[i] = volprob_.viol[idx];
+            dual[vi->id_vi] = volprob_.dsol[idx];
+            lhs_[vi->id_vi] = volprob_.viol[idx];
         }else{
-            dual[i] =0;
-            lhs_[i] =0;
+            dual[vi->id_vi] =0;
+            lhs_[vi->id_vi] =0;
         }
-        //std::cout<<"sol "<<i<<" "<<vi->id_vi<<" "<<dual[i]<<std::endl;
+		std::cout<<"sol "<<i<<" "<<vi->serial_nmbr<<" "<<dual[vi->id_vi]<<std::endl;
 		vi = vi->prev;
 	}
 
@@ -734,7 +730,7 @@ OsiVolSolverInterface::translate_dualws(){
 	for(int i=ndemands*nnodes; i-- ;){
         idx = actv[i];
         if(idx>=0){
-            dual[i] = HotStart_->at(i);
+            dual[i] = HotStart_->dual_[i];
         }else{
             dual[i] =0;
         }
@@ -746,9 +742,9 @@ OsiVolSolverInterface::translate_dualws(){
 	for(int i=fidx+sz; i-->fidx;){
 		idx = actv[vi->id_vi];
 		if(idx>=0){
-            dual[i] = HotStart_->at(vi->id_vi); 
+            dual[vi->id_vi] = HotStart_->get_mapped(vi->serial_nmbr); 
         }else{
-            dual[i] =0;
+            dual[vi->id_vi] =0;
         }
 		vi = vi->prev;
 	}
@@ -839,46 +835,49 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 	std::cout<<"deleteRows"<<std::endl;
 	numrows_ -= num;
 	int i =0;
-	int idx;
+	int idx, ip;
 	int fidx = nnodes*ndemands;
 	//double dvalue;
 	
-	translate_dualws();
+	//translate_dualws();
 	
-	Cover* vi = cover_manager->covers.begin;
+	Cover* strt = cover_manager->covers.begin;
+	Cover* vi;
 	int sz = cover_manager->covers.sizeOfCollection;
 	for(int n=0;n<num;++n){
 		i = rowIndices[n];
+		ip = n+1<num ? rowIndices[n+1] : maxnumrows_;
 		if(i<fidx){std::cout<<"OsiVolSolverInterface::deleteRows Problem"<<std::endl; abort();}
-		while(vi != cover_manager->covers.end){
-			//std::cout<<vi->id_vi<<std::endl;
-			if(n+1<num && vi->id_vi > rowIndices[n+1]){ break;}
-			if(n+1<num && vi->id_vi == rowIndices[n+1]){vi = vi->next; break;}
-			if(i < vi->id_vi){
+		vi = strt;
+		strt = 0;
+		while(vi != 0){
+			std::cout<<"indice: "<<i<<" id: "<<vi->id_vi<<std::endl;
+			if(strt == 0 && ip <= vi->id_vi){
+				strt = vi;
+			}
+			if((i < vi->id_vi) && (vi->id_vi < ip)){
 				idx = actv[vi->id_vi];
 				//dvalue = dual[vi->id_vi];
 				vi->id_vi -= (n+1);
 				actv[vi->id_vi] = idx;
 				//dual[vi->id_vi] = dvalue;
 			}else if(i == vi->id_vi){
-				if(actv[vi->id_vi]>=0){
-					dual[vi->id_vi] = 0;
-					actv[vi->id_vi] = -1;
-				}
-			 	vi->id_vi=-1;
-			}			
+				vi = move_to_end(vi); 
+				cover_manager->covers.pop_back_nodel();
+				continue;
+			}
+			
 			vi = vi->next;
 		}
-		cover_manager->covers.pop_back_nodel();
 	}
 	
-	/*vi = cover_manager->covers.end;
+	vi = cover_manager->covers.end;
 	sz = cover_manager->covers.sizeOfCollection;
 	for(;sz--;){
 		//std::cout<<"vi: "<<vi->id_vi<<std::endl;
 		std::cout<<"sol "<<fidx+sz<<" "<<vi->id_vi<<" "<<dual[fidx+sz]<<std::endl;
 		vi = vi->prev;
-	}*/
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -973,8 +972,8 @@ arc_map(0),
 VItopo(0),
 addrc(0),
 actv(0),
-HotStart_(0)
-{
+HotStart_(0){
+
     lagrangeanCost_ = maxNumrows_ = maxNumcols_ = 0;
     mode =1;
     HotStartSet = false;
@@ -997,8 +996,8 @@ arc_map(0),
 VItopo(0),
 addrc(0),
 actv(0),
-HotStart_(0)
-{
+HotStart_(0){
+
     lagrangeanCost_ = maxNumrows_ = maxNumcols_ = 0;
     mode =1;
     HotStartSet = false;

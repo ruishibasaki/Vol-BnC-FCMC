@@ -5,7 +5,7 @@
 
 #include <vector>
 #include "BCP_buffer.hpp"
-#include "CoinWarmStartDual.hpp"
+#include "WarmStartDual.hpp"
 #include "OsiAuxInfo.hpp"
 #include "BCP_USER.hpp"
 
@@ -21,7 +21,7 @@ private:
 public: 
 
     int hiters;
-    CoinWarmStartDual * hs;
+    WarmStartDual * hs;
     double score, score_parent;
 	int pos_neg;
 	int branch_var;

@@ -152,7 +152,7 @@ public:
     virtual const double * getColSolution() const{//std::cout<<"get primal "<<std::endl;
         return solution;}
     
-    virtual const double * getRowPrice() const {std::cout<<"get dual "<<std::endl;
+    virtual const double * getRowPrice() const {//std::cout<<"get dual "<<std::endl;
         return dual; }
     
     virtual const double * getReducedCost() const {//std::cout<<"get rc "<<std::endl;

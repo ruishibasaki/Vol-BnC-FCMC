@@ -10,23 +10,25 @@
 
 #include <stdio.h>
 #include "CoinWarmStartDual.hpp"
+#include "covercollection.hpp"
 
 class WarmStartDual: public CoinWarmStartDual{
 public:
     
-    int * map;
-    const double * dual_;
+    std::map<int, int> mapd; //mapping for extra core cuts;
+    const double * dual_; // corevalues/covervalues matching map in sequence.
     
     //---------------------
-    inline WarmStartDual():map(0), dual_(0){};
-    WarmStartDual(int size, const double* dual, const int* actv);
+    inline WarmStartDual(): dual_(0){};
+    WarmStartDual(int size, const double* dual, const CoverCollection* covers);
+    WarmStartDual(int size, const double* dual, const std::map<int, int>& map_ );
     WarmStartDual(const CoinWarmStartDual* wsd);
     
-    inline ~WarmStartDual(){ if(map) delete [] map;}
+    inline ~WarmStartDual(){ map.clear;}
     
     //---------------------
 
-    double at(int n) const;
+    double get_mapped(int key) const;
 };
 
 
