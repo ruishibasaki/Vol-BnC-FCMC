@@ -36,12 +36,11 @@ public:
     CoverManager cover_manager;
     CutSetManager ss_manager;
     
-    CoverCollection coverpool;
-
     std::vector<double> y;
     std::vector<double> freq;
     std::vector<int> freq_cand;
-    
+    std::map<int, int> mapd;
+
     double best_LB;
     double LBi;
     

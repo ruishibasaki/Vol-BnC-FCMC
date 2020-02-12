@@ -5,7 +5,7 @@
 
 #include <vector>
 #include "BCP_buffer.hpp"
-#include "CoinWarmStartDual.hpp"
+#include "WarmStartDual.hpp"
 #include "OsiAuxInfo.hpp"
 #include "BCP_USER.hpp"
 
@@ -21,7 +21,8 @@ private:
 public: 
 
     int hiters;
-    CoinWarmStartDual * hs;
+    WarmStartDual * hs;
+    int dual_size;
     double score, score_parent;
 	int pos_neg;
 	int branch_var;
@@ -30,8 +31,9 @@ public:
 	
     MCND_node_branch_data(): hs(0) {}
 	
-    MCND_node_branch_data( double score_parent_, double score_, int branch_var_, int zrone, int it):hs(0){
+    MCND_node_branch_data(int dual_size_, double score_parent_, double score_, int branch_var_, int zrone, int it):hs(0){
         score_parent = score_parent_; score = score_; branch_var = branch_var_; pos_neg = zrone; hiters = it;
+        dual_size = dual_size_;
     }
     
 	inline ~MCND_node_branch_data(){

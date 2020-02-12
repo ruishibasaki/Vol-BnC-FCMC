@@ -87,7 +87,8 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     	std::cout << "returns BCP_DoNotBranch: "<<local_cut_pool.size()<< std::endl;
     	return BCP_DoNotBranch; 	
   	}	
-  	
+  	mapd.clear();
+    cover_manager.covers.map_collection(mapd);
     OsiVolSolverInterface * s = getOsiVolBabSolver();
     MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
     freq.assign(data.narcs,0.0);
@@ -260,9 +261,10 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
     //OsiVolAuxInfo * pdata = static_cast<OsiVolAuxInfo*>(s->getApplicationData());
    
     //std::cout<<"oi "<<pdata<<std::endl;
-    newobj->user_data()[0] = new MCND_node_branch_data( newscore, nscore, var_, 0, 0);
+    int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
+    newobj->user_data()[0] = new MCND_node_branch_data(sz, newscore, nscore, var_, 0, 0);
     //std::cout<<"oi2"<<pdata<<std::endl;
-    newobj->user_data()[1] = new MCND_node_branch_data( newscore, pscore, var_, 1, 0);
+    newobj->user_data()[1] = new MCND_node_branch_data(sz, newscore, pscore, var_, 1, 0);
     
     //here compare phi
     if(oldobj==0){
@@ -296,14 +298,12 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     
     MCND_node_branch_data * cdata;
     //stock  for further investigation WarmStartDual(getNumRows(), dual, actv);
-    std::map<int, int> mapd;
-    cover_manager.covers.map_collection(mapd);
-	int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
+    
+	//int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[0]);
-    cdata->hs = new CoinWarmStartDual(sz, child0.pi());//, mapd);
+    cdata->hs = new WarmStartDual(cdata->dual_size, child0.pi(), mapd); //std::cout<<cdata->dual_size<<" "<<sz<<std::endl;
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
-    cdata->hs = new CoinWarmStartDual(sz, child1.pi());//, mapd);
-	mapd.clear();
+    cdata->hs = new WarmStartDual(cdata->dual_size, child1.pi(), mapd);//std::cout<<cdata->dual_size<<" "<<sz<<std::endl;
 }
 
 //-------------------------------------------------------------------------------------------

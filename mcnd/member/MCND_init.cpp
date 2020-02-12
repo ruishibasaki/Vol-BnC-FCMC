@@ -78,6 +78,8 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    MCND_read_data(arglist[2], tm->data);
    p.par.set_entry(BCP_tm_par::Granularity, 1e-2);
    p.par.set_entry(BCP_tm_par::ReportWhenDefaultIsExecuted, false);
+   p.par.set_entry(BCP_tm_par::WarmstartInfo, BCP_WarmstartNone); //BCP_WarmstartParent;
+
    return tm;
 }
 

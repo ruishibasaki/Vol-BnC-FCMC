@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include "CoinWarmStartDual.hpp"
 #include "covercollection.hpp"
+#include "BCP_buffer.hpp"
+
 
 class WarmStartDual: public CoinWarmStartDual{
 public:
@@ -23,20 +25,25 @@ public:
     WarmStartDual(int size, const double* dual, const CoverCollection* covers);
     WarmStartDual(int size, const double* dual, const std::map<int, int>& map_ );
     WarmStartDual(int size, const double* dual);
-    WarmStartDual(const CoinWarmStartDual* wsd);
+    WarmStartDual(const WarmStartDual* wsd);
     
     inline ~WarmStartDual(){ mapd.clear();}
     CoinWarmStart * clone () const{ return new WarmStartDual(this);}
+    WarmStartDual * clone_ws () const{ return new WarmStartDual(this);}
 
 	//---------------------
 
-    
      CoinWarmStartDiff * 	generateDiff (const CoinWarmStart *const oldCWS) const;
      void applyDiff (const CoinWarmStartDiff *const cwsdDiff);
 
     //---------------------
 
     double get_mapped(int key) const;
+    
+    //---------------------
+    
+    void pack(BCP_buffer& buf) const;
+    void unpack(BCP_buffer& buf);
 };
 
 

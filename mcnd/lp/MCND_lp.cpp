@@ -108,7 +108,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
     MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
     if(nodedata!=0){
-        //std::cout<<"user_data hotstart: "<<nodedata->hs<<std::endl;
+        std::cout<<"user_data hotstart: "<<nodedata->hs<<std::endl;
         if(nodedata->hs!=0){
             getLpProblemPointer()->lp_solver->setWarmStart(nodedata->hs);
         }

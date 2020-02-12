@@ -156,7 +156,9 @@ CoverCollection::pop_back_nodel(){
 		empty = true;
 	}
 	end = end->prev;
+	end->next =0;
 	--sizeOfCollection;
+
 }
 
 //------------------------------------------------------------------------------------

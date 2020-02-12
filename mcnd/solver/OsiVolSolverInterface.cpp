@@ -46,19 +46,14 @@ OsiVolSolverInterface::getWarmStart() const{
 
 bool 
 OsiVolSolverInterface::setWarmStart(const CoinWarmStart* warmstart){
-    HotStart_ = dynamic_cast<const WarmStartDual*>(warmstart);
+    const WarmStartDual* ws = dynamic_cast<const WarmStartDual*>(warmstart);
 	
-    if (! HotStart_){
-        const CoinWarmStartDual* hs = dynamic_cast<const CoinWarmStartDual*>(warmstart);
-        if(!hs){
-        	HotStartSet = false;
-        	return false;
-        }
-    	HotStart_ = new WarmStartDual(hs);
-
+    if (! ws){
+        HotStartSet = false;
+    	return false;
     }
+    HotStart_ = ws->clone_ws();
     std::cout<<"setWarmStart "<<HotStart_->size()<<" "<<getNumRows()<<std::endl;
-
     HotStartSet = true;
     return true;
 };
@@ -720,7 +715,7 @@ OsiVolSolverInterface::translate_dualsol(){
             dual[vi->id_vi] =0;
             lhs_[vi->id_vi] =0;
         }
-		std::cout<<"sol "<<i<<" "<<vi->serial_nmbr<<" "<<dual[vi->id_vi]<<std::endl;
+		std::cout<<"sol "<<vi->id_vi<<" "<<vi->serial_nmbr<<" "<<dual[vi->id_vi]<<std::endl;
 		vi = vi->prev;
 	}
 
@@ -842,7 +837,7 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 	int i =0;
 	int idx, ip;
 	int fidx = nnodes*ndemands;
-	//double dvalue;
+	double dvalue;
 	
 	//translate_dualws();
 	
@@ -856,24 +851,26 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 		vi = strt;
 		strt = 0;
 		while(vi != 0){
-			std::cout<<"indice: "<<i<<" id: "<<vi->id_vi<<std::endl;
+			//std::cout<<"indice: "<<i<<" id: "<<vi->id_vi<<std::endl;
 			if(strt == 0 && ip <= vi->id_vi){
 				strt = vi;
 			}
 			if((i < vi->id_vi) && (vi->id_vi < ip)){
 				idx = actv[vi->id_vi];
-				//dvalue = dual[vi->id_vi];
+				dvalue = dual[vi->id_vi];
 				vi->id_vi -= (n+1);
 				actv[vi->id_vi] = idx;
-				//dual[vi->id_vi] = dvalue;
+				dual[vi->id_vi] = dvalue;
+				//std::cout<<" new indice: "<<i<<" id: "<<vi->id_vi<<std::endl;
 			}else if(i == vi->id_vi){
 				vi = cover_manager->covers.move_to_end(vi); 
 				cover_manager->covers.pop_back_nodel();
 				continue;
 			}
-			
+			//std::cout<<"passa"<<std::endl;
 			vi = vi->next;
 		}
+		//std::cout<<"strt "<<strt->id_vi<<std::endl;
 	}
 	
 	vi = cover_manager->covers.end;
