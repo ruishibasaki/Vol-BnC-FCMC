@@ -300,9 +300,9 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     cover_manager.covers.map_collection(mapd);
 	int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[0]);
-    cdata->hs = new WarmStartDual(sz, child0.pi(), mapd);
+    cdata->hs = new CoinWarmStartDual(sz, child0.pi());//, mapd);
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
-    cdata->hs = new WarmStartDual(sz, child1.pi(), mapd);
+    cdata->hs = new CoinWarmStartDual(sz, child1.pi());//, mapd);
 	mapd.clear();
 }
 

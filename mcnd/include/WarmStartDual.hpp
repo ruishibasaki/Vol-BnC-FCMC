@@ -22,10 +22,18 @@ public:
     inline WarmStartDual(): dual_(0){};
     WarmStartDual(int size, const double* dual, const CoverCollection* covers);
     WarmStartDual(int size, const double* dual, const std::map<int, int>& map_ );
+    WarmStartDual(int size, const double* dual);
     WarmStartDual(const CoinWarmStartDual* wsd);
     
-    inline ~WarmStartDual(){ map.clear;}
+    inline ~WarmStartDual(){ mapd.clear();}
+    CoinWarmStart * clone () const{ return new WarmStartDual(this);}
+
+	//---------------------
+
     
+     CoinWarmStartDiff * 	generateDiff (const CoinWarmStart *const oldCWS) const;
+     void applyDiff (const CoinWarmStartDiff *const cwsdDiff);
+
     //---------------------
 
     double get_mapped(int key) const;

@@ -30,7 +30,7 @@
 
 CoinWarmStart *
 OsiVolSolverInterface::getEmptyWarmStart () const{
-    return (dynamic_cast<CoinWarmStart *>(new CoinWarmStartDual())) ;
+    return new WarmStartDual();
 }
 
 //---------------------------------------------------------------------------
@@ -38,7 +38,7 @@ OsiVolSolverInterface::getEmptyWarmStart () const{
 CoinWarmStart* 
 OsiVolSolverInterface::getWarmStart() const{
     std::cout<<"getWarmStart() "<<getNumRows()<<std::endl;
-    return new WarmStartDual(getNumRows(), dual, actv);
+    return new WarmStartDual(getNumRows(), dual, &cover_manager->covers);
     
 } 
 
@@ -49,8 +49,13 @@ OsiVolSolverInterface::setWarmStart(const CoinWarmStart* warmstart){
     HotStart_ = dynamic_cast<const WarmStartDual*>(warmstart);
 	
     if (! HotStart_){
-        HotStartSet = false;
-        return false;
+        const CoinWarmStartDual* hs = dynamic_cast<const CoinWarmStartDual*>(warmstart);
+        if(!hs){
+        	HotStartSet = false;
+        	return false;
+        }
+    	HotStart_ = new WarmStartDual(hs);
+
     }
     std::cout<<"setWarmStart "<<HotStart_->size()<<" "<<getNumRows()<<std::endl;
 
@@ -846,7 +851,7 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 	int sz = cover_manager->covers.sizeOfCollection;
 	for(int n=0;n<num;++n){
 		i = rowIndices[n];
-		ip = n+1<num ? rowIndices[n+1] : maxnumrows_;
+		ip = n+1<num ? rowIndices[n+1] : maxNumrows_;
 		if(i<fidx){std::cout<<"OsiVolSolverInterface::deleteRows Problem"<<std::endl; abort();}
 		vi = strt;
 		strt = 0;
@@ -862,7 +867,7 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 				actv[vi->id_vi] = idx;
 				//dual[vi->id_vi] = dvalue;
 			}else if(i == vi->id_vi){
-				vi = move_to_end(vi); 
+				vi = cover_manager->covers.move_to_end(vi); 
 				cover_manager->covers.pop_back_nodel();
 				continue;
 			}

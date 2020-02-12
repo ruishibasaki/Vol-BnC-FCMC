@@ -96,11 +96,13 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
    p.par.set_entry(BCP_lp_par::DoReducedCostFixingAtAnything, false);
    p.par.set_entry(BCP_lp_par::LpVerb_NodeTime, false);
    p.par.set_entry(BCP_lp_par::ReportWhenDefaultIsExecuted , false);
-   p.par.set_entry(BCP_lp_par::WarmstartInfo, BCP_WarmstartParent);
    p.par.set_entry(BCP_lp_par::MessagePassingIsSerial, true);
    p.par.set_entry(BCP_lp_par::MaxCutsAddedPerIteration, 1000);
    p.par.set_entry(BCP_lp_par::MaxResolveIter, 1 );
    p.par.set_entry(BCP_lp_par::IneffectiveConstraints, BCP_IneffConstr_None);
+   p.par.set_entry(BCP_lp_par::WarmstartInfo, BCP_WarmstartNone); //BCP_WarmstartParent;
+
+
    return lp;
 }
 

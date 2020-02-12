@@ -28,11 +28,37 @@ WarmStartDual::WarmStartDual(int size, const double* dual, const std::map<int, i
 
 //-------------------------------------------------------------------------------------------
 
+WarmStartDual::WarmStartDual(int size, const double* dual):CoinWarmStartDual(size, dual){
+}
+
+//-------------------------------------------------------------------------------------------
 
 WarmStartDual::WarmStartDual(const CoinWarmStartDual* wsd) : CoinWarmStartDual(*wsd){
-    	mapd = wsd->mapd;
+    	//mapd = wsd->mapd;
         dual_ = CoinWarmStartDual::dual();
 }
+
+
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+
+
+CoinWarmStartDiff * 
+WarmStartDual::generateDiff (const CoinWarmStart *const oldCWS) const{
+	std::cout<<"WarmStartDual::generateDiff"<<std::endl;
+	return CoinWarmStartDual::generateDiff(oldCWS);
+
+}
+
+//-------------------------------------------------------------------------------------------
+
+void 
+WarmStartDual::applyDiff (const CoinWarmStartDiff *const cwsdDiff){
+	std::cout<<"WarmStartDual::applyDiff"<<std::endl;
+	return CoinWarmStartDual::applyDiff(cwsdDiff);
+}
+
 
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
@@ -40,12 +66,13 @@ WarmStartDual::WarmStartDual(const CoinWarmStartDual* wsd) : CoinWarmStartDual(*
 
 double 
 WarmStartDual::get_mapped(int key) const{ // the key is the serial number of the cover
-        if(map.size()==0 || CoinWarmStartDual::size()==0){ 
+        if(mapd.size()==0 ){//}|| CoinWarmStartDual::size()==0){ 
         	std::cout<<"Attention: map.size()==0 || CoinWarmStartDual::size()==0" <<std::endl;
-        	return 0;
+        	return dual_[key];
+        	//return 0;
         }
-        std::map<int,int>::iterator it = map.find(key);
-        if(it == map.end()) return 0;
+        std::map<int,int>::const_iterator it = mapd.find(key);
+        if(it == mapd.end()) return 0;
         return dual_[it->second];
 }
 
