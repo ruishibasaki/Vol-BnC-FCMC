@@ -14,44 +14,6 @@
 #include "BCP_lp_node.hpp"
 #include "BCP_lp_functions.hpp"
 
-
-
-//#############################################################################
-
-
-double 
-MCND_lp::lag_subproblem(int a, const double * u){
-	double kpsack =0;
-	double fillUp =0;
-	double x, rc;
-
-	std::list<HeapCell> heap;
-	//get reduced cost for each commodity in arc e
-    Arc * item = &data.arcs[a];
-	for(int k=0;k<data.ndemands;++k){
-		rc =  item->c[k] - u[k*data.nnodes + item->j-1] + u[k*data.nnodes + item->i-1];
-		if(rc<0.0){
-			heap.push_back(HeapCell(k,rc));
-		}
-	}  
-	
-	heap.sort(comp());
-	//std::stable_sort(heap.begin(), heap.end(), comp());
-	while(heap.size()>0){
-		if(fillUp < item->capa){
-			x = std::min((item->capa - fillUp),  data.d_k[heap.back().k].quantity);
-			fillUp += x;
-			kpsack += heap.back().rc_ * x;
-			heap.pop_back();
-			//std::cout<<"in"<<std::endl;
-		}else{
-			heap.pop_back();
-		}	
-	}
-	return kpsack;
-}
-
-
 //#############################################################################
 
 BCP_branching_decision
@@ -66,11 +28,9 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	LBi = lpres.objval();
     //return BCP_DoNotBranch_Fathomed;
 
-    if(current_level() == 2){
+    if(current_level() == 1e10){
         return BCP_DoNotBranch_Fathomed;
 	}
-	
-	
 	
 	if(LBi<0 || LBi>best_soln.cost){
 		std::cout<<"LBi<0 || LBi>best_UB"<<std::endl;
@@ -90,29 +50,23 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
   	mapd.clear();
     cover_manager.covers.map_collection(mapd);
     OsiVolSolverInterface * s = getOsiVolBabSolver();
-    MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
-    freq.assign(data.narcs,0.0);
-    double div = s->getIterationCount();
-    if(div==0) div=1;
     
 	BCP_vec<double> vbd(4, 0.0);
     BCP_vec<int> vpos(1, 0);
     const double * psol = lpres.x();
-    std::list<HeapCell> order;
+    std::list<Pair2> order;
 	for (int a=data.narcs; a--;) {
-        y[a] = psol[a];
-        freq[a] /= div;  if(freq[a] > 1.0) freq[a] = 1.0;
 		if(vars[a]->lb()==0 && vars[a]->ub()==1){
-			order.push_back(HeapCell(a,freq[a]));
+			order.push_back(Pair2(a, abs(0.5-psol[a])));
 		}
 	}
-	order.sort(comp());
+	
+	order.sort(compPair2());
 	int arc;
 	int ncands=0;
 	while(!order.empty() && ncands<1){
-		arc = order.back().k;
+		arc = order.back().fst;
         order.pop_back();
-        ++freq_cand[arc];
 		std::cout<<"candidate "<<arc<<" "<<freq[arc]<< " "<<y[arc]<<" "<<freq_cand[arc]<<std::endl;
 		vpos[0] = arc;
 		vbd[0] = 0.0;
@@ -319,12 +273,51 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best)
   const BCP_lp_result & child1  = best->lpres(1);
   BCP_vec< BCP_child_action >& childs_action = best->action();
   
-  if((child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
+  if((child0.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
 	childs_action[0] = BCP_FathomChild;
   }else childs_action[0] = BCP_ReturnChild;
   
   childs_action[1] = BCP_ReturnChild;
   //std::cout<<" 0-side BCP_FathomChild/BCP_ReturnChild "<<childs_action[0]<<std::endl;
 }
+
+
+//#############################################################################
+//#############################################################################
+//#############################################################################
+
+
+double 
+MCND_lp::lag_subproblem(int a, const double * u){
+	double kpsack =0;
+	double fillUp =0;
+	double x, rc;
+
+	std::list<HeapCell> heap;
+	//get reduced cost for each commodity in arc e
+    Arc * item = &data.arcs[a];
+	for(int k=0;k<data.ndemands;++k){
+		rc =  item->c[k] - u[k*data.nnodes + item->j-1] + u[k*data.nnodes + item->i-1];
+		if(rc<0.0){
+			heap.push_back(HeapCell(k,rc));
+		}
+	}  
+	
+	heap.sort(comp());
+	//std::stable_sort(heap.begin(), heap.end(), comp());
+	while(heap.size()>0){
+		if(fillUp < item->capa){
+			x = std::min((item->capa - fillUp),  data.d_k[heap.back().k].quantity);
+			fillUp += x;
+			kpsack += heap.back().rc_ * x;
+			heap.pop_back();
+			//std::cout<<"in"<<std::endl;
+		}else{
+			heap.pop_back();
+		}	
+	}
+	return kpsack;
+}
+
 
 

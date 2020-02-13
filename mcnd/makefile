@@ -30,7 +30,7 @@ suffix_lp = \
 
 suffix_lp_cplex = \
 	MCND_mincostflow \
-	#MCND_pump \
+	MCND_pump \
 	#MCND_checkfeas
 	
 suffix_member =\

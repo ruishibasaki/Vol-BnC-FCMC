@@ -90,7 +90,7 @@ void
 OsiVolSolverInterface::setRowSetBounds(const int* indexFirst,
                                        const int* indexLast,
                                        const double* boundList){
-    std::cout<<"rowsetbounds "<<std::endl;
+    //std::cout<<"rowsetbounds "<<std::endl;
     while (indexFirst != indexLast) {
         rowlb[*indexFirst] =  boundList[0];
         rowub[*indexFirst] = boundList[1];
@@ -217,7 +217,7 @@ OsiVolSolverInterface::translate_hotstart(){
 
 void
 OsiVolSolverInterface::set_start(){
-    std::cout<<"OsiVolSolverInterface::set_start "<<std::endl;
+    //std::cout<<"OsiVolSolverInterface::set_start "<<std::endl;
     int idx, sz;
     int fidx = ndemands*nnodes;
     volprob_.dsol = 0.0;
@@ -715,7 +715,7 @@ OsiVolSolverInterface::translate_dualsol(){
             dual[vi->id_vi] =0;
             lhs_[vi->id_vi] =0;
         }
-		std::cout<<"sol "<<vi->id_vi<<" "<<vi->serial_nmbr<<" "<<dual[vi->id_vi]<<std::endl;
+		//std::cout<<"sol "<<vi->id_vi<<" "<<vi->serial_nmbr<<" "<<dual[vi->id_vi]<<std::endl;
 		vi = vi->prev;
 	}
 
@@ -837,7 +837,7 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 	int i =0;
 	int idx, ip;
 	int fidx = nnodes*ndemands;
-	double dvalue;
+	double dvalue, vvalue;
 	
 	//translate_dualws();
 	
@@ -858,9 +858,11 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 			if((i < vi->id_vi) && (vi->id_vi < ip)){
 				idx = actv[vi->id_vi];
 				dvalue = dual[vi->id_vi];
+				vvalue = lhs_[vi->id_vi];
 				vi->id_vi -= (n+1);
 				actv[vi->id_vi] = idx;
 				dual[vi->id_vi] = dvalue;
+				lhs_[vi->id_vi] = vvalue;
 				//std::cout<<" new indice: "<<i<<" id: "<<vi->id_vi<<std::endl;
 			}else if(i == vi->id_vi){
 				vi = cover_manager->covers.move_to_end(vi); 
@@ -872,14 +874,14 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 		}
 		//std::cout<<"strt "<<strt->id_vi<<std::endl;
 	}
-	
+	/*
 	vi = cover_manager->covers.end;
 	sz = cover_manager->covers.sizeOfCollection;
 	for(;sz--;){
 		//std::cout<<"vi: "<<vi->id_vi<<std::endl;
 		std::cout<<"sol "<<fidx+sz<<" "<<vi->id_vi<<" "<<dual[fidx+sz]<<std::endl;
 		vi = vi->prev;
-	}
+	}*/
 }
 
 //-----------------------------------------------------------------------------

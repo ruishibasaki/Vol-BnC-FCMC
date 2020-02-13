@@ -88,7 +88,7 @@ struct VOL_parms {
 
    /** initial upper bound of the value of an integer solution */
    double ubinit;
-
+   double dual_limit;
    /** accept if max abs viol is less than this */
    double primal_abs_precision;
    /** accept if abs gap is less than this */
@@ -142,8 +142,6 @@ struct VOL_parms {
    /** number of iterations before we check if alpha should be decreased */
    int    alphaint; 
 
-   /** name of file for saving dual solution */
-   char* temp_dualfile;
 };
 
 //############################################################################

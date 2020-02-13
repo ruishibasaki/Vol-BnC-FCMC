@@ -333,6 +333,7 @@ VOL_problem::set_default_parm()
     parm.alphamin = 0.001;
     parm.alphafactor = 0.5;
     parm.ubinit = DBL_MAX;
+    parm.dual_limit = DBL_MAX;
     parm.primal_abs_precision = 0.02;
     parm.gap_abs_precision = 0.0;
     parm.gap_rel_precision = 0.001;
@@ -348,7 +349,6 @@ VOL_problem::set_default_parm()
     parm.yellowtestinvl = 2;
     parm.redtestinvl = 10;
     parm.alphaint = 80;
-    parm.temp_dualfile = 0;
     parm.maxtime=3600;
 }
 
@@ -383,7 +383,7 @@ dsize(-1)
 
 VOL_problem::~VOL_problem()
 {
-    delete[] parm.temp_dualfile;
+
 }
 
 //######################################################################
@@ -578,7 +578,12 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
             if (parm.printflag) printf(" small ip gap \n");
             break;
         }
-
+		
+		//B&C pruning test
+		if ( dstar.lcost - parm.dual_limit > 1){
+            printf(" B&C prune \n");
+            break;
+        }
         // test for non-improvement
         /*const int k = iter_ % parm.ascent_check_invl;
         if (iter_ > ascent_first_check) {
@@ -596,7 +601,6 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         times( &buff );
         timespent = ( double( buff.tms_utime - t_u ) ) / double( CLK_TCK );
         if (timespent > parm.maxtime) {
-            retval=0;
             break;
         }
 

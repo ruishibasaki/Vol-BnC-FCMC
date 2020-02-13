@@ -53,29 +53,20 @@ public:
     MCND_lp() : best_LB(0), cut_off(false) {}
     ~MCND_lp() {y.clear(); freq.clear(); freq_cand.clear(); }
     
+    
     //--------------------------------------------------------------------------
-    // helper functions
-    OsiVolSolverInterface* getOsiVolBabSolver();
+    //-------------------------------------------------------------------------- 
+    //--------------------------------------------------------------------------
+    
     virtual void unpack_module_data(BCP_buffer & buf);
-    
-    //--------------------------------------------------------------------------
-    
-    MCND_solution * SolveMinCostFLow(const std::deque<int> & topo);
-    void update_branch_data(MCND_node_branch_data * ndata);
-    bool process_flow_solution(const BCP_vec<BCP_var*>& vars, const MCND_solution * sol);
-    double lag_subproblem(int a, const double * u);
-    
-    
-    
+
+    virtual OsiSolverInterface * initialize_solver_interface();
     
     
     //--------------------------------------------------------------------------
-    // Override the initializer so that we can choose between vol and simplex
-    // at runtime.
-    virtual OsiSolverInterface *
-    initialize_solver_interface();
+    //-------------------------------------------------------------------------- 
+    //--------------------------------------------------------------------------
     
-    virtual void initialize_int_and_sos_list(std::vector<OsiObject *>& intAndSosObjects);
     
     virtual void load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
                               BCP_var_set& vars, BCP_cut_set& cuts);
@@ -84,7 +75,19 @@ public:
                                       bool in_strong_branching);
     
     
-    
+     
+    virtual void
+    initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
+                                    const BCP_vec<BCP_cut*>& cuts,
+                                    const BCP_vec<BCP_obj_status>& var_status,
+                                    const BCP_vec<BCP_obj_status>& cut_status,
+                                    BCP_vec<int>& var_changed_pos,
+                                    BCP_vec<double>& var_new_bd,
+                                    BCP_vec<int>& cut_changed_pos,
+                                    BCP_vec<double>& cut_new_bd);
+                                    
+    //--------------------------------------------------------------------------
+    //--------------------------------------------------------------------------                             
     //--------------------------------------------------------------------------
     // Solution processing
     virtual double
@@ -125,25 +128,11 @@ public:
                                 const BCP_vec<BCP_var*>& vars,
                                 const BCP_vec<BCP_cut*>& cuts);
     
-    MCND_solution * shortest_paths(const double* x);
-    
+   
     //--------------------------------------------------------------------------
-    // feasible solution packing
-    virtual void
-    pack_feasible_solution(BCP_buffer& buf, const BCP_solution* sol);
-    
     //--------------------------------------------------------------------------
-    
-    virtual void
-    initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
-                                    const BCP_vec<BCP_cut*>& cuts,
-                                    const BCP_vec<BCP_obj_status>& var_status,
-                                    const BCP_vec<BCP_obj_status>& cut_status,
-                                    BCP_vec<int>& var_changed_pos,
-                                    BCP_vec<double>& var_new_bd,
-                                    BCP_vec<int>& cut_changed_pos,
-                                    BCP_vec<double>& cut_new_bd);
     //--------------------------------------------------------------------------
+
     //managing
     virtual BCP_branching_decision
     select_branching_candidates(const BCP_lp_result& lpres,
@@ -176,7 +165,9 @@ public:
     
     
     //--------------------------------------------------------------------------
-    
+    //--------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
+
     virtual void
     generate_cuts_in_lp(const BCP_lp_result& lpres,
                         const BCP_vec<BCP_var*>& vars,
@@ -225,6 +216,39 @@ public:
                         const BCP_vec<BCP_var*>& vars,
                         const BCP_vec<BCP_cut*>& cuts,
                         const bool final_lp_solution){};
+                        
+	//--------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
+    // helper functions
+    OsiVolSolverInterface* getOsiVolBabSolver();
+
+    virtual void pack_feasible_solution(BCP_buffer& buf, const BCP_solution* sol);
+    
+    //--------------------------------------------------------------------------
+    
+    MCND_solution * SolveMinCostFLow(const std::deque<int> & topo);
+    void update_branch_data(MCND_node_branch_data * ndata);
+    bool process_flow_solution(const BCP_vec<BCP_var*>& vars, const MCND_solution * sol);
+    double lag_subproblem(int a, const double * u);
+    
 };
 
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

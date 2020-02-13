@@ -78,7 +78,7 @@ public:
     /// Is the given primal objective limit reached?
     virtual bool isPrimalObjectiveLimitReached() const{
         if(!isProvenPrimalInfeasible())
-            return (volprob_.value>volprob_.parm.ubinit)? true : false;
+            return (volprob_.value>(volprob_.parm.dual_limit + 0.0001))? true : false;
         else return false;}
     
     
