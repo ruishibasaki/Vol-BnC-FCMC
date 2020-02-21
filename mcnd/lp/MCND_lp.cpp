@@ -413,7 +413,7 @@ MCND_lp::getOsiVolBabSolver(){
 
 
 MCND_lp::~MCND_lp(){
-	y.clear();
+	y.clear(); 
     std::deque<const Cover *> track;
     candidates.clear();
     mapd.clear();
