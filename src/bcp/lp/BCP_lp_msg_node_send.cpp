@@ -406,7 +406,7 @@ BCP_lp_pack_warmstart(BCP_lp_prob& p,
    if (has_data) {
       const bool def = p.param(BCP_lp_par::ReportWhenDefaultIsExecuted);
       if (p.node->tm_storage.warmstart != BCP_Storage_WrtParent) {
-          p.packer->pack_warmstart(p.node->warmstart, p.msg_buf, def);
+	  p.packer->pack_warmstart(p.node->warmstart, p.msg_buf, def);
       } else {
 	  double petol = 0.0;
 	  double detol = 0.0;
@@ -416,7 +416,6 @@ BCP_lp_pack_warmstart(BCP_lp_prob& p,
 	  BCP_warmstart* ws_change =
 	      p.node->warmstart->as_change(p.parent->warmstart,
 					   del_vars, del_cuts, petol, detol);
-          
 	  p.packer->pack_warmstart(ws_change, p.msg_buf, def);
 	  delete ws_change;
 	  ws_change = 0;
@@ -498,6 +497,7 @@ int BCP_lp_send_node_description(BCP_lp_prob& p,
    // let's start with saying who this node is and what is the lb we got
    buf.clear();
    buf.pack(node.index).pack(node.quality).pack(node.true_lower_bound);
+
    const bool dumpcuts = p.param(BCP_lp_par::Lp_DumpNodeDescCuts);
    const bool dumpvars = p.param(BCP_lp_par::Lp_DumpNodeDescVars);
    if (dumpcuts || dumpvars) {
@@ -550,7 +550,6 @@ LP: there is ws info in BCP_lp_send_node_description()!\n");
 	ws = p.lp_solver->getWarmStart();
 	p.node->warmstart = BCP_lp_convert_CoinWarmStart(p, ws);
 	BCP_lp_pack_warmstart(p, del_vars, del_cuts);
-
       }
       BCP_lp_pack_user_data(p);
    }

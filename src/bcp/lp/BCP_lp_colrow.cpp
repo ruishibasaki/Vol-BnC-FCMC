@@ -318,7 +318,7 @@ void BCP_lp_delete_cols_and_rows(BCP_lp_prob& p,
    min_to_del = force_delete ?
      0 : CoinMax(p.param(BCP_lp_par::DeletedRowToCompress_Min), min_by_frac);
 
-   if (del_num > min_to_del) {
+    if (del_num > min_to_del) {
       if (p.param(BCP_lp_par::LpVerb_MatrixCompression))
 	 printf("LP:   Deleting %i rows from the matrix.\n", del_num);
       if (can) {
@@ -346,7 +346,7 @@ void BCP_lp_delete_cols_and_rows(BCP_lp_prob& p,
 	 lp->setWarmStart(bas);
       }
       delete bas;
-   }else delete ws;
+   }
 }
 
 //#############################################################################

@@ -38,20 +38,26 @@ public:
     
     ~CoverCollection();
     
-    //--------------------------------------
-    //  setter/getter methods
-    //---------------------------------------
     Cover * createNewCover(const std::deque<Pair2>& c, double mu, int id_vi, int id_owner_, int serial_num_);
+
+    //--------------------------------------
+    //  insert/del methods
+    //---------------------------------------
+    
     int addCover(Cover * tryC, const double * xystar);
     void insert_front(Cover * tryC);
     void insert_end(Cover * tryC);
     void replace(Cover * out, Cover * in);
     void pop_back_nodel();
+    Cover * remove_nodel(Cover * trgt);
+    int removeCover(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu);
+
     //--------------------------------------
     //  VI methods
     //---------------------------------------
     int collected(Cover * tryC);
     int compScalar(Cover* c1, Cover* c2);
+    
     //--------------------------------------
     //  auxiliary methods
     //---------------------------------------
@@ -66,7 +72,6 @@ public:
     //--------------------------------------
     
     int swap_toend_destruct(Cover * out, Cover *& ret, bool destruct);
-    int removeCover(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu);
     Cover* swap_to_end(Cover * trgt);
     Cover* move_to_end(Cover * trgt);
 

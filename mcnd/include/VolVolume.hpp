@@ -604,7 +604,7 @@ public:
                            double& lcost, VOL_dvector& x,double& pcost)=0;
     
     virtual int additional_settings(int iter, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h,
-                                    VOL_dvector& x, const VOL_dvector& xhist, const VOL_dvector& dstar,   int actvSSz) = 0;
+                                    VOL_dvector& x, const VOL_dvector& xhist,  int actvSSz) = 0;
    
     virtual int heuristics(const VOL_problem& p,
 			  const VOL_dvector& x, double& heur_val) = 0;
@@ -672,8 +672,7 @@ private:
    //@}
 
 public:
-    double ttime_solve;
-    double ttime_search;
+     
    /**@name External data (containing the result after solve) */
    //@{
    /** final lagrangian value (OUTPUT) */

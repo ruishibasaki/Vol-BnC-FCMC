@@ -18,23 +18,22 @@ public:
 	IloNumVarArray x;
 	IloNumVarArray y;
 	
-	double factorx, factory;
-
+	double factorxy, factorp;
+	double alpha;
 	//--------------------------
 	
 	const Data * data;
 	int nnodes, ndemands, narcs;
 	int sznz, szunfix;
-	double alpha, v0;
 	std::deque<Pair2> ytopo;
 
 	//--------------------------
-
-	Pump(const Data * d);
+	Pump(): cplex(env), x(env), y(env){data =0; model =0;}
+	void set_data(const Data * d, double alph_init );
 	void set_parameters();
 	
 	//--------------------------
-	void reset(double alph, int szunfix_, std::deque<Pair2>& topo );
+	void reset( int szunfix_, std::deque<Pair2>& topo );
 	void create_model();
 	
 	//--------------------------

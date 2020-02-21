@@ -39,12 +39,13 @@ CoverManager::reset_and_map_collection(int fsize, const double* topo, double * d
         //std::cout<<"in: id_vi "<<vi->id_vi<<std::endl;
         if(vi->check_updt_Viol(topo)){
             actvS[vi->id_vi] = fsize+csize;
-            //std::cout<<"in: "<<vi->id_vi<<std::endl;
+            //std::cout<<"in: "<<vi->id_vi<<" "<<vi->rhs_dimsh<<std::endl;
             ++csize;
             ++num_actv;
             vi = vi->next;
         }else{
-        	std::cout<<"out: "<<vi->id_vi<<std::endl;
+        	std::cout<<"out: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<std::endl;
+        	//vi->print();
         	++cont;
         	vi = covers.move_to_end(vi);
         }
@@ -352,7 +353,7 @@ CoverManager::checkViol(const Cover * c, const double *y){
 //-------------------------------------------------------------------------------------------
 
 double
-CoverManager::update_dual_pos( const double * dstar, std::vector<Trio1>& ws, double * dual, double * h){
+CoverManager::update_dual_pos(  std::vector<Trio1>& ws, double * dual, double * h){
     int idx;
     int size = ws.size();
     for(int n=size; n--;){
@@ -447,6 +448,7 @@ CoverManager::update_con_arcs(std::deque<Pair2>& con_arcs, const double* fk, con
         if(fk[id_arc]<=0){
             con_arcs[a].snd = rc[id_arc] - fk[id_arc];
         }else con_arcs[a].snd  =  rc[id_arc];
+        
     }
     return 0;
 }
@@ -466,6 +468,7 @@ CoverManager::set_new_mult_neg(double *rc, std::vector<Trio1>& ws,  double * dua
     Pair2 item;
     
     std::stable_sort(con_arcs.begin(), con_arcs.end(), compPair2());
+    //std::cout<<"set_new_mult_neg"<<std::endl;
     while(!con_arcs.empty()){
         arc = con_arcs.front().fst;
         id_arc = arc_map[arc];
@@ -475,8 +478,13 @@ CoverManager::set_new_mult_neg(double *rc, std::vector<Trio1>& ws,  double * dua
         alphsum = con_arcs_map[arc].snd;
 
         //std::cout<<"arc: "<<arc<<" fk: "<<fk[id_arc]<<" rc: "<<rc[id_arc]<<" mult: "<<mult<<" tt: "<<tt<<" al: "<<alphsum<<std::endl;
-        if(mult > -1e-10 || alphsum  < 1e-10 ) continue;
-
+        if(mult > -1e-10 || alphsum  < 1e-10 ){
+        	for(int c=0; c<tt; c++){
+        		ws[con_arcs_wnid[arc*size+c].fst].trd = 1.0;
+        	}
+        	continue;
+    	}
+		//std::cout<<"ok"<<std::endl;
         for(int c=0; c<tt; c++){
             item = con_arcs_wnid[arc*size+c];
             if(ws[item.fst].trd == 1.0){  continue; }
@@ -496,7 +504,7 @@ CoverManager::set_new_mult_neg(double *rc, std::vector<Trio1>& ws,  double * dua
         
         update_con_arcs( con_arcs, fk, rc);
         std::stable_sort(con_arcs.begin(), con_arcs.end(), compPair2());
-        //std::cout<<"in arc: "<<arc<<" new rc: "<<rc[arc]<<std::endl;
+        
     }
     return 0;
 }
@@ -526,11 +534,10 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
     std::deque<Pair2> con_arcs_aux;
     
     Cover * vi = covers.begin;
-    for(int n=size; n--;){
+    for(int n=0; n<size;++n){
         addrs[n] = vi;
         index = actvS[vi->id_vi];
         if(checkViol(vi, xy)){ ws[n].fst = -index; vi = vi->next; continue; }
-
         for(int a=vi->get_total_sz(); a--;){
             arc = vi->at(a);
             id_arc = arc_map[arc];
@@ -555,7 +562,7 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
     }
     
     set_new_mult_neg( rc,  ws,  dual, con_arcs_map, con_arcs, con_arcs_wnid, addrs, fk);
-    update_con_arcs( con_arcs_aux, fk, rc);
+    update_con_arcs( con_arcs_aux, fk, rc); 
     set_new_mult_neg( rc,  ws,  dual, con_arcs_map, con_arcs_aux, con_arcs_wnid, addrs, fk);
 
     con_arcs_map.clear();
@@ -571,7 +578,7 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
 
 double
 CoverManager::recompute_mult_pos(double * dual, double * h,  double *rc,
-                             const double * dstar, const double *xy, const int * actvS){
+                               const double *xy, const int * actvS){
     if(num_actv==0) return 0;
     int index, arc, idc, id_arc;
     int narcs = data->narcs;
@@ -584,7 +591,7 @@ CoverManager::recompute_mult_pos(double * dual, double * h,  double *rc,
     std::vector<Trio1>ws(size,Trio1(-1,-1,-1));
     Cover * vi = covers.begin;
     //std::cout<<"recompute_mult "<<size<<std::endl;
-    for(int n=size; n--;){
+    for(int n=0; n<size;++n){
         index = actvS[vi->id_vi];
         if(!checkViol(vi, xy)){ ws[n].fst = -index; vi = vi->next; continue; }
         //std::cout<<"pos c: "<<n<<" rhs: "<<vi->get_total_rhs()<<" dual: "<<dual[index]<<" h: "<<h[index]<<std::endl;
@@ -614,7 +621,7 @@ CoverManager::recompute_mult_pos(double * dual, double * h,  double *rc,
     }
     //std::cout<<"ok"<<std::endl;
     set_new_mult_pos(rc,  ws, dual, con_arcs, con_arcs_map, con_arcs_wnid);
-    double ret = update_dual_pos(  dstar,  ws, dual, h);
+    double ret = update_dual_pos(  ws, dual, h);
     con_arcs_map.clear();
     con_arcs_wnid.clear();
     con_arcs.clear();

@@ -181,9 +181,10 @@ MCND_tm::init_new_phase(int phase,
 void
 MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 			const bool new_solution){
+	
 	std::cout<<"new_solution "<<new_solution<<std::endl;
 	std::cout<<"cand size "<<candidates.size()<<std::endl;
-	//Best_LB=lower_bound();
+	/*//Best_LB=lower_bound();
 	if(!new_solution){
 		CoinSearchTreeBase * tree = candidates.getTree();
 		CoinSearchTreeBase *t = createSearchType(tree->compName());
@@ -208,10 +209,10 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 		std::cout<<"final size "<<t->size()<<std::endl;
 	}
 	
-  //std::cout<<"change candidate heap size:"<<std::endl;
-  //change_candidate_heap(candidates,new_solution);
+  std::cout<<"change candidate heap size:"<<std::endl;*/
+  BCP_tm_user::change_candidate_heap(candidates,new_solution);
 }
-
+/*
 //-----------------------------------------------------------------------------
 
 CoinSearchTreeBase *
@@ -227,7 +228,7 @@ MCND_tm::createSearchType(const char * type){
 		return new CoinSearchTree<CoinSearchTreeComparePreferred>; 
 	
 }
-
+*/
 //#############################################################################
 
 void

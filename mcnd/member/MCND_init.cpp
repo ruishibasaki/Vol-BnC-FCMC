@@ -79,8 +79,14 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    p.par.set_entry(BCP_tm_par::Granularity, 1e-2);
    p.par.set_entry(BCP_tm_par::ReportWhenDefaultIsExecuted, false);
    p.par.set_entry(BCP_tm_par::WarmstartInfo, BCP_WarmstartNone); //BCP_WarmstartParent;
+   p.par.set_entry(BCP_tm_par::TreeSearchStrategy, BCP_DepthFirstSearch); 
+   p.par.set_entry(BCP_tm_par::UnconditionalDiveProbability, 1.0);
+   p.par.set_entry(BCP_tm_par::QualityRatioToAllowDiving_HasUB, -1.0);
+   p.par.set_entry(BCP_tm_par::QualityRatioToAllowDiving_NoUB, -1.0);
+   p.par.set_entry(BCP_tm_par::RemoveExploredBranches, true);
+   p.par.set_entry(BCP_tm_par::MessagePassingIsSerial, true);
 
-   return tm;
+   return tm; 
 }
 
 //-----------------------------------------------------------------------------
@@ -94,15 +100,19 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
    p.par.set_entry(BCP_lp_par::LpVerb_PresolveResult, false);
    p.par.set_entry(BCP_lp_par::LpVerb_StrongBranchResult, false);
    p.par.set_entry(BCP_lp_par::LpVerb_ChildrenInfo, false);
+   p.par.set_entry(BCP_lp_par::LpVerb_NodeTime, false);
    p.par.set_entry(BCP_lp_par::DoReducedCostFixingAtZero ,false);
    p.par.set_entry(BCP_lp_par::DoReducedCostFixingAtAnything, false);
-   p.par.set_entry(BCP_lp_par::LpVerb_NodeTime, false);
-   p.par.set_entry(BCP_lp_par::ReportWhenDefaultIsExecuted , false);
+   p.par.set_entry(BCP_lp_par::ReportWhenDefaultIsExecuted, false);
    p.par.set_entry(BCP_lp_par::MessagePassingIsSerial, true);
-   p.par.set_entry(BCP_lp_par::MaxCutsAddedPerIteration, 1000);
-   p.par.set_entry(BCP_lp_par::MaxResolveIter, 1 );
+   p.par.set_entry(BCP_lp_par::MaxCutsAddedPerIteration, 10000);
+   p.par.set_entry(BCP_lp_par::MaxPresolveIter, 100 );
+   p.par.set_entry(BCP_lp_par::StrongBranchNum, 100 );
    p.par.set_entry(BCP_lp_par::IneffectiveConstraints, BCP_IneffConstr_None);
    p.par.set_entry(BCP_lp_par::WarmstartInfo, BCP_WarmstartNone); //BCP_WarmstartParent;
+   p.par.set_entry(BCP_lp_par::DeletedRowToCompress_Frac, 0.0); //BCP_WarmstartParent;
+   p.par.set_entry(BCP_lp_par::DeletedRowToCompress_Min, 0); //BCP_WarmstartParent;
+
 
 
    return lp;

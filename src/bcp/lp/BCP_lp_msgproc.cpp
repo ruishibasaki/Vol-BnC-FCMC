@@ -241,7 +241,6 @@ BCP_lp_next_var_index(BCP_lp_prob& p)
     // In a single process environment the new index range has already
     // been received (and unpacked), thus we've got to receive it only if
     // the range still has length 0.
-	
     if (p.next_var_index == p.last_var_index) {
       p.msg_env->receive(p.get_parent() /*ree_manager*/,
 			 BCP_Msg_VarIndexSet, buf, -1);
@@ -311,6 +310,7 @@ void BCP_lp_send_cuts_to_cp(BCP_lp_prob& p, const int eff_cnt_limit)
 	! cut->dont_send_to_pool())
       ++cnt;
   }
+
   if (cnt > 0){
     BCP_buffer& buf = p.msg_buf;
     buf.clear();

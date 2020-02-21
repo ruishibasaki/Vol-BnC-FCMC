@@ -118,8 +118,7 @@ BCP_process_t BCP_lp_main(BCP_message_environment* msg_env,
    msg_env->receive(parent /*tree_manager*/,
 		    BCP_Msg_InitialUserInfo, p.msg_buf, -1);
    p.user->unpack_module_data(p.msg_buf);
-   
-   
+
    p.master_lp = p.user->initialize_solver_interface();
    p.user->initialize_int_and_sos_list(p.intAndSosObjects);
 
@@ -138,7 +137,6 @@ BCP_process_t BCP_lp_main(BCP_message_environment* msg_env,
       }
       p.no_more_cuts_cnt = -1; // not waiting for cuts
       p.process_message();
-
       if (msgtag == BCP_Msg_FinishedBCP)
 	 break;
    }

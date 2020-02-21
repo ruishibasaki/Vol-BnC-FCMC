@@ -173,7 +173,7 @@ bool
 BCP_tm_node_to_send::send()
 {
     int i;
-	
+
     if (missing_desc_num < 0) {
 	missing_desc_num = 0;
 	// collect what needs od be asked for

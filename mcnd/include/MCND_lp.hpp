@@ -19,15 +19,23 @@
 #include "MCND_osidata.hpp"
 #include "MCND_solution.hpp"
 #include "MCND_branch_score.hpp"
+#include "MCND_pump.hpp"
 
 
 class OsiVolSolverInterface;
 class OsiSolverInterface;
 
+enum LP_Mode{
+   /** Branch is driven by a Unfeasible pump problem.*/
+   LP_DiveToFeasibility,
+   /** Branch is driven by a Feasible pump problem.*/
+   LP_Normal,
+   /** Extra Iteration due to cut addition.*/
+   LP_CutAdded
+};
+
+
 class MCND_lp : public BCP_lp_user {
-private:
-    MCND_lp(const MCND_lp&);
-    MCND_lp& operator=(const MCND_lp&);
     
 public:
     
@@ -36,22 +44,27 @@ public:
     CoverManager cover_manager;
     CutSetManager ss_manager;
     
+    Pump pump_heur;
+    
+    LP_Mode lp_mode;
+    bool has_sol;
     std::vector<double> y;
-    std::vector<double> freq;
-    std::vector<int> freq_cand;
+    std::deque<const Cover *> track;
+    std::deque<Pair2> candidates;
     std::map<int, int> mapd;
-
+	
     double best_LB;
     double LBi;
     
     bool cut_off;
+    
     MCND_solution best_soln;
     
     int MaxIt;
     
 public:
-    MCND_lp() : best_LB(0), cut_off(false) {}
-    ~MCND_lp() {y.clear(); freq.clear(); freq_cand.clear(); }
+    MCND_lp() : best_LB(0), LBi(0), cut_off(false), has_sol(false), track(0) {}
+    ~MCND_lp();
     
     
     //--------------------------------------------------------------------------
@@ -227,11 +240,9 @@ public:
     
     //--------------------------------------------------------------------------
     
-    MCND_solution * SolveMinCostFLow(const std::deque<int> & topo);
     void update_branch_data(MCND_node_branch_data * ndata);
-    bool process_flow_solution(const BCP_vec<BCP_var*>& vars, const MCND_solution * sol);
     double lag_subproblem(int a, const double * u);
-    
+    void keep_track(const Cover* vi);
 };
 
 #endif

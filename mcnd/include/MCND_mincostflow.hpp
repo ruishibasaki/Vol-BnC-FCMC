@@ -4,7 +4,6 @@
 #include <ilcplex/ilocplex.h>
 
 #include "MCND_data.hpp"
-#include "MCND_solution.hpp"
 #include <vector>
 #include <deque>
 
@@ -22,10 +21,8 @@ public:
 	
 	// construtores
 	MinCostFLow();
-	
 
 	void set_parameters();
-	double getSolution(const std::deque<int> & topo, const Data * data, MCND_solution * sol_);
 	int solve();
     void create_model(const std::deque<int> & topo, const Data * data);
 	

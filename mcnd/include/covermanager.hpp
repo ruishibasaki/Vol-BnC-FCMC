@@ -26,7 +26,7 @@ public:
     int lim_to_remv;
     int gend;
     int ttgend;
-    
+    std::deque<Cover*> purgbl;
     //-------------------------------------------------------------------------------------------
     //  initializing methods
     //-------------------------------------------------------------------------------------------
@@ -76,8 +76,7 @@ public:
     double set_new_mult_pos(double *rc, std::vector<Trio1>& ws, const double * dual,
                         const std::deque<int>& con_arcs, const std::vector<int> & con_arcs_map,
                         const std::vector<Pair2>&  con_arcs_wnid);
-    double update_dual_pos( const double * dstar,
-                     std::vector<Trio1>& ws, double * dual, double * h);
+    double update_dual_pos( std::vector<Trio1>& ws, double * dual, double * h);
     double set_new_mult_neg(double *rc, std::vector<Trio1>& ws,  double * dual, std::vector<Pair2> & con_arcs_map,
                       std::deque<Pair2>& con_arcs, const std::vector<Pair2>& con_arcs_wnid,
                      const std::vector<const Cover *>& addrs ,const double *fk);
@@ -94,7 +93,7 @@ public:
     void add_cover_vi(int added, int * actvS, int & actvSSz,double * h, double * dual, double * dual_lb, double * dual_ub );
     void make_inactive(int index, const int* actvS, double* v);
     double recompute_mult_pos( double * dual, double * h,  double *rc, 
-                              const double * dstar, const double *xy, const int * actvS);
+                               const double *xy, const int * actvS);
     double recompute_mult_neg(double * dual, double * rc, const double *fk,
                               const double *xy, const int * actvS, int actvSSz);
     double arc_dg_imp(int arc, const double * xy, const double * h, const int * actvS, int actvSSz);

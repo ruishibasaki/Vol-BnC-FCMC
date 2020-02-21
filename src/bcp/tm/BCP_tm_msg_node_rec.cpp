@@ -179,11 +179,9 @@ TMDBG;
 
 	// same for cuts
 	buf.unpack(cnt);
-
 	while (--cnt >= 0) {
 	    p.unpack_cut();
 	}
-
 TMDBG;
 	desc->cut_change.unpack(buf);
 	    
@@ -200,7 +198,6 @@ TMDBG;
 	case BCP_WarmstartParent:
 	  buf.unpack(has_data);
 	  if (has_data) {
-	   
 	    const bool def = p.param(BCP_tm_par::ReportWhenDefaultIsExecuted);
 	    desc->warmstart = p.packer->unpack_warmstart(buf, def);
 	  }

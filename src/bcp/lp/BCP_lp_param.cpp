@@ -200,9 +200,6 @@ void BCP_parameter_set<BCP_lp_par>::create_keyword_list() {
     keys.push_back(make_pair(BCP_string("BCP_MaxPresolveIter"),
 			     BCP_parameter(BCP_IntPar, 
 					   MaxPresolveIter)));
-    keys.push_back(make_pair(BCP_string("BCP_MaxResolveIter"),
-                             BCP_parameter(BCP_IntPar,
-                            MaxResolveIter)));
     keys.push_back(make_pair(BCP_string("BCP_StrongBranchNum"),
 			     BCP_parameter(BCP_IntPar, 
 					   StrongBranchNum)));
@@ -302,11 +299,11 @@ void BCP_parameter_set<BCP_lp_par>::set_default_entries() {
     //-------------------------------------------------------------------------
     // CharPar
     set_entry(BranchOnCuts, false);
-    set_entry(CompareNewCutsToOldOnes, false);
+    set_entry(CompareNewCutsToOldOnes, true);
     set_entry(CompareNewVarsToOldOnes, true);
-    set_entry(DoReducedCostFixingAtZero, false);
-    set_entry(DoReducedCostFixingAtAnything, false);
-    set_entry(MessagePassingIsSerial, true);
+    set_entry(DoReducedCostFixingAtZero, true);
+    set_entry(DoReducedCostFixingAtAnything, true);
+    set_entry(MessagePassingIsSerial, false);
     set_entry(ReportWhenDefaultIsExecuted, true);
     set_entry(NoCompressionAtFathom, false);
     set_entry(SendFathomedNodeDesc, true);
@@ -360,19 +357,18 @@ void BCP_parameter_set<BCP_lp_par>::set_default_entries() {
 
     set_entry(CutViolationNorm, BCP_CutViolationNorm_Plain);
 
-    set_entry(MaxCutsAddedPerIteration, 0);
-    set_entry(MaxVarsAddedPerIteration, 0);
+    set_entry(MaxCutsAddedPerIteration, 100000);
+    set_entry(MaxVarsAddedPerIteration, 100000);
 
-    set_entry(MaxLeftoverCutNum, 0); 
+    set_entry(MaxLeftoverCutNum, 10000000); 
 
-    set_entry(DeletedColToCompress_Min, 0);
-    set_entry(DeletedRowToCompress_Min, 0);
+    set_entry(DeletedColToCompress_Min, 10);
+    set_entry(DeletedRowToCompress_Min, 10);
 
     set_entry(MaxPresolveIter, 100000);
-    set_entry(MaxResolveIter, 100000);
-    set_entry(StrongBranchNum, 0);
+    set_entry(StrongBranchNum, 3);
     set_entry(BranchingObjectComparison, BCP_HighestLowObjval);
-    set_entry(ChildPreference, BCP_PreferDiveDown);
+    set_entry(ChildPreference, BCP_PreferChild_LowBound);
 
     set_entry(FeasibilityTest, BCP_FullTest_Feasible);
     set_entry(WarmstartInfo, BCP_WarmstartParent);

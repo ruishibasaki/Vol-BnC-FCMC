@@ -23,8 +23,8 @@
 #include "CoinPackedMatrix.hpp"
 
 #include "OsiSolverInterface.hpp"
-#include "CoinWarmStartDual.hpp"
 #include "WarmStartDual.hpp"
+
 static const double OsiVolInfinity = 1.0e31;
 
 //#############################################################################
@@ -55,35 +55,26 @@ public:
                         "branchAndBound", "OsiVolSolverInterface");
     }
     
-    virtual bool isAbandoned() const{return (retval==-100)? true : false;}
+    virtual bool isAbandoned() const{return (retval==-1)? true : false;}
     
-    virtual bool isProvenOptimal() const{
-        return ((retval==0) &&
-                volprob_.iter() < volprob_.parm.maxsgriters);}
-    
-    virtual bool isProvenPrimalInfeasible()const{
-        if(retval==-1 || volprob_.value<0 ){
-            //std::cout<<"VOL: "<<retval<<" / "<< volprob_.value<<std::endl;
-            return true;
-        }else return false;
-    }
+    virtual bool isDualObjectiveLimitReached() const{return false;}
     
     virtual bool isProvenDualInfeasible() const{return false;}
     
+    virtual bool isProvenOptimal() const{
+        return ((retval==0) && volprob_.iter() < volprob_.parm.maxsgriters);}
+    
     virtual bool isIterationLimitReached() const{
-        if(volprob_.iter()>= volprob_.parm.maxsgriters)
-            return true;
-        else return false;}
+        return(volprob_.iter()>= volprob_.parm.maxsgriters)? true: false;
+    }
+    
+    virtual bool isProvenPrimalInfeasible()const;
     
     /// Is the given primal objective limit reached?
-    virtual bool isPrimalObjectiveLimitReached() const{
-        if(!isProvenPrimalInfeasible())
-            return (volprob_.value>(volprob_.parm.dual_limit + 0.0001))? true : false;
-        else return false;}
+    virtual bool isPrimalObjectiveLimitReached() const;
     
     
-    /// Is the given dual objective limit reached?
-    virtual bool isDualObjectiveLimitReached() const{return false;}
+    
     //---------------------------------------------------------------------------
     
     
@@ -428,7 +419,8 @@ private:
                            double& lcost,
                            VOL_dvector& x,double& pcost);
     
-    int additional_settings(int iter, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h, VOL_dvector& x, const VOL_dvector& xhist, const VOL_dvector& dstar,  int actvSSz);
+    int additional_settings(int iter, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h, VOL_dvector& x, 
+    						const VOL_dvector& xhist,  int actvSSz);
     
     int heuristics(const VOL_problem& p,
                    const VOL_dvector& x, double& heur_val);
@@ -472,9 +464,10 @@ public:
     int fsize, csize;
     
     int retval;
+    int num_purgbl;
     bool HotStartSet;
     bool in_strong_branch;
-    
+    bool has_sol;
     //Volume attributes
     double VIub, VItt, B0;
     double * VItopo;
@@ -484,7 +477,7 @@ public:
     int * arc_map;
     int * actv;  
     int lim_to_remv, maxNumVI, intvlVI;
-    
+    double upper_bound;
     CoverManager* cover_manager;
     CutSetManager* ss_manager;
     int mode;

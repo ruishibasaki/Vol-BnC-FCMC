@@ -63,8 +63,8 @@ public:
 
   //-------------------------------------------------------------------------
   // managing
-  CoinSearchTreeBase *
-  createSearchType(const char * type);
+  /*CoinSearchTreeBase *
+  createSearchType(const char * type);*/
   
   void
   change_candidate_heap(CoinSearchTreeManager& candidates,

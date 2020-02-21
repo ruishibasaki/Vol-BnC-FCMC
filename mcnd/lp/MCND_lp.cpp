@@ -18,11 +18,10 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     //std::cout<<"try unpack to lp "<<std::endl;
     data.unpack(buf);
     y.resize(data.narcs,0);
-    freq.resize(data.narcs,0);
-    freq_cand.resize(data.narcs,0);
     
     ss_manager.initialize(&data);
     cover_manager.initialize(&data, 10);
+    pump_heur.set_data(&data, 0.5);
     
     AppVolData.data = &data;
     AppVolData.ss_manager = &ss_manager;
@@ -79,11 +78,12 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
     cover_manager.clean_collection();
     int cutnum = cuts.size();
   	int core_rownum = core->cutnum();
+  	
   	if (cutnum > core_rownum){
   		for(int i=core_rownum; i<cutnum;++i){
   			CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
   			if(cut){
-  				//std::cout<<"collec: "<<i<<" "<<cut->get_cover()->serial_nmbr<<std::endl;
+  				//std::cout<<"collec: "<<i<<" "<<cut->get_cover()->serial_nmbr<<" "<<cuts[i]->bcpind()<<std::endl;
   				cut->get_cover()->id_vi = i;
   				cover_manager.covers.insert_end(cut->get_cover());
   			}
@@ -111,19 +111,23 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     lp->setDblParam(OsiPrimalTolerance, 1e-4);
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = vollp->volprob_.parm;
-	
-    par.dual_limit = best_soln.cost;
+    
+    vollp->has_sol = has_sol;
+    vollp->upper_bound = LBi >0 ? std::min(upper_bound(), LBi*5) : upper_bound();
+    par.dual_limit = vollp->upper_bound*5; std::cout<<"limit: "<<par.dual_limit<<" "<<vollp->upper_bound<<std::endl;
+
+    
     if(!vollp->HotStartSet){
-    	if(current_level()==0)par.maxsgriters = 1000;
+    	if(current_level()==0) par.maxsgriters = 1000;
     	else par.maxsgriters = 500;
     }else par.maxsgriters = 250;
      
-    if(current_level()>0)  AppVolData.intvlVI = 100;
+    if(current_level()>0){  AppVolData.intvlVI = 100;}
     if(in_strong_branching){ vollp->mode=0;}
     else if(changeType==1 && !in_strong_branching){ vollp->mode=-1;}
     else{ vollp->mode=1;}
     vollp->in_strong_branch = in_strong_branching;
-   
+
     //if(in_strong_branching ){
     //  std::cout<<"setAuxiliaryInfo "<<lp->getAuxiliaryInfo()<<std::endl;
     //lp->setAuxiliaryInfo(new MCND_parent_branch_data());
@@ -168,7 +172,9 @@ MCND_lp::process_lp_result(const BCP_lp_result& lpres,
                            BCP_vec<BCP_row*>& new_rows,
                            BCP_vec<BCP_var*>& new_vars,
                            BCP_vec<BCP_col*>& new_cols){
-    /**/
+
+    const double *y_vol = lpres.x();
+    y.assign(y_vol, y_vol+data.narcs);
     getLpProblemPointer()->user_has_lp_result_processing = false;
     return;
     /*std::cout<<"process_lp_result and generate"<<std::endl;
@@ -204,9 +210,15 @@ MCND_lp::generate_cuts_in_lp(const BCP_lp_result& lpres,
     cover_manager.covers.advance(vi, cover_manager.num_actv-1);
     std::cout<<"generate cuts: "<<newly_added<<" sz: "<<sz<<" cutsvecsz: "<<new_cuts.size()<<std::endl;
     for(int i=newly_added;i--;){
-        new_cuts.push_back(new CoverCut(vi));
+    	keep_track(vi);
+        new_cuts.push_back(new CoverCut(vi)); 
         vi = vi->prev;
     }
+    if(newly_added){
+    	lp_mode = LP_CutAdded;
+    	cover_manager.gend =0;
+    } 
+    
 }
 
 //-------------------------------------------------------------------------------------------
@@ -249,17 +261,21 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 				   const bool before_fathom,
 				   BCP_vec<int>& deletable){
 	std::cout<<"select_cuts_to_delete "<<before_fathom<<std::endl;
-	if(!before_fathom){
-	    const int cutnum = cuts.size();
-		for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
-			CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
-			if (!cut->check_viol(vars)) {
-				std::cout<<"out: "<<i<<" "<<cut->get_cover()->id_vi<<std::endl;
-				deletable.push_back(i);
-			}
+	
+	//if(!before_fathom){
+	const int cutnum = cuts.size();
+	deletable.reserve(cutnum-getLpProblemPointer()->core->cutnum()+1);
+
+	for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
+		CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
+		if (!cut->check_viol(vars)) {
+			std::cout<<"out: "<<i<<" id: "<<cut->get_cover()->id_vi<<" srnb: "<<cut->get_cover()->serial_nmbr<<std::endl;
+			cover_manager.purgbl.push_back(cut->get_cover());
+			deletable.unchecked_push_back(i);
 		}
 	}
-    	//BCP_lp_user::select_cuts_to_delete(lpres,vars,cuts,before_fathom, deletable);
+	getOsiVolBabSolver()->num_purgbl=0;
+
 }
 
 //-------------------------------------------------------------------------------------------
@@ -281,51 +297,13 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
                           const BCP_vec<BCP_var*>& vars,
                           const BCP_vec<BCP_cut*>& cuts){
     
-    //std::cout<<"test feasibility "<<std::endl;
+    std::cout<<"test feasibility "<<std::endl;
     MCND_node_branch_data * ndata  = dynamic_cast<MCND_node_branch_data *>(get_user_data());
     if(ndata){
         std::cout<<"node comes from branch on: "<<ndata->branch_var;
         std::cout<<" of "<<ndata->pos_neg<<" side "<<std::endl;
     }
     return 0;
-    /*
-    
-    // if not feas. Check it for real.
-    if((lp_result.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
-        std::deque<int> topo;
-        for (int a=data.narcs; a--;)
-            if(!(vars[a]->lb()==0 && vars[a]->ub()==0)) topo.push_back(a);
-        MCND_solution* sol_ = SolveMinCostFLow(topo);
-        topo.clear();
-        if(sol_){
-            std::cout<<"vol stopped but there is sol: "<<sol_->objective_value()<<std::endl;
-            //update_branch_data(ndata);
-            //cut_off = process_flow_solution(vars, sol_);
-            return sol_;
-        }
-        return sol_ ;
-    }else{ // if very feas. Check it for real.
-        update_branch_data(ndata);
-        double viol=0;
-        const double * lhs = lp_result.lhs();
-        for(int d=data.nnodes*data.ndemands;d--;)
-            viol += std::abs(lhs[d]);
-        
-        if(viol<0.1 ){
-            std::deque<int> topo;
-            for (int a=data.narcs; a--;)
-                if(!(vars[a]->lb()==0 && vars[a]->ub()==0)) topo.push_back(a);
-            MCND_solution* sol_ = SolveMinCostFLow(topo);
-            topo.clear();
-            std::cout<<"little viol: SolveMinCostFLow"<<std::endl;
-            if(sol_){
-                cut_off = process_flow_solution(vars, sol_);
-                return sol_;
-            }
-        }
-        
-        return 0;
-    }*/
 }
 
 //-------------------------------------------------------------------------------------------
@@ -347,54 +325,43 @@ BCP_solution*
 MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
                                      const BCP_vec<BCP_var*>& vars,
                                      const BCP_vec<BCP_cut*>& cuts){
-    return 0;
-    std::cout<<"try heuristic "<<std::endl;
-    OsiVolSolverInterface * s = getOsiVolBabSolver();
+    std::cout<<"try heuristic "<<candidates.size()<<std::endl;
+    if(current_level() >1000){ lp_mode=LP_Normal;   return 0;}
+	if(lp_mode == LP_CutAdded){ lp_mode = LP_Normal; return 0;}
+	
     const double * x = lpres.x();
-    const double * u = lpres.pi();
-    CoinWarmStartDual * hs = new CoinWarmStartDual(data.ndemands*data.nnodes, u);
-    std::deque<int> test_topo;
+    double * yl = new double [data.narcs];
+    std::deque<Pair2> topo;
+    int unfixed=0;
     for (int a=data.narcs; a--;){
+    	yl[a] = 0;
         if(vars[a]->lb()==1.0){
-            test_topo.push_back(a);
-            std::cout<<test_topo.back()<<" ";
+            topo.push_back(Pair2(a, 1));
         }else if(vars[a]->ub()==1.0){
-            double r = rand()%101/100.0;
-            if(r <= 1){ test_topo.push_back(a);
-                std::cout<<test_topo.back()<<"* ";}
+            if(x[a]>=0.7) topo.push_back(Pair2(a, 1));
+            else if(x[a]>=0.3){
+            	if(x[a]>0.5){
+            		topo.push_front(Pair2(a, 1));
+            	}else topo.push_front(Pair2(a, 0));
+            	++unfixed;
+            }else{ candidates.push_back(Pair2(a,x[a])); }//std::cout<<"cand: "<<a<<" "<<x[a]<<std::endl;}
         }
     }
-    std::cout<<std::endl;
-    s->direct_solve(test_topo,hs);
+    MCND_solution* sol = new MCND_solution(data.narcs+data.narcs*data.ndemands);
+    pump_heur.reset( unfixed, topo);
+    int retval = pump_heur.solve(yl, sol->xy, sol->cost);
     
-    delete hs;
-    std::cout<<"ub: "<<s->getObjValue()<<"  UB:"<<upper_bound()<<std::endl;
-    if(s->getObjValue() < upper_bound()){
-        MCND_solution* sol_;
-        sol_ = SolveMinCostFLow(test_topo);
-        
-        if(sol_!=0){
-            std::cout<<"new ub: "<<sol_->cost<<std::endl;
-            for(int a=test_topo.size();a--;){
-                bool flag=false;
-                int arc =  test_topo[a];
-                for (int k = 0; k < data.ndemands; ++k){
-                    if(sol_->xy[data.narcs+k*data.narcs+arc]){
-                        flag=true; break;
-                    }
-                }
-                if(!flag){
-                    sol_->xy[arc] = 0.0;
-                    sol_->cost -= data.arcs[arc].f;
-                    std::cout<<"cut: "<<arc<<std::endl;
-                }else sol_->xy[arc] = 1.0;
-            }
-            std::cout<<"oficial new ub: "<<sol_->cost<<std::endl;
-        }
-        test_topo.clear();
-        return sol_;
+    topo.clear();
+    if(retval>=0){
+    	has_sol =true;
+        lp_mode=LP_Normal;
+    	candidates.clear();
+    	if(upper_bound() > sol->cost)
+    		return sol;
+    	delete sol;
+    	return 0;
     }
-    
+    lp_mode = LP_DiveToFeasibility;
     return 0;
 }
 
@@ -426,6 +393,13 @@ MCND_lp::update_branch_data(MCND_node_branch_data * ndata){
     }
 }
 
+//=======================================================================================
+
+
+void 
+MCND_lp::keep_track(const Cover* vi){
+	track.push_back(vi);
+}
 
 //#############################################################################
 
@@ -437,47 +411,17 @@ MCND_lp::getOsiVolBabSolver(){
 
 //#############################################################################
 
-MCND_solution * 
-MCND_lp::SolveMinCostFLow(const std::deque<int> & topo){
-    
-    MinCostFLow lp;
-    lp.create_model(topo, &data);
-    int retval = lp.solve();
-    if(retval < 0){
-        std::cout<<"no good"<<std::endl;
-        return 0;
-    }else if(retval == 0){
-        MCND_solution* solution = new MCND_solution(data.narcs+data.narcs*data.ndemands);
-        lp.getSolution(topo, &data, solution);
-        if(solution->cost<best_soln.cost){
-            best_soln = *solution;
-        }
-        return solution;
+
+MCND_lp::~MCND_lp(){
+	y.clear();
+    std::deque<const Cover *> track;
+    candidates.clear();
+    mapd.clear();
+    for(int i=track.size();i--;){
+    	delete track[i];
     }
-    std::cout<<"no good"<<std::endl;
-    return 0;
+    track.clear();
 }
 
-//----------------------------------------------------------------------------------------
-
-bool 
-MCND_lp::process_flow_solution(const BCP_vec<BCP_var*>& vars, const MCND_solution * sol){
-    bool cutoff = true;
-    double f=0;
-    for(int a=data.narcs;a--;){
-        if(vars[a]->lb()==0 && vars[a]->ub()==1 && sol->xy[a]>0){
-            cutoff= false;
-            //std::cout<<"nop in a0: "<<a<<" "<<sol->xy[a]<<std::endl;
-            break;
-        }else if(vars[a]->lb()==1){
-            f+=data.arcs[a].f;
-        }
-    }
-    if(sol->cost_flow + f >= best_soln.cost){
-        //std::cout<<"yes cost "<<sol->cost_flow + f<<" >= "<<best_soln.cost<<std::endl;
-        cutoff = true;
-    }//else std::cout<<"nop cost "<<sol->cost_flow + f<<" < "<<best_soln.cost<<std::endl;
-    return cutoff;
-}
 
 

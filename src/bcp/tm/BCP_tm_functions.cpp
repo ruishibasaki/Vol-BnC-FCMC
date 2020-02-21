@@ -169,19 +169,16 @@ BCP_tm_start_one_node(BCP_tm_prob& p)
 
 	bool process_this = true;
 
-	if (next_node->getTrueLB() > p.ub() - p.granularity()){
-	    printf("%lf, %lf granularity %lf \n",p.ub(), next_node->getTrueLB(), p.granularity());
+	if (next_node->getTrueLB() > p.ub() - p.granularity())
 	    process_this = false;
-	}if (next_node->getTrueLB() >
-	    p.ub() - p.param(BCP_tm_par::TerminationGap_Absolute)){
-	    printf("%lf, %lf TerminationGap_Absolute %lf \n",p.ub(),  next_node->getTrueLB() ,p.param(BCP_tm_par::TerminationGap_Absolute));
+	if (next_node->getTrueLB() >
+	    p.ub() - p.param(BCP_tm_par::TerminationGap_Absolute))
 	    process_this = false;
-	}if (next_node->getTrueLB() >
-	    p.ub() * (1 - p.param(BCP_tm_par::TerminationGap_Relative))){
-	    printf("%lf, %lf TerminationGap_Relative %lf \n ",p.ub(), next_node->getTrueLB() , (1 - p.param(BCP_tm_par::TerminationGap_Relative)));
+	if (next_node->getTrueLB() >
+	    p.ub() * (1 - p.param(BCP_tm_par::TerminationGap_Relative)))
 	    process_this = false;
 
-	}if (process_this)
+	if (process_this)
 	    break;
 
 	// ok, so we do have an UB and true lb is "higher" than the UB.

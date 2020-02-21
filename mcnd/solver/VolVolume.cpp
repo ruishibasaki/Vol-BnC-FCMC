@@ -405,13 +405,10 @@ int
 VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual) 
 {
     clock_t t_u;
-    clock_t t_tt;
     struct tms buff;
     times( &buff );
     t_u = buff.tms_utime;
     double timespent = 0;
-    ttime_solve=0;
-    ttime_search=0;
     if (initialize(use_preset_dual) < 0) // initialize several parameters
         return -1;
 
@@ -426,24 +423,18 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     
     VOL_primal primal(psize, dsize);  // primal vector
     VOL_primal pstar(psize, dsize);
-    VOL_dual dstar(dual);
-    VOL_dual dlast(dual);
+    
 
     retval = hooks.compute_rc(dual.u, rc, active_size); // compute reduced costs
     if (retval < 0)  return -1;
     // solve relaxed problem
     
-    times( &buff );
-    t_tt = buff.tms_utime;
+
     retval = hooks.solve_subproblem(pstar.x,dual.u, rc, dual.lcost, primal.x, primal.value);
     if (retval < 0)  return -1;
-    retval = hooks.additional_settings(0, dual.lcost, dual.u, rc, pstar.v, primal.x, pstar.x, dstar.u, active_size);
+    retval = hooks.additional_settings(0, dual.lcost, dual.u, rc, pstar.v, primal.x, pstar.x, active_size);
     if (retval < 0)  return -1;
     retval = hooks.resolve_subproblem(dual.u, rc, dual.lcost, primal.x, primal.value);
-    if (retval < 0)  return -1;
-    times( &buff );
-    ttime_solve += ( double( buff.tms_utime - t_tt ) ) / double( CLK_TCK );
-    retval = hooks.addVI(iter_,dual.lcost, pstar.x, primal.x, dual.u, dual_lb, dual_ub, primal.v, pstar.v, active_size );
     if (retval < 0)  return -1;
     retval = hooks.compute_sg(primal.x, active_size, primal.v);
     if (retval < 0)  return -1;
@@ -460,8 +451,8 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     //dual.compute_xrc(pstar.x, primal.x, rc); // compute xrc
     
     //
-    dstar.copy(dual, active_size); // dstar is the best dual solution so far
-    dlast.copy(dual, active_size); // set dlast=dual
+    VOL_dual dstar(dual);
+    VOL_dual dlast(dual);
     
     iter_ = 0;
     if (parm.printflag)
@@ -488,24 +479,18 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         retval = hooks.compute_rc(dual.u, rc, active_size);
         if (retval < 0)  break;
         // solve relaxed problem
-        times( &buff );
-        t_tt = buff.tms_utime;
+       
         retval = hooks.solve_subproblem(pstar.x,dual.u, rc, dual.lcost,primal.x, primal.value);
         if (retval < 0)  break;
-        retval = hooks.additional_settings(iter_, dual.lcost, dual.u, rc, pstar.v, primal.x, pstar.x, dstar.u, active_size);
+        retval = hooks.additional_settings(iter_, dual.lcost, dual.u, rc, pstar.v, primal.x, pstar.x, active_size);
         if (retval < 0)  break;
         retval = hooks.resolve_subproblem(dual.u, rc, dual.lcost, primal.x, primal.value);
         if (retval < 0)  break;
 
-        times( &buff );
-        ttime_solve += ( double( buff.tms_utime - t_tt ) ) / double( CLK_TCK );
-        
-        times( &buff );
-        t_tt = buff.tms_utime;
+       
         retval = hooks.addVI(iter_,dual.lcost, pstar.x, primal.x, dual.u, dual_lb, dual_ub, primal.v, pstar.v, active_size );
         if (retval < 0)  break;
-        times( &buff );
-        ttime_search += ( double( buff.tms_utime - t_tt ) ) / double( CLK_TCK );
+       
         retval = hooks.compute_sg(primal.x, active_size, primal.v);
         if (retval < 0)  break;
         

@@ -6,16 +6,14 @@
 ILOSTLBEGIN
 
 
-
-Pump::Pump(const Data * d) :
-	cplex(env),
-	x(env), y(env),
-	model(0){
+void
+Pump::set_data(const Data * d, double alph_init){
 	
 	data = d;
 	nnodes = data->nnodes;
 	ndemands = data->ndemands;
 	narcs = data->narcs;
+	alpha = alph_init;
 	set_parameters();
 }
 
@@ -37,25 +35,29 @@ void Pump::set_parameters() {
 //-------------------------------------------------------------------------------------------
 
 void  
-Pump::reset(double alph, int szunfix_, std::deque<Pair2>& topo ){
+Pump::reset( int szunfix_, std::deque<Pair2>& topo ){
 	sznz = topo.size();
 	szunfix = szunfix_;
 	ytopo = topo;
-	alpha = alph;
 	
 	int arc;
-	double normf=0;
-	double normx=0;
+	double norm=0;
 	for(int a=szunfix;a--;){
 		arc = topo[a].fst;
-		normf+= pow(data->arcs[arc].f,2);
+		norm+= pow(data->arcs[arc].f,2);
+		//std::cout<<data->arcs[arc].f<<std::endl;
 		for (int k = 0; k<ndemands;++k)
-			normx+=pow(data->arcs[arc].c[k],2);
+			norm+=pow(data->arcs[arc].c[k],2);
 	}
-	factory = alpha/normf;
-	factory = sqrt(factory);
-	factorx = alpha/normx;
-	factorx = sqrt(factorx);
+	
+	if(szunfix ==0 ){
+		factorxy=1;
+		factorp=0;
+	}else{
+		norm = sqrt(norm);
+		factorxy = alpha/norm;
+		factorp = (1.0 - alpha)/(sqrt(double(szunfix)));
+	}
 }
 
 //-------------------------------------------------------------------------------------------
@@ -64,7 +66,7 @@ void Pump::create_model() {
 	Pair2 item;
 	int arc;
 	double c;
-	double factorp = (1.0 - alpha)/(sqrt(double(szunfix)));
+	
 	
 	IloExpr obj(env);
 	x = IloNumVarArray(env);
@@ -73,22 +75,21 @@ void Pump::create_model() {
 		y.add(IloNumVar(env,0,1));
 		item = ytopo[a];
 		arc = item.fst;
-		if(item.snd == 1.0) c = factory*data->arcs[arc].f - factorp;
-		else c = factory*data->arcs[arc].f  + factorp;
+		if(item.snd == 1.0) c = factorxy*data->arcs[arc].f - factorp;
+		else c = factorxy*data->arcs[arc].f  + factorp;
 		obj += c*y[a];
 		
 		for (int k = 0; k < ndemands; ++k){
 			x.add(IloNumVar(env));
-			obj += factorx*data->arcs[arc].c[k]*x[a*ndemands+k];
+			obj += factorxy*data->arcs[arc].c[k]*x[a*ndemands+k];
 		}
 	}
-	v0=0;
+
 	for(int a=szunfix;a<sznz;++a){
 		arc = ytopo[a].fst;
-		v0 += data->arcs[arc].f;
 		for (int k = 0; k < ndemands; ++k){
 			x.add(IloNumVar(env));
-			obj += factorx*data->arcs[arc].c[k]*x[a*ndemands+k];
+			obj += factorxy*data->arcs[arc].c[k]*x[a*ndemands+k];
 		}
 	}
 	
@@ -131,12 +132,13 @@ void Pump::create_model() {
 	}
 	
 	for(int a=0;a<sznz;++a){
+		arc = ytopo[a].fst;
 		IloExpr constraint(env);
 		for (int k = 0; k < ndemands; ++k)
 			constraint -= x[a*ndemands+k];
 		
-		if(a<szunfix)constraint+=data->arcs[a].capa*y[a];
-		else constraint+=data->arcs[a].capa;
+		if(a<szunfix)constraint+=data->arcs[arc].capa*y[a];
+		else constraint+=data->arcs[arc].capa;
 
 		model->add((constraint >= 0));
 		constraint.end();
@@ -157,7 +159,7 @@ Pump::cut(const IloNumArray & y_, const IloNumArray & x_){
 	for(int a=0;a<szunfix;++a){
 		arc = ytopo[a].fst;
 		for (int k = 0; k < ndemands; ++k){
-			if(x_[a*ndemands+k] > data->arcs[arc].b[k]*y_[a]){
+			if(x_[a*ndemands+k] - data->arcs[arc].b[k]*y_[a]> 1e-10 ){
 				IloExpr constraint(env);
 				constraint -= x[a*ndemands+k];
 				constraint+= data->arcs[arc].b[k]*y[a];
@@ -181,10 +183,17 @@ int
 Pump::solve(double * yl, double * xy, double & val){
 	
 	create_model();
+	//cplex.exportModel("t.lp");
 	cplex.solve();
 	
-	if(cplex.getStatus() == IloAlgorithm::Infeasible) return -1;
-	else if(cplex.getStatus() == IloAlgorithm::Unbounded)return -2;
+	
+	if(cplex.getStatus() == IloAlgorithm::Infeasible){
+		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl;
+		 return -1;
+	}else if(cplex.getStatus() == IloAlgorithm::Unbounded){
+			std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Unbounded"<<std::endl;
+		return -2;
+	}
 	
 	IloNumArray x_(env);
 	IloNumArray y_(env);
@@ -193,7 +202,7 @@ Pump::solve(double * yl, double * xy, double & val){
 	cplex.getValues(y_,y);
 	while(cut(y_,x_)){
 		cplex.solve();
-		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
+		std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
 		cplex.getValues(y_,y);
 		cplex.getValues(x_,x);
 	}
@@ -213,24 +222,34 @@ double
 Pump::getSolution(double * yl, double * xy, const IloNumArray & x_, const IloNumArray & y_ ){
 	
 	int arc;
-	double solvalue = v0;
+	double flow;
+	double solvalue=0;
 	double val;
 	for(int a=0;a<sznz;++a){
 		arc = ytopo[a].fst;
+		flow = 0.0;
 		for (int k = 0; k < ndemands; ++k){
 			val = x_[a*ndemands+k];
 			xy[narcs+k*narcs+arc] = val;
 			solvalue+=data->arcs[arc].c[k]*val;
+			flow += val;
 		}
-		val = y_[a];
-		yl[arc] = val;
-		if(val>1e-10){
+		if(a<szunfix){
+			val = y_[a];
+			yl[arc] = val;
+			if(val>1e-10){
+				xy[arc] = 1.0;
+				solvalue+=data->arcs[arc].f;
+			}
+		}else if(flow>1e-10){
+			yl[arc] = 1.0;
 			xy[arc] = 1.0;
-			solvalue+=data->arcs[arc].f*val;
+			solvalue+=data->arcs[arc].f;
 		}
 	}
 	
 	clear();
+	std::cout<<"sol value: "<<solvalue<<std::endl;
 	return solvalue;
 }
 

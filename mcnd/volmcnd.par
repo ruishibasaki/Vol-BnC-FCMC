@@ -17,9 +17,9 @@ infeas_trigger=1.1
 
 
 maxsgriters=1000
-primal_abs_precision=0.0001
-gap_abs_precision=0.0001
-gap_rel_precision=0.0001
+primal_abs_precision=1e-4
+gap_abs_precision=1e-4
+gap_rel_precision=1e-4
 ascent_check_invl=10
 minimum_rel_ascent=0
 granularity=0

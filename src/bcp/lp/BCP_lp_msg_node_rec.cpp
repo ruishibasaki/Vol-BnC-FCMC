@@ -206,7 +206,6 @@ void BCP_lp_create_added_cuts(BCP_lp_prob& p, BCP_node_change& node_change)
 
 void BCP_lp_create_warmstart(BCP_lp_prob& p, BCP_node_change& node_change)
 {
-
     switch (p.node->tm_storage.warmstart) {
     case BCP_Storage_WrtParent:
 	p.node->warmstart = p.parent->warmstart->clone();
@@ -284,7 +283,6 @@ BCP_lp_unpack_active_node: parent's or node's warmstart is non-0.\n");
     for (i = 0; i < cnt; ++i) {
 	node.vars.unchecked_push_back(p.unpack_var());
     }
-    
     buf.unpack(cnt);
     assert(node.cuts.size() == p.core->cuts.size());
     node.cuts.reserve(cnt+node.cuts.size());

@@ -43,22 +43,6 @@ CoverCollection::initialize(int M){
 
 //----------------------------------------------------------------------------------
 
-
-CoverCollection::~CoverCollection(){
-    for(int i=0;i<sizeOfCollection;++i){
-        Cover* next = begin->next;
-        delete begin;
-        begin = next;
-    }
-    if(map) delete [] map;
-}
-
-//------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------
-//  setter getter methods
-//----------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------
-
 Cover *
 CoverCollection::createNewCover(const std::deque<Pair2>& c, double mu,  int id_vi,  int id_owner_, int serial_num_){
     int arc;
@@ -77,89 +61,17 @@ CoverCollection::createNewCover(const std::deque<Pair2>& c, double mu,  int id_v
 
 //----------------------------------------------------------------------------------
 
-int 
-CoverCollection::addCover(Cover * tryC, const double * xystar){
-    int arc, ret;
-    if(tryC->Lftd){
-        CoverL* liftd = tryC->Lftd;
-        for(int n=liftd->size;n--;){
-            arc = liftd->SSmC[n];
-            if(liftd->gamma[n]>0)
-                tryC->addArc(map[arc].fst, map[arc].snd);
-        }
+
+CoverCollection::~CoverCollection(){
+    for(int i=0;i<sizeOfCollection;++i){
+        Cover* next = begin->next;
+        delete begin;
+        begin = next;
     }
-    ret = collected(tryC);
-    if(ret==2){ ++discarted; delete tryC;return 0;}
-    else if(ret==0){
-        //ret = check_maximal(tryC , xystar);
-        //if(ret) return 0;
-        insert_end(tryC);
-        return 1;
-    }else return 0;
-
-    
+    if(map) delete [] map;
 }
 
-//----------------------------------------------------------------------------------
 
-void 
-CoverCollection::insert_end(Cover * tryC){
-	++sizeOfCollection;
-	if(empty){
-		end = begin = tryC;
-		empty=false;
-	}else{
-		tryC->prev = end;
-		end->next= tryC;
-		end = tryC;
-	}
-}
-
-//----------------------------------------------------------------------------------
-
-void 
-CoverCollection::insert_front(Cover * tryC){
-	++sizeOfCollection;
-	if(empty){
-		end = begin = tryC;
-		empty=false;
-	}else{
-		tryC->next = begin;
-		begin->prev= tryC;
-		begin = tryC;
-	}
-}
-
-//----------------------------------------------------------------------------------
-
-void
-CoverCollection::replace(Cover * out, Cover * in){
-    in->next = out->next;
-    in->prev = out->prev;
-    in->id_vi = out->id_vi;
-    if(out == begin)
-        begin = in;
-    else out->prev->next = in;
-    if(out == end)
-        end = in;
-    else out->next->prev = in;
-    
-    delete out;
-}
-
-//----------------------------------------------------------------------------------
-
-void 
-CoverCollection::pop_back_nodel(){
-	if(sizeOfCollection==1){
-		begin = 0;
-		empty = true;
-	}
-	end = end->prev;
-	end->next =0;
-	--sizeOfCollection;
-
-}
 
 //------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
@@ -276,6 +188,174 @@ CoverCollection::compScalar(Cover * c1, Cover * c2){
 }
 
 //------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+//  insert/del methods
+//----------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------
+
+int 
+CoverCollection::addCover(Cover * tryC, const double * xystar){
+    int arc, ret;
+    if(tryC->Lftd){
+        CoverL* liftd = tryC->Lftd;
+        for(int n=liftd->size;n--;){
+            arc = liftd->SSmC[n];
+            if(liftd->gamma[n]>0)
+                tryC->addArc(map[arc].fst, map[arc].snd);
+        }
+    }
+    ret = collected(tryC);
+    if(ret==2){ ++discarted; delete tryC;return 0;}
+    else if(ret==0){
+        //ret = check_maximal(tryC , xystar);
+        //if(ret) return 0;
+        insert_end(tryC);
+        return 1;
+    }else return 0;
+
+    
+}
+
+//----------------------------------------------------------------------------------
+
+void 
+CoverCollection::insert_end(Cover * tryC){
+	++sizeOfCollection;
+	if(empty){
+		end = begin = tryC;
+		empty=false;
+	}else{
+		tryC->prev = end;
+		end->next= tryC;
+		end = tryC;
+	}
+}
+
+//----------------------------------------------------------------------------------
+
+void 
+CoverCollection::insert_front(Cover * tryC){
+	++sizeOfCollection;
+	if(empty){
+		end = begin = tryC;
+		empty=false;
+	}else{
+		tryC->next = begin;
+		begin->prev= tryC;
+		begin = tryC;
+	}
+}
+
+//----------------------------------------------------------------------------------
+
+void
+CoverCollection::replace(Cover * out, Cover * in){
+    in->next = out->next;
+    in->prev = out->prev;
+    in->id_vi = out->id_vi;
+    if(out == begin)
+        begin = in;
+    else out->prev->next = in;
+    if(out == end)
+        end = in;
+    else out->next->prev = in;
+    
+    delete out;
+}
+
+//----------------------------------------------------------------------------------
+
+void 
+CoverCollection::pop_back_nodel(){
+	if(sizeOfCollection==1){
+		begin = 0;
+		empty = true;
+	}
+	end = end->prev;
+	if(end) end->next =0;
+	--sizeOfCollection;
+
+}
+
+//----------------------------------------------------------------------------------
+
+Cover * 
+CoverCollection::remove_nodel(Cover * trgt){
+	if(trgt == end){
+		pop_back_nodel();
+		return 0;
+	}
+	 
+	--sizeOfCollection;
+	if(trgt == begin){
+		begin = trgt->next;
+		if(begin) begin->prev =0;
+		return 0;
+	}
+	Cover * ret  = trgt->next;
+	if(trgt->next)trgt->next->prev = trgt->prev;
+	if(trgt->prev)trgt->prev->next = trgt->next;
+	trgt->next =0;
+	trgt->prev =0;
+	return ret;
+}
+
+//----------------------------------------------------------------------------------
+
+
+int
+CoverCollection::removeCover(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu){
+    int idx_end, idx_out, id_end;
+    Cover * ret=0;
+    
+    //std::cout<<"remove check "<<std::endl;
+    //for(int h=2000;h<actvSSz;h++)std::cout<<"d: "<<h<<" pv: "<<pstarv[actvS[h]]<<" d*: "<<dstaru[actvS[h]]<<" d: "<<dualu[actvS[h]]<<std::endl;
+    for(Cover *vi = begin; vi != 0;){
+        idx_out = actvS[vi->id_vi];
+        //std::cout<<"vi->id_vi: "<<vi->id_vi<<" "<<vi<<" "<<end<<" "<<vi->n_noviol<<" "<<idx_out<<std::endl;
+        if(vi->n_nviol >= lim /*&& dualu[idx_out]<=0 */&& dstaru[idx_out]<=0){
+            //std::cout<<"remove vi: "<<vi->id_vi<<" "<<idx_out<<std::endl;;
+            id_end = swap_toend_destruct(vi, ret, true);
+            if( id_end <0 ){
+                actvS[actvSSz-1]=-1;
+                dstaru[actvSSz-1] = 0;
+                dualu[actvSSz-1] = 0;
+                pstarv[actvSSz-1] = 0;
+                //std::cout<<" id_end <0, idx: "<<idx_out<<" new end: "<<end->id_vi<<" sz: "<<sizeOfCollection<<" id_end: "<<id_end<<" now: "<<end->id_vi<<std::endl;
+                
+                --actvSSz;
+                return 0;
+            }
+            
+            idx_end = actvS[id_end];
+            actvS[id_end]=-1;
+            pstarv[idx_out] = pstarv[idx_end];
+            dstaru[idx_out] = dstaru[idx_end];
+            dualu[idx_out] = dualu[idx_end];
+            dstaru[idx_end] = 0;
+            dualu[idx_end] = 0;
+            pstarv[idx_end] = 0;
+            --actvSSz;
+            //std::cout<<" size: "<<actvSSz<<std::endl;
+            //std::cout<<" idx: "<<idx_out<<" new end: "<<end->id_vi<<" sz: "<<sizeOfCollection<<" idx_end: "<<idx_end<<" id_end: "<<id_end<<" now: "<<ret->id_vi<<std::endl;
+            
+            vi = ret;
+        }else if( vi == end ){ vi=0; //std::cout<<"end"<<std::endl;
+        }else vi = vi->next;
+    }
+    /*RFCI * t = begin;
+     std::cout<<"idseq: ";
+     for(int sz = sizeOfCollection;sz--;){
+     std::cout<<t->id_vi<<" ";
+     t = t->next;
+     }
+     std::cout<<std::endl;*/
+    //std::cout<<"ok"<<std::endl;
+    //for(int h=2000;h<actvSSz;h++)std::cout<<"d: "<<h<<" pv: "<<pstarv[actvS[h]]<<" d*: "<<dstaru[actvS[h]]<<" d: "<<dualu[actvS[h]]<<std::endl;
+    return 0;
+}
+
+//------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------
 //   modifying methods
 //------------------------------------------------------------------------------------
@@ -354,62 +434,6 @@ CoverCollection::swap_toend_destruct(Cover * out, Cover *& ret, bool destruct){
     if(destruct) delete end;
     end = new_end;
     return id;
-}
-
-
-//----------------------------------------------------------------------------------
-
-
-int
-CoverCollection::removeCover(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu){
-    int idx_end, idx_out, id_end;
-    Cover * ret=0;
-    
-    //std::cout<<"remove check "<<std::endl;
-    //for(int h=2000;h<actvSSz;h++)std::cout<<"d: "<<h<<" pv: "<<pstarv[actvS[h]]<<" d*: "<<dstaru[actvS[h]]<<" d: "<<dualu[actvS[h]]<<std::endl;
-    for(Cover *vi = begin; vi != 0;){
-        idx_out = actvS[vi->id_vi];
-        //std::cout<<"vi->id_vi: "<<vi->id_vi<<" "<<vi<<" "<<end<<" "<<vi->n_noviol<<" "<<idx_out<<std::endl;
-        if(vi->n_nviol >= lim /*&& dualu[idx_out]<=0 */&& dstaru[idx_out]<=0){
-            //std::cout<<"remove vi: "<<vi->id_vi<<" "<<idx_out<<std::endl;;
-            id_end = swap_toend_destruct(vi, ret, true);
-            if( id_end <0 ){
-                actvS[actvSSz-1]=-1;
-                dstaru[actvSSz-1] = 0;
-                dualu[actvSSz-1] = 0;
-                pstarv[actvSSz-1] = 0;
-                //std::cout<<" id_end <0, idx: "<<idx_out<<" new end: "<<end->id_vi<<" sz: "<<sizeOfCollection<<" id_end: "<<id_end<<" now: "<<end->id_vi<<std::endl;
-                
-                --actvSSz;
-                return 0;
-            }
-            
-            idx_end = actvS[id_end];
-            actvS[id_end]=-1;
-            pstarv[idx_out] = pstarv[idx_end];
-            dstaru[idx_out] = dstaru[idx_end];
-            dualu[idx_out] = dualu[idx_end];
-            dstaru[idx_end] = 0;
-            dualu[idx_end] = 0;
-            pstarv[idx_end] = 0;
-            --actvSSz;
-            //std::cout<<" size: "<<actvSSz<<std::endl;
-            //std::cout<<" idx: "<<idx_out<<" new end: "<<end->id_vi<<" sz: "<<sizeOfCollection<<" idx_end: "<<idx_end<<" id_end: "<<id_end<<" now: "<<ret->id_vi<<std::endl;
-            
-            vi = ret;
-        }else if( vi == end ){ vi=0; //std::cout<<"end"<<std::endl;
-        }else vi = vi->next;
-    }
-    /*RFCI * t = begin;
-     std::cout<<"idseq: ";
-     for(int sz = sizeOfCollection;sz--;){
-     std::cout<<t->id_vi<<" ";
-     t = t->next;
-     }
-     std::cout<<std::endl;*/
-    //std::cout<<"ok"<<std::endl;
-    //for(int h=2000;h<actvSSz;h++)std::cout<<"d: "<<h<<" pv: "<<pstarv[actvS[h]]<<" d*: "<<dstaru[actvS[h]]<<" d: "<<dualu[actvS[h]]<<std::endl;
-    return 0;
 }
 
 //------------------------------------------------------------------------------------
@@ -523,6 +547,7 @@ Cover::check_updt_Viol(const double *y) {
         if(sum>=comp){return false;}
     }
     rhs_dimsh = sum;
+    //if(rhs_dimsh>0) std::cout<<"lifted!!!: "<<rhs_dimsh<<" "<<id_vi<<" "<<serial_nmbr<<std::endl;
     return true;
 }
 

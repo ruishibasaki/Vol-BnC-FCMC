@@ -230,7 +230,7 @@ void BCP_parameter_set<BCP_tm_par>::set_default_entries(){
     set_entry(DebugCpProcesses, false);
     set_entry(DebugVpProcesses, false);
     set_entry(GenerateVars, false);
-    set_entry(MessagePassingIsSerial, true);
+    set_entry(MessagePassingIsSerial, false);
     set_entry(ReportWhenDefaultIsExecuted, true);
     set_entry(TrimTreeBeforeNewPhase, false);
     set_entry(RemoveExploredBranches, false);
@@ -282,6 +282,6 @@ void BCP_parameter_set<BCP_tm_par>::set_default_entries(){
     // StringPar
     set_entry(ReadRootCutsFrom, "");
     set_entry(SaveRootCutsTo, "");
-    set_entry(ExecutableName, "");
+    set_entry(ExecutableName, "bcpp");
     set_entry(LogFileName,"");
 }

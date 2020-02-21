@@ -34,9 +34,11 @@ BCP_lp_result::get_results(OsiSolverInterface& lp)
   if ((_termcode & BCP_Abandoned) == 0) {
     _iternum = lp.getIterationCount();
     _objval = lp.getObjValue();
+    
     const int colnum = lp.getNumCols();
     _x   = new double[colnum];
     CoinDisjointCopyN(lp.getColSolution(), colnum, _x);
+    
     if (_solvername == "Ipopt") {
       _dj = NULL;
     } else {

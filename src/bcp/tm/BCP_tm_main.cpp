@@ -333,7 +333,6 @@ bool BCP_tm_do_one_phase(BCP_tm_prob& p)
 	p.stat.print(false /* not final */, t1 - p.start_time);
 	try {
 	    p.process_message();
-
 	}
 	catch (BCP_fatal_error& err) {
 	    // something is baaaad... e.g. timeout

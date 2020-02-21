@@ -89,7 +89,7 @@ $(tm_o): build/%.o: tm/%.cpp
 	g++ -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) $(INC) -O3
 	
 $(member_o): build/%.o: member/%.cpp
-	g++ -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) $(INC) -O3
+	g++ -c $< -o $@ $(CPLEXINC) $(COININC) $(OSIINC) $(BCPINC) $(INC) -O3
 	
 $(solver_o): build/%.o: solver/%.cpp
 	g++ -c $< -o $@ $(COININC) $(OSIINC) $(VOLINC) $(BCPINC) $(INC) -O3

@@ -22,6 +22,8 @@ public:
 	
 	inline CoverCut(Cover* c): BCP_cut_algo(0, 1e40), cover(c){}
 	inline CoverCut(): BCP_cut_algo(0, 1e40),cover(0){}
+	inline ~CoverCut(){}
+
 	
 	inline void pack(BCP_buffer& buf) const{ buf.pack(cover); }
 	inline void unpack(BCP_buffer& buf){ buf.unpack(cover);}
