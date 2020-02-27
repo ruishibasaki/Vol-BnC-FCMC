@@ -30,7 +30,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	LBi = lpres.objval();
     //return BCP_DoNotBranch_Fathomed;
 
-    if(current_level() >= 1000){
+    if(current_phase() == 1000000000){
         return BCP_DoNotBranch_Fathomed;
 	}
 	
@@ -100,53 +100,37 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
     const double * dsol = lpres.pi();
     double gij;
     
-    if(current_level() == 0){
-        for (int a=data.narcs; a--;){
-            if(psol[a]>=(1.0-1e-30)){
-                std::cout<<"logical fix "<<a<<"  "<<psol[a]<<std::endl;
-                changed_pos.push_back(a);
-                new_bd.push_back(1.0);
-                new_bd.push_back(1.0);
-                continue;
-            }else if(psol[a]<=1e-30){
-                std::cout<<"logical fix "<<a<<"  "<<psol[a]<<std::endl;
-                changed_pos.push_back(a);
-                new_bd.push_back(0.0);
-                new_bd.push_back(0.0);
-                continue;
-            }
-        }
-    }else
-        for (int a=data.narcs; a--;){
-            //std::cout<<"logical fix "<<a<<" "<<freq[a]<<"  "<<psol[a]<<std::endl;
-            if(vars[a]->lb()==0 && vars[a]->ub()==1){
-                gij = lag_subproblem(a, dsol);
-                //std::cout<<"penalty test: "<<a<<std::endl;
-                if(gij>0 && (LBi+gij)>=best_soln.cost){
-                    std::cout<<a<<" WILL FIX 0"<<std::endl;
-                    changed_pos.push_back(a);
-                    new_bd.push_back(0.0);
-                    new_bd.push_back(0.0);
-                }else if(gij<0 && (LBi-gij)>=best_soln.cost){
-                    std::cout<<a<<" WILL FIX 1"<<std::endl;
-                    changed_pos.push_back(a);
-                    new_bd.push_back(1.0);
-                    new_bd.push_back(1.0);
-                /*}else if(psol[a]>=(1.0)){
-                    std::cout<<"logical fix "<<a<<"  "<<psol[a]<<std::endl;
-                    changed_pos.push_back(a);
-                    new_bd.push_back(1.0);
-                    new_bd.push_back(1.0);
-                    continue;*/
-                }else if(psol[a]<=1e-30 ){
-                    std::cout<<"logical fix "<<a<<"  "<<psol[a]<<std::endl;
-                    changed_pos.push_back(a);
-                    new_bd.push_back(0.0);
-                    new_bd.push_back(0.0);
-                    continue;
-                }
-            }
-        }
+    
+	for (int a=data.narcs; a--;){
+		//std::cout<<"logical fix "<<a<<" "<<freq[a]<<"  "<<psol[a]<<std::endl;
+		if(vars[a]->lb()==0 && vars[a]->ub()==1){
+			gij = lag_subproblem(a, dsol);
+			//std::cout<<"penalty test: "<<a<<std::endl;
+			if(gij>0 && (LBi+gij)>=best_soln.cost){
+				std::cout<<a<<" WILL FIX 0"<<std::endl;
+				changed_pos.push_back(a);
+				new_bd.push_back(0.0);
+				new_bd.push_back(0.0);
+			}else if(gij<0 && (LBi-gij)>=best_soln.cost){
+				std::cout<<a<<" WILL FIX 1"<<std::endl;
+				changed_pos.push_back(a);
+				new_bd.push_back(1.0);
+				new_bd.push_back(1.0);
+			}/*else if(psol[a]>=(1.0)){
+				std::cout<<"logical fix "<<a<<"  "<<psol[a]<<std::endl;
+				changed_pos.push_back(a);
+				new_bd.push_back(1.0);
+				new_bd.push_back(1.0);
+				continue;
+			}else if(psol[a]<=1e-30 ){
+				std::cout<<"logical fix "<<a<<"  "<<psol[a]<<std::endl;
+				changed_pos.push_back(a);
+				new_bd.push_back(0.0);
+				new_bd.push_back(0.0);
+				continue;
+			}*/
+		}
+	}
 }
 
 //-------------------------------------------------------------------------------------------
@@ -237,8 +221,11 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		 childs_action[0] = BCP_KeepChild;
 	}else childs_action[0] = BCP_ReturnChild;
 	
-	if((child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
+	if(((child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf) &&
+		((child1.termcode() & BCP_PrimalObjLimReached) != BCP_PrimalObjLimReached)){
 		childs_action[1] = BCP_KeepChild;
+	}if((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
+		childs_action[1] = BCP_FathomChild;
 	}else childs_action[1] = BCP_ReturnChild;
 	std::cout<<" 0-side childs_action "<<childs_action[0]<<std::endl;
 	std::cout<<" 1-side childs_action "<<childs_action[1]<<std::endl;

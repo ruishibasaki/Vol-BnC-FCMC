@@ -547,7 +547,7 @@ Cover::check_updt_Viol(const double *y) {
         if(sum>=comp){return false;}
     }
     rhs_dimsh = sum;
-    //if(rhs_dimsh>0) std::cout<<"lifted!!!: "<<rhs_dimsh<<" "<<id_vi<<" "<<serial_nmbr<<std::endl;
+    if(rhs_dimsh>0) {return false; std::cout<<"lifted!!!: "<<rhs_dimsh<<" "<<id_vi<<" "<<serial_nmbr<<std::endl;}
     return true;
 }
 

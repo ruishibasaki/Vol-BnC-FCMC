@@ -326,7 +326,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
                                      const BCP_vec<BCP_var*>& vars,
                                      const BCP_vec<BCP_cut*>& cuts){
     std::cout<<"try heuristic "<<candidates.size()<<std::endl;
-    if(current_level() >1000){ lp_mode=LP_Normal;   return 0;}
+    if(current_level() >100000){ lp_mode=LP_Normal;   return 0;}
 	if(lp_mode == LP_CutAdded){ lp_mode = LP_Normal; return 0;}
 	
     const double * x = lpres.x();

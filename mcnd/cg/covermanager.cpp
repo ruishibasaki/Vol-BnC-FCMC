@@ -39,7 +39,8 @@ CoverManager::reset_and_map_collection(int fsize, const double* topo, double * d
         //std::cout<<"in: id_vi "<<vi->id_vi<<std::endl;
         if(vi->check_updt_Viol(topo)){
             actvS[vi->id_vi] = fsize+csize;
-            //std::cout<<"in: "<<vi->id_vi<<" "<<vi->rhs_dimsh<<std::endl;
+            //std::cout<<"in: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<std::endl;
+            //vi->print();
             ++csize;
             ++num_actv;
             vi = vi->next;
@@ -424,16 +425,26 @@ CoverManager::set_new_mult_pos(double *rc, std::vector<Trio1>& ws, const double 
 double
 CoverManager::update_rc_neg(double dimsh, int nvi, const Cover * vi, std::vector<Trio1>& ws, std::vector<Pair2> & con_arcs_map, double *rc){
     int arc, id_arc;
-    //std::cout<<"confirm: "<<dimsh<<std::endl;
     for(int a=vi->get_total_sz(); a--;){
         arc = vi->at(a);
         id_arc = arc_map[arc];
 		if(id_arc < 0) continue;
-        rc[id_arc] -= vi->gamma_at(a)*dimsh;
+		//if(id_arc==33)std::cout<<"test "<<rc[id_arc]<<" "<<rc[id_arc] - vi->gamma_at(a)*dimsh<<" "<<vi->gamma_at(a)<<std::endl;
+        if(rc[id_arc]<=0 && ((rc[id_arc] - vi->gamma_at(a)*dimsh) >0))
+           dimsh = rc[id_arc]/vi->gamma_at(a);
+    }
+	
+    for(int a=vi->get_total_sz(); a--;){
+        arc = vi->at(a);
+        id_arc = arc_map[arc];
+		if(id_arc < 0) continue;
+		//if(id_arc==33)std::cout<<rc[id_arc]<<" "<<rc[id_arc] - vi->gamma_at(a)*dimsh<<" "<<vi->gamma_at(a)<<std::endl;
+        rc[id_arc] -=  vi->gamma_at(a)*dimsh;
         con_arcs_map[arc].snd -= ws[nvi].snd;
     }
+
     ws[nvi].snd += dimsh;
-    return 0;
+    return dimsh;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -467,7 +478,6 @@ CoverManager::set_new_mult_neg(double *rc, std::vector<Trio1>& ws,  double * dua
     double diff, mult, alphsum;
     Pair2 item;
     
-    std::stable_sort(con_arcs.begin(), con_arcs.end(), compPair2());
     //std::cout<<"set_new_mult_neg"<<std::endl;
     while(!con_arcs.empty()){
         arc = con_arcs.front().fst;
@@ -477,33 +487,28 @@ CoverManager::set_new_mult_neg(double *rc, std::vector<Trio1>& ws,  double * dua
         tt = con_arcs_map[arc].fst;
         alphsum = con_arcs_map[arc].snd;
 
-        //std::cout<<"arc: "<<arc<<" fk: "<<fk[id_arc]<<" rc: "<<rc[id_arc]<<" mult: "<<mult<<" tt: "<<tt<<" al: "<<alphsum<<std::endl;
+        //if(id_arc==33)std::cout<<"arc: "<<arc<<" fk: "<<fk[id_arc]<<" rc: "<<rc[id_arc]<<" mult: "<<mult<<" tt: "<<tt<<" al: "<<alphsum<<std::endl;
         if(mult > -1e-10 || alphsum  < 1e-10 ){
-        	for(int c=0; c<tt; c++){
-        		ws[con_arcs_wnid[arc*size+c].fst].trd = 1.0;
-        	}
         	continue;
     	}
-		//std::cout<<"ok"<<std::endl;
+
         for(int c=0; c<tt; c++){
-            item = con_arcs_wnid[arc*size+c];
-            if(ws[item.fst].trd == 1.0){  continue; }
+            item = con_arcs_wnid[arc*size+c];            
             index = ws[item.fst].fst;
             diff = mult*(dual[index]/(double)(alphsum*item.snd));
-            
             if(alphsum < 1e-10) std::cout<<"PROBLEMA set_new_mult_neg alphsum < 1e-10"<<std::endl;
             if(dual[index]+diff<0){ diff = -dual[index]; }//std::cout<<"PROBLEMA set_new_mult_neg dual[index]<0 "<<dual[index]<<std::endl;}
+			
+            diff = update_rc_neg(diff , item.fst, addrs[item.fst], ws, con_arcs_map, rc);
             ws[item.fst].trd = 1.0;
             dual[index] += diff;
-            update_rc_neg(diff, item.fst, addrs[item.fst], ws, con_arcs_map, rc);
-
+        	if(dual[index]<1e-10) dual[index] = 0;
+			
         }
         
-		
         if(rc[id_arc]<1e-10 && rc[id_arc]>-1e-10) rc[id_arc] = 0;
-        
+
         update_con_arcs( con_arcs, fk, rc);
-        std::stable_sort(con_arcs.begin(), con_arcs.end(), compPair2());
         
     }
     return 0;
@@ -538,6 +543,7 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
         addrs[n] = vi;
         index = actvS[vi->id_vi];
         if(checkViol(vi, xy)){ ws[n].fst = -index; vi = vi->next; continue; }
+        
         for(int a=vi->get_total_sz(); a--;){
             arc = vi->at(a);
             id_arc = arc_map[arc];
@@ -545,7 +551,7 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
             alph = rc[id_arc];
             if(alph>=0) continue;
             if(con_arcs_map[arc].fst==0){
-                if(fk[id_arc]<=0) con_arcs_aux.push_back(Pair2(arc, alph - fk[id_arc]));
+                if(fk[id_arc]<=0) con_arcs_aux.push_back(Pair2(arc, (alph - fk[id_arc])));
                 else con_arcs.push_back(Pair2(arc, alph));
             }
             con_arcs_map[arc].snd += dual[index];
@@ -560,11 +566,11 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
         ws[n] = item;
         vi = vi->next;
     }
-    
+    //std::cout<<"set_new_mult_neg"<<std::endl;
     set_new_mult_neg( rc,  ws,  dual, con_arcs_map, con_arcs, con_arcs_wnid, addrs, fk);
-    update_con_arcs( con_arcs_aux, fk, rc); 
+    update_con_arcs( con_arcs_aux, fk, rc); //if(con_arcs_aux.size())std::cout<<"con_arcs_aux"<<std::endl;
     set_new_mult_neg( rc,  ws,  dual, con_arcs_map, con_arcs_aux, con_arcs_wnid, addrs, fk);
-
+	
     con_arcs_map.clear();
     con_arcs_wnid.clear();
     ws.clear();

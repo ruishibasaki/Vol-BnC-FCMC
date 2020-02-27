@@ -128,6 +128,38 @@ void MCND_read_data(std::string fname, Data & data) {
 
 //----------------------------------------------------------------------------------
 
+
+double read_init_sol(std::string fname, std::string instance, double * xy) {
+	std::ifstream file;
+    file.open(fname.c_str());
+    if (!file.is_open()) {
+        std::cout<<"Failure to open datafile: %s\n "<<fname;
+        abort();
+    }
+    
+    std::string s;
+    std::string instance_inline;
+    std::istringstream ss;
+    double val=0;
+    int cont=0;
+    
+
+    while (getline(file,s)) {
+        ss.str(s);
+        ss>>instance_inline;
+        if(instance_inline == instance){
+        	ss>>val;
+        	std::cout<<std::setprecision(15)<<instance_inline<<" "<<val<<std::endl;
+        	break;
+        }
+        ss.clear();
+    }
+    file.close();
+    return val;
+}
+
+//----------------------------------------------------------------------------------
+
 bool getScalar(int id,const std::vector<PairF> & mapset, double & gam1, double & gam2){
     if(mapset[id].fst < 0 &&  mapset[id].fst != mapset[id].snd){
         std::cout<<"!!!!!! PROBLEMS !!!! getScalar"<<std::endl;

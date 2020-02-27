@@ -74,8 +74,13 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
 		       const int argnum, const char * const * arglist){
    MCND_tm* tm = new MCND_tm;
 
-  // MCND_read_parameters(*tm, arglist[1]);
    MCND_read_data(arglist[2], tm->data);
+   double * xy=0;
+   double ub=0;
+   std::string inst(arglist[2]);
+   inst = inst.substr(inst.find("instances")+10); 
+   ub = read_init_sol("upper_bound.txt", inst, xy);
+   p.upper_bound = ub;
    p.par.set_entry(BCP_tm_par::Granularity, 1e-2);
    p.par.set_entry(BCP_tm_par::ReportWhenDefaultIsExecuted, false);
    p.par.set_entry(BCP_tm_par::WarmstartInfo, BCP_WarmstartNone); //BCP_WarmstartParent;

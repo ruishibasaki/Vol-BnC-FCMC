@@ -116,9 +116,9 @@ Lift::add_lifted_var(bool down, CoverL* vi, std::deque<Pair2>& luc, int dbar, in
     p[dim] = gam;
     w[dim] = u;
     ++dim;
-    if(down && gam>0){std::cout<<"var down: "<<arc<<" lifted gam: "<<gam<<" capa: "<<u<<std::endl;}
+    //if(down && gam>0){std::cout<<"var down: "<<arc<<" lifted gam: "<<gam<<" capa: "<<u<<std::endl;}
     //for(int i=(int)luc.size();i--;) std::cout<<luc[i].fst<<" capa: "<<min(dss,int(data->arcs[luc[i].fst].capa))<<std::endl;}
-    else if(!down && gam>0) std::cout<<"var up: "<<arc<<" lifted gam: "<<gam<<" capa: "<<u<<std::endl;
+    //else if(!down && gam>0) std::cout<<"var up: "<<arc<<" lifted gam: "<<gam<<" capa: "<<u<<std::endl;
     
     if(gam>0){vi->addvar(arc,gam, down);}
     

@@ -134,7 +134,7 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
             //std::cout<<"closed arc: "<<arc<<std::endl;
             arc_map[arc] = -1;
         }
-        VItopo[arc] = yhit[arc] = 0.0;
+        rc_[arc] = VItopo[arc] = yhit[arc] = 0.0;
     }
     for(int i = 0; i<szunfxd;++i){
     	arc_map[nz_arcs[i]] = i;
@@ -341,9 +341,17 @@ void OsiVolSolverInterface::direct_solve(const std::deque<int>& topo, const Coin
 int
 OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
           const VOL_dvector& x, VOL_dvector& dual, VOL_dvector& dual_lb, VOL_dvector& dual_ub,
-          VOL_dvector& v, VOL_dvector& h, int & actvSSz){
+          VOL_dvector& rc, VOL_dvector& h, int & actvSSz){
     //return 0;
+    bool letgen=false;
+    if(lcost >= VItt ){
+        VItt = lcost;
+        letgen = true;
+        for(int a=szunfxd; a--; ){ rc_[nz_arcs[a]] = rc[a];}
+    }
+    
     if(mode == 0) return 0;
+    
     if(maxNumVI<=(cover_manager->covers.sizeOfCollection)) return 0;
     if(iter%intvlVI==0 ){
         translate_primal(xstar);
@@ -351,9 +359,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
         VIub=-1e31;
     }
     
-    if(lcost >= VItt ){
-        VItt = lcost;
-        if(iter<100) return 0;
+    if(letgen && iter>=100){
         int num_covers = cover_manager->cover_generation_main(xstar.v, x.v, &ss_manager->sets, actvSSz);
         cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dual.v, dual_lb.v,  dual_ub.v );
         
@@ -365,9 +371,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
         		std::cout<<"vi "<<c->id_vi<<std::endl;
         		c = c->next;
 			}*/
-        }
-        
-        
+        }   
     }
     return 0;
 }
@@ -512,13 +516,13 @@ OsiVolSolverInterface::additional_settings(int iter, double& lcost, VOL_dvector&
         cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
         return 0;
     }
-    double ret;
-    
+    double ret=0;
+
     cover_manager->recompute_mult_neg( dual.v, addrc, rc.v, x.v, actv, actvSSz);
     cover_manager->recompute_mult_pos( dual.v, h.v, addrc, x.v, actv);
     cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
     for(int a=szunfxd; a--; ){
-        if(rc[a]<1e-10 && rc[a]>-1e-10) rc[a] = 0;
+        if(rc[a]<1e-8 && rc[a]>-1e-8) rc[a] = 0;
         if(rc[a]==0 ){
             ret = arc_dg_imp(a, x.v, h.v , actvSSz);
             if(ret>0 && xhist[a]>=0.0){

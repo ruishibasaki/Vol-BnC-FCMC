@@ -172,7 +172,7 @@ MCND_tm::init_new_phase(int phase,
 	}*/
     
 	colgen = BCP_DoNotGenerateColumns_Fathom;
-    candidates = new CoinSearchTree<CoinSearchTreeCompareDepth>;
+    candidates = new CoinSearchTree<CoinSearchTreeCompareBreadth>;
 }
 
 //#############################################################################
