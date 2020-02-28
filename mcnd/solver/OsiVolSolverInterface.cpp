@@ -125,16 +125,16 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
             VItopo[arc] =  yhit[arc] = 1.0;
             ++szopnd;
             //std::cout<<"opened arc: "<<arc<<std::endl;
-            continue;
         }else if(colub[arc] == 1){
-            szunfxd++;
+            ++szunfxd;
             nz_arcs.push_front(arc);
+            VItopo[arc] = yhit[arc] = 0.0;
             //std::cout<<"unfix: "<<arc<<" idx: "<<arc_map[arc]<<std::endl;
         }else{
+        	VItopo[arc] = yhit[arc] = 0.0;
             //std::cout<<"closed arc: "<<arc<<std::endl;
             arc_map[arc] = -1;
         }
-        rc_[arc] = VItopo[arc] = yhit[arc] = 0.0;
     }
     for(int i = 0; i<szunfxd;++i){
     	arc_map[nz_arcs[i]] = i;
@@ -228,7 +228,9 @@ OsiVolSolverInterface::set_start(){
     int fidx = ndemands*nnodes;
     volprob_.dsol = 0.0;
     volprob_.dual_lb = 0.0; volprob_.dual_ub = 0.0;
-    
+    VItt = VIub=-1e31;
+    CoinFillN(rc_, getNumCols(), 0.0);
+
     for(int i=fidx; i--;){
         //std::cout<<old_index[i]<<" "<<Iu[i]<<" value: ";
         //std::cout<<old_dual[old_index[i]]<<std::endl;
@@ -249,6 +251,7 @@ OsiVolSolverInterface::set_start(){
         }
         vi = vi->next;
     }
+    
     if(HotStartSet){
     	volprob_.parm.maxsgriters=250;
 		translate_hotstart();
@@ -348,12 +351,13 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
         VItt = lcost;
         letgen = true;
         for(int a=szunfxd; a--; ){ rc_[nz_arcs[a]] = rc[a];}
+        //for(int a=szunfxd; a--; ){ std::cout<<"rc:  "<<nz_arcs[a]<<" "<<rc_[nz_arcs[a]]<<std::endl;}
     }
     
     if(mode == 0) return 0;
     
     if(maxNumVI<=(cover_manager->covers.sizeOfCollection)) return 0;
-    if(iter%intvlVI==0 ){
+    if(iter>0 && iter%intvlVI==0 ){
         translate_primal(xstar);
         int num_new_sets=ss_manager->cutset_generation_main( yhit, VItopo, false);
         VIub=-1e31;
@@ -365,7 +369,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
         
         if(num_covers>0){
         	reposition_covers(num_covers);
-            std::cout<<std::setprecision(10)<<"iter: "<<iter<<" added cuts "<<num_covers<<" L: "<<VItt<<std::endl;
+            //std::cout<<std::setprecision(10)<<"iter: "<<iter<<" added cuts "<<num_covers<<" L: "<<VItt<<std::endl;
         	/*Cover * c = cover_manager->covers.begin ;
         	for(int i =cover_manager->covers.sizeOfCollection; i--; ){
         		std::cout<<"vi "<<c->id_vi<<std::endl;
@@ -776,10 +780,11 @@ OsiVolSolverInterface::isProvenPrimalInfeasible()const{
 bool 
 OsiVolSolverInterface::isPrimalObjectiveLimitReached() const{
 	if((retval==0)){
+		if(volprob_.value>(volprob_.parm.dual_limit + 0.0001)) return false;
 		return (volprob_.value>(upper_bound + 0.0001))? true : false;
 	}else return false;
 }
-
+ 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 //loaders
@@ -804,7 +809,7 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     ndemands = data->ndemands;
     narcs = data->narcs;
     
-    VItt = VIub=-1e31;
+    
     lim_to_remv = cover_manager->lim_to_remv;
     maxNumVI =auxinfo->maxNumVI;
     intvlVI = auxinfo->intvlVI;

@@ -12,7 +12,7 @@
 bool
 CoverCut::check_viol(const BCP_vec<BCP_var*>& vars){
 	double sum=0;
-    double comp= cover->get_total_rhs();
+    double comp= cover->get_rhs();
     int sz = cover->get_total_sz();
     cover->rhs_dimsh=0;
     for(int a=0;a<sz;++a){
@@ -23,4 +23,12 @@ CoverCut::check_viol(const BCP_vec<BCP_var*>& vars){
     }
     cover->rhs_dimsh = sum;
     return true;
+}
+
+//-------------------------------------------------------------------------------------------
+
+
+double 
+CoverCut::check_viol(const double* vars){
+	return cover->viol(vars);
 }

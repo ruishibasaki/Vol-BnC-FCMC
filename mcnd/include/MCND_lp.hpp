@@ -20,7 +20,7 @@
 #include "MCND_solution.hpp"
 #include "MCND_branch_score.hpp"
 #include "MCND_pump.hpp"
-
+#include "MCND_checklp.hpp"
 
 class OsiVolSolverInterface;
 class OsiSolverInterface;
@@ -31,7 +31,9 @@ enum LP_Mode{
    /** Branch is driven by a Feasible pump problem.*/
    LP_Normal,
    /** Extra Iteration due to cut addition.*/
-   LP_CutAdded
+   LP_CutAdded,
+	/** Force Abort.*/
+   LP_ForceAbort
 };
 
 
@@ -47,6 +49,7 @@ public:
     Pump pump_heur;
     
     LP_Mode lp_mode;
+    bool abort;
     bool has_sol;
     std::vector<double> y;
     std::deque<const Cover *> track;
@@ -63,7 +66,7 @@ public:
     int MaxIt;
     
 public:
-    MCND_lp() : best_LB(0), LBi(0), cut_off(false), has_sol(false), track(0) {}
+    MCND_lp() : best_LB(0), LBi(0), cut_off(false), has_sol(false), track(0), abort(false) {}
     ~MCND_lp();
     
     

@@ -38,7 +38,7 @@ public:
     
     ~CoverCollection();
     
-    Cover * createNewCover(const std::deque<Pair2>& c, double mu, int id_vi, int id_owner_, int serial_num_);
+    Cover * createNewCover(const std::deque<Pair2>& c, double mu, int id_vi, int serial_num_);
 
     //--------------------------------------
     //  insert/del methods
@@ -118,12 +118,12 @@ public:
     int serial_nmbr;
     int n_zerom;
     int n_nviol;
+    bool prgbl;
     
     int size;
     int maxsize;
     int *C;
     const int * owner;
-    int id_owner;
     
     unsigned int *id_seq;
     bool hasLftd;
@@ -142,11 +142,13 @@ public:
     void get_total_sz_rhs(int & sz, double &rhs)const;
     int get_total_sz()const;
     double get_total_rhs() const;
-    
+    double get_rhs() const;
+
+    double viol(const double *y)const;
     bool check_updt_Viol(const double *y);
 
     //implemetn map
-    inline Cover(int M, int sz, int id_vi_, int id_owner_, int serial_nmbr_):size(sz), Lftd(0), next(0), prev(0){
+    inline Cover(int M, int sz, int id_vi_, int serial_nmbr_):size(sz), Lftd(0), next(0), prev(0){
         C = new int[sz];
         id_seq = new unsigned int[M];
         for(;M--;)id_seq[M]=0;
@@ -155,9 +157,9 @@ public:
         n_nviol = 0;
         n_zerom = 0;
         id_vi = id_vi_;
-        id_owner = id_owner_;
         rhs_dimsh = 0.0;
         hs=0;
+        prgbl=false;
 		serial_nmbr = serial_nmbr_;
     }
     inline ~Cover(){

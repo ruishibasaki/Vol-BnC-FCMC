@@ -37,7 +37,7 @@ CoverManager::reset_and_map_collection(int fsize, const double* topo, double * d
         vi->n_zerom =0;
         vi->n_nviol = 0;
         //std::cout<<"in: id_vi "<<vi->id_vi<<std::endl;
-        if(vi->check_updt_Viol(topo)){
+        if(vi->check_updt_Viol(topo) && !vi->prgbl){
             actvS[vi->id_vi] = fsize+csize;
             //std::cout<<"in: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<std::endl;
             //vi->print();
@@ -45,7 +45,7 @@ CoverManager::reset_and_map_collection(int fsize, const double* topo, double * d
             ++num_actv;
             vi = vi->next;
         }else{
-        	std::cout<<"out: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<std::endl;
+        	//std::cout<<"out: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<std::endl;
         	//vi->print();
         	++cont;
         	vi = covers.move_to_end(vi);
@@ -80,9 +80,9 @@ CoverManager::cover_generation_main(const double * ystar, const double * y,const
     cutset = sets->begin;
     for(int i=0;i<sz;++i){
 
-        added+=cover_generation(cutset->ss_size, cutset->SS_arcs, cutset->uss, cutset->dss, ystar, y, actvSSz+added, cutset->id );
+        added+=cover_generation(cutset->ss_size, cutset->SS_arcs, cutset->uss, cutset->dss, ystar, y, actvSSz+added);
         //if(added>0) break;
-        added+=cover_generation(cutset->s_ssize, cutset->S_Sarcs, cutset->us_s, cutset->ds_s, ystar, y, actvSSz+added, -cutset->id );
+        added+=cover_generation(cutset->s_ssize, cutset->S_Sarcs, cutset->us_s, cutset->ds_s, ystar, y, actvSSz+added );
         //if(added>0) break;
         //std::cout<<"i: "<<i<<std::endl;
         cutset = cutset->next;
@@ -94,7 +94,7 @@ CoverManager::cover_generation_main(const double * ystar, const double * y,const
 //------------------------------------------------------------------------------------------
 
 int
-CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, double dss, const double * ystar, const double * y, int actvSSz,  int id_owner_){
+CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, double dss, const double * ystar, const double * y, int actvSSz){
     
     std::deque<Trio1> ss_;
     std::deque<Pair2> lift_down;
@@ -114,7 +114,7 @@ CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, dou
     restrict_cutset(lift_down, lift_up, ss_, ystar, delta, dss, uss);
     //std::cout<<"delta in cover1: "<<delta<<std::endl;
     int id = data->nnodes*data->ndemands + covers.sizeOfCollection;
-    cover = make_cover(delta, ss_, ystar, lift_down, luc, id, id_owner_ );
+    cover = make_cover(delta, ss_, ystar, lift_down, luc, id );
     //std::cout<<&luc<<std::endl;
     
     vi = coverlift.lift_cover(luc, lift_down , lift_up , int( delta), int(cover->rhs), int(dss));
@@ -161,7 +161,7 @@ CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, dou
 //-------------------------------------------------------------------------------------------
 
 Cover *
-CoverManager::make_cover(double& delta, const std::deque<Trio1> & ss_, const double * ystar, std::deque<Pair2>& lift_down, std::deque<Pair2>& cover, int id_vi, int id_owner_ ){
+CoverManager::make_cover(double& delta, const std::deque<Trio1> & ss_, const double * ystar, std::deque<Pair2>& lift_down, std::deque<Pair2>& cover, int id_vi ){
     int sz =(int)ss_.size();
     int arc;
     double bl;
@@ -183,7 +183,7 @@ CoverManager::make_cover(double& delta, const std::deque<Trio1> & ss_, const dou
         minimize_cover(delta, candidates, cover, ystar, lift_down);
     }
     candidates.clear();
-    return covers.createNewCover(cover, delta,  id_vi, id_owner_, ttgend);
+    return covers.createNewCover(cover, delta,  id_vi, ttgend);
 }
 
 //----------------------------------------------------------------------------------

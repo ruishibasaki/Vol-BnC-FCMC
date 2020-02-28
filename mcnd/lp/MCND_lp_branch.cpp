@@ -27,10 +27,13 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     
     std::cout<<"select_branching_candidates"<<std::endl;
 
-	LBi = lpres.objval();
+	//LBi = lpres.objval();
     //return BCP_DoNotBranch_Fathomed;
 
-    if(current_phase() == 1000000000){
+   /* if(current_level() == 2){
+        return BCP_DoNotBranch_Fathomed;
+	}*/
+	if(abort){
         return BCP_DoNotBranch_Fathomed;
 	}
 	
@@ -48,7 +51,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     BCP_vec<int> vpos(1, 0);
     const double * psol = lpres.x();
     int max_cand = 1;
-    if(lp_mode==LP_Normal){
+    if(lp_mode==LP_Normal || candidates.empty()){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1){
 				candidates.push_back(Pair2(a, abs(psol[a]-0.5)));
@@ -95,24 +98,25 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		   BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd)
 {
 	std::cout<<"logical_fixing "<<std::endl;
-    return;
+    //return;
     const double* psol = lpres.x();
-    const double * dsol = lpres.pi();
+    const double * rcsol = lpres.dj();
+    double lb = lpres.objval();
     double gij;
     
     
 	for (int a=data.narcs; a--;){
 		//std::cout<<"logical fix "<<a<<" "<<freq[a]<<"  "<<psol[a]<<std::endl;
 		if(vars[a]->lb()==0 && vars[a]->ub()==1){
-			gij = lag_subproblem(a, dsol);
-			//std::cout<<"penalty test: "<<a<<std::endl;
-			if(gij>0 && (LBi+gij)>=best_soln.cost){
-				std::cout<<a<<" WILL FIX 0"<<std::endl;
+			gij = rcsol[a];
+			//std::cout<<"penalty test: "<<a<<" "<<gij<<std::endl;
+			if(gij>0 && (lb+gij)>=upper_bound()){
+				std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
 				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
-			}else if(gij<0 && (LBi-gij)>=best_soln.cost){
-				std::cout<<a<<" WILL FIX 1"<<std::endl;
+			}else if(gij<0 && (lb-gij)>=upper_bound()){
+				std::cout<<a<<" WILL FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
@@ -213,18 +217,19 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	const BCP_lp_result & child0  = best->lpres(0);
 	const BCP_lp_result & child1  = best->lpres(1);
 	BCP_vec< BCP_child_action >& childs_action = best->action();
-
+	
+	bool zero_fathomed=false;
 	if((child0.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
 		(child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
 		childs_action[0] = BCP_FathomChild;
+		zero_fathomed=true;
 	}else if(lp_mode==LP_DiveToFeasibility){
 		 childs_action[0] = BCP_KeepChild;
 	}else childs_action[0] = BCP_ReturnChild;
 	
-	if(((child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf) &&
-		((child1.termcode() & BCP_PrimalObjLimReached) != BCP_PrimalObjLimReached)){
+	if(zero_fathomed && !((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached)){
 		childs_action[1] = BCP_KeepChild;
-	}if((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
+	}else if((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
 		childs_action[1] = BCP_FathomChild;
 	}else childs_action[1] = BCP_ReturnChild;
 	std::cout<<" 0-side childs_action "<<childs_action[0]<<std::endl;

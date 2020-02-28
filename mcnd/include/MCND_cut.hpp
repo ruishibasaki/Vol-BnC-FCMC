@@ -32,6 +32,8 @@ public:
 	inline void set_cover(Cover* c){ cover = c;}
 	
 	bool check_viol(const BCP_vec<BCP_var*>& vars);
+	double check_viol(const double* vars);
+
 };
 
 #endif /* MCND_cut_h */

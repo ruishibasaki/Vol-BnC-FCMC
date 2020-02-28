@@ -44,10 +44,10 @@ CoverCollection::initialize(int M){
 //----------------------------------------------------------------------------------
 
 Cover *
-CoverCollection::createNewCover(const std::deque<Pair2>& c, double mu,  int id_vi,  int id_owner_, int serial_num_){
+CoverCollection::createNewCover(const std::deque<Pair2>& c, double mu,  int id_vi, int serial_num_){
     int arc;
     int csize =(int) c.size();
-    Cover * newC = new Cover(sizeOfIdSeq, csize,  id_vi, id_owner_, serial_num_);
+    Cover * newC = new Cover(sizeOfIdSeq, csize,  id_vi, serial_num_);
     
     for(int n=csize;n--;){
         arc = c[n].fst;
@@ -102,7 +102,9 @@ CoverCollection::collected(Cover * tryC){
                 ret = compScalar(tryC, C);
                 if(ret==0) return 0;
                 else if(ret==1){
-                    replace(C, tryC);
+                    //replace(C, tryC);
+                    C->prgbl=true;
+                    //abort();
                     return 1;
                 }
                 return 2;
@@ -173,15 +175,15 @@ CoverCollection::compScalar(Cover * c1, Cover * c2){
     }
     
     if(v2dominate){
-        c1->print();
-        c2->print();
-        std::cout<<"v2dominate"<<std::endl;
-        if(v1dominate) std::cout<<"!!!!! PROBLEM::compLiftPart domdom!!!!!"<<std::endl;
+        //c1->print();
+        //c2->print();
+        //std::cout<<"v2dominate"<<std::endl;
+        if(v1dominate){ std::cout<<"!!!!! PROBLEM::compLiftPart domdom!!!!!"<<std::endl; abort();}
         return 2;
     }else if(v1dominate){
-        c1->print();
-        c2->print();
-        std::cout<<"v1dominate"<<std::endl;
+        //c1->print();
+        //c2->print();
+        //std::cout<<"v1dominate"<<std::endl;
         return 1;
     }
     return 0;
@@ -205,7 +207,7 @@ CoverCollection::addCover(Cover * tryC, const double * xystar){
         }
     }
     ret = collected(tryC);
-    if(ret==2){ ++discarted; delete tryC;return 0;}
+    if(ret==2){++discarted; delete tryC;return 0;}
     else if(ret==0){
         //ret = check_maximal(tryC , xystar);
         //if(ret) return 0;
@@ -539,7 +541,7 @@ CoverCollection::map_collection(std::map<int, int>& mapd){
 bool 
 Cover::check_updt_Viol(const double *y) {
 	double sum=0;
-    double comp= get_total_rhs();
+    double comp= get_rhs();
     int sz = get_total_sz();
     rhs_dimsh=0;
     for(int a=0;a<sz;++a){
@@ -547,8 +549,22 @@ Cover::check_updt_Viol(const double *y) {
         if(sum>=comp){return false;}
     }
     rhs_dimsh = sum;
-    if(rhs_dimsh>0) {return false; std::cout<<"lifted!!!: "<<rhs_dimsh<<" "<<id_vi<<" "<<serial_nmbr<<std::endl;}
     return true;
+}
+
+//----------------------------------------------------------------------------------
+
+
+double 
+Cover::viol(const double *y)const {
+	double sum=0;
+    double comp= get_rhs();
+    int sz = get_total_sz();
+    for(int a=0;a<sz;++a){
+        sum+= gamma_at(a)*y[at(a)];
+        if(sum>=comp){return 0;}
+    }
+    return comp-sum;
 }
 
 //----------------------------------------------------------------------------------
@@ -595,6 +611,18 @@ Cover::get_total_sz_rhs(int & sz, double &rhs) const{
 double
 Cover::get_total_rhs() const{
     double rhs_ = rhs - rhs_dimsh;
+    if(hasLftd){
+        rhs_ += Lftd->ttgamma1;
+    }
+    
+    return rhs_;
+}
+
+//----------------------------------------------------------------------------------
+
+double
+Cover::get_rhs() const{
+    double rhs_ = rhs;
     if(hasLftd){
         rhs_ += Lftd->ttgamma1;
     }

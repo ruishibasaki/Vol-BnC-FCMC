@@ -62,7 +62,7 @@ public:
     virtual bool isProvenDualInfeasible() const{return false;}
     
     virtual bool isProvenOptimal() const{
-        return ((retval==0) && volprob_.iter() < volprob_.parm.maxsgriters);}
+        return false;}
     
     virtual bool isIterationLimitReached() const{
         return(volprob_.iter()>= volprob_.parm.maxsgriters)? true: false;

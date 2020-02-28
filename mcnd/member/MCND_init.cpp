@@ -80,11 +80,17 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    std::string inst(arglist[2]);
    inst = inst.substr(inst.find("instances")+10); 
    ub = read_init_sol("upper_bound.txt", inst, xy);
-   p.upper_bound = ub;
+   if(ub>0){
+   		int sz = tm->data.narcs+tm->data.narcs*tm->data.ndemands;
+   		double *s = new double[sz];
+   		for(int i=sz;i--;) s[i]=0;
+		p.upper_bound = ub;
+   		p.feas_sol = new MCND_solution(sz, ub, s);
+   }
    p.par.set_entry(BCP_tm_par::Granularity, 1e-2);
    p.par.set_entry(BCP_tm_par::ReportWhenDefaultIsExecuted, false);
    p.par.set_entry(BCP_tm_par::WarmstartInfo, BCP_WarmstartNone); //BCP_WarmstartParent;
-   p.par.set_entry(BCP_tm_par::TreeSearchStrategy, BCP_DepthFirstSearch); 
+   p.par.set_entry(BCP_tm_par::TreeSearchStrategy, BCP_BestFirstSearch); 
    p.par.set_entry(BCP_tm_par::UnconditionalDiveProbability, 1.0);
    p.par.set_entry(BCP_tm_par::QualityRatioToAllowDiving_HasUB, -1.0);
    p.par.set_entry(BCP_tm_par::QualityRatioToAllowDiving_NoUB, -1.0);

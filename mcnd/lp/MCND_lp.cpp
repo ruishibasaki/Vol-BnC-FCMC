@@ -59,6 +59,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     
     
     //std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
+    has_sol = getLpProblemPointer()->has_ub();
     MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
     if(nodedata!=0){
         //std::cout<<"user_data hotstart: "<<nodedata->hs<<std::endl;
@@ -268,10 +269,12 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 
 	for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
 		CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
-		if (!cut->check_viol(vars)) {
-			std::cout<<"out: "<<i<<" id: "<<cut->get_cover()->id_vi<<" srnb: "<<cut->get_cover()->serial_nmbr<<std::endl;
+		if (!cut->check_viol(vars) || cut->get_cover()->prgbl ||
+			(cut->check_viol(lpres.x())==0 && lpres.pi()[cut->get_cover()->id_vi]==0)) {
+			//std::cout<<"out: "<<i<<" id: "<<cut->get_cover()->id_vi<<" srnb: "<<cut->get_cover()->serial_nmbr<<std::endl;
 			cover_manager.purgbl.push_back(cut->get_cover());
 			deletable.unchecked_push_back(i);
+			cut->get_cover()->prgbl=false;
 		}
 	}
 	getOsiVolBabSolver()->num_purgbl=0;
@@ -303,6 +306,15 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
         std::cout<<"node comes from branch on: "<<ndata->branch_var;
         std::cout<<" of "<<ndata->pos_neg<<" side "<<std::endl;
     }
+    /*std::vector<int> topo(data.narcs,-1);
+	for (int a=data.narcs; a--;){
+        if(vars[a]->lb()==1.0){ topo[a] = 1;
+        }else if(vars[a]->ub()==0.0){ topo[a] = 0;}
+    }
+    LPChecker checker;
+    checker.initialize(&data);
+    checker.create_model( topo, cover_manager.covers);
+    checker.solve();*/
     return 0;
 }
 
@@ -326,7 +338,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
                                      const BCP_vec<BCP_var*>& vars,
                                      const BCP_vec<BCP_cut*>& cuts){
     std::cout<<"try heuristic "<<candidates.size()<<std::endl;
-    if(current_level() >100000){ lp_mode=LP_Normal;   return 0;}
+    //if(current_level() >100000){ lp_mode=LP_Normal;   return 0;}
 	if(lp_mode == LP_CutAdded){ lp_mode = LP_Normal; return 0;}
 	
     const double * x = lpres.x();
@@ -338,15 +350,22 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
         if(vars[a]->lb()==1.0){
             topo.push_back(Pair2(a, 1));
         }else if(vars[a]->ub()==1.0){
-            if(x[a]>=0.7) topo.push_back(Pair2(a, 1));
-            else if(x[a]>=0.3){
+            if(x[a]>=0.9){ 
+            	topo.push_back(Pair2(a, 1));
+            }else if(x[a]>=0.1){
             	if(x[a]>0.5){
             		topo.push_front(Pair2(a, 1));
             	}else topo.push_front(Pair2(a, 0));
             	++unfixed;
-            }else{ candidates.push_back(Pair2(a,x[a])); }//std::cout<<"cand: "<<a<<" "<<x[a]<<std::endl;}
+            }else if(x[a]>=0.05){ candidates.push_back(Pair2(a,-x[a])); }//std::cout<<"cand: "<<a<<" "<<x[a]<<std::endl;}
         }
     }
+    if(unfixed>=data.narcs*0.1){
+		lp_mode=LP_Normal;
+    	candidates.clear();
+    	return 0;
+    }
+
     MCND_solution* sol = new MCND_solution(data.narcs+data.narcs*data.ndemands);
     pump_heur.reset( unfixed, topo);
     int retval = pump_heur.solve(yl, sol->xy, sol->cost);

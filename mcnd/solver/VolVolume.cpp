@@ -436,8 +436,11 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     if (retval < 0)  return -1;
     retval = hooks.resolve_subproblem(dual.u, rc, dual.lcost, primal.x, primal.value);
     if (retval < 0)  return -1;
+    retval = hooks.addVI(iter_,dual.lcost, pstar.x, primal.x, dual.u, dual_lb, dual_ub, rc, pstar.v, active_size );
+    if (retval < 0)   return -1;
     retval = hooks.compute_sg(primal.x, active_size, primal.v);
     if (retval < 0)  return -1;
+    
     std::cout<<"first vole iter: "<<dual.lcost<<std::endl;
     
     // set target for the lagrangian value

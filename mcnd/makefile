@@ -31,7 +31,7 @@ suffix_lp = \
 suffix_lp_cplex = \
 	MCND_mincostflow \
 	MCND_pump \
-	#MCND_checkfeas
+	MCND_checklp
 	
 suffix_member =\
 	UtilsMethods	\
