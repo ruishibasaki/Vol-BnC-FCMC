@@ -534,7 +534,7 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
     std::vector<Pair2> con_arcs_map(narcs,Pair2(0,0));
     std::vector<Pair2> con_arcs_wnid(narcs*size,Pair2(-1,-1));
     std::vector<Trio1> ws(size,Trio1(-1,-1,-1));
-    std::vector<const Cover *> addrs(size,0);
+    std::vector<const Cover *> addrs(size);
     std::deque<Pair2> con_arcs;
     std::deque<Pair2> con_arcs_aux;
     

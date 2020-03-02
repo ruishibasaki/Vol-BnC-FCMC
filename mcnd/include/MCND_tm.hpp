@@ -13,17 +13,16 @@
 
 class MCND_tm : public BCP_tm_user {
 public:
-  //BCP_parameter_set<MCND_tm_par> tm_par;
-  //   BCP_parameter_set<MC_cg_par> cg_par;
-  //   BCP_parameter_set<MC_cg_par> vg_par;
-
+ 
   Data data;
   double Best_LB;
+  std::string instance;
   
   MCND_solution best_soln;
-
+  
+  clock_t t_start;
 public:
-  MCND_tm() : best_soln(), Best_LB(0) {}
+  MCND_tm() : Best_LB(0) {}
   ~MCND_tm() {}
 
   

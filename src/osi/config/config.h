@@ -77,10 +77,10 @@
 #define HAVE_STRING_H 1
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
-#define HAVE_SYS_STAT_H 0
+#define HAVE_SYS_STAT_H 1
 
 /* Define to 1 if you have the <sys/types.h> header file. */
-#define HAVE_SYS_TYPES_H 0
+#define HAVE_SYS_TYPES_H 1
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
@@ -89,16 +89,16 @@
 /* #undef OSI_SVN_REV */
 
 /* Version number of project */
-#define OSI_VERSION "0.107.6"
+#define OSI_VERSION "0.108.0"
 
 /* Major Version number of project */
 #define OSI_VERSION_MAJOR 0
 
 /* Minor Version number of project */
-#define OSI_VERSION_MINOR 107
+#define OSI_VERSION_MINOR 108
 
 /* Release Version number of project */
-#define OSI_VERSION_RELEASE 6
+#define OSI_VERSION_RELEASE 0
 
 /* Name of package */
 #define PACKAGE "osi"
@@ -110,16 +110,16 @@
 #define PACKAGE_NAME "Osi"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "Osi 0.107.6"
+#define PACKAGE_STRING "Osi 0.108.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "osi"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.107.6"
+#define PACKAGE_VERSION "0.108.0"
 
 /* Define to 1 if you have the ANSI C header files. */
-/* #undef STDC_HEADERS */
+#define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.107.6"
+#define VERSION "0.108.0"

@@ -56,7 +56,6 @@ public:
     std::deque<Pair2> candidates;
     std::map<int, int> mapd;
 	
-    double best_LB;
     double LBi;
     
     bool cut_off;
@@ -66,7 +65,7 @@ public:
     int MaxIt;
     
 public:
-    MCND_lp() : best_LB(0), LBi(0), cut_off(false), has_sol(false), track(0), abort(false) {}
+    MCND_lp() : LBi(0), cut_off(false), has_sol(false), track(0), abort(false) {}
     ~MCND_lp();
     
     

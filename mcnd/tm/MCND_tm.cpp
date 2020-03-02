@@ -43,8 +43,8 @@ MCND_tm::unpack_feasible_solution(BCP_buffer& buf)
 	//std::cout<<"unpack feas solu"<<std::endl;
    MCND_solution* new_sol = new MCND_solution;
    new_sol->unpack(buf);
-   if (new_sol->objective_value() > best_soln.objective_value())
-      best_soln = *new_sol;
+   //if (new_sol->objective_value() > best_soln.objective_value())
+	best_soln = *new_sol;
       	//std::cout<<"done"<<std::endl;
 
    return new_sol;
@@ -182,12 +182,12 @@ void
 MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 			const bool new_solution){
 	
-	std::cout<<"new_solution "<<new_solution<<std::endl;
-	std::cout<<"cand size "<<candidates.size()<<std::endl;
-	/*//Best_LB=lower_bound();
-	if(!new_solution){
+	//std::cout<<"new_solution "<<new_solution<<std::endl;
+	//std::cout<<"cand size "<<candidates.size()<<" "<<candidates.getTree()->compName()<<std::endl;
+	//Best_LB=lower_bound();
+	//if(!new_solution){
 		CoinSearchTreeBase * tree = candidates.getTree();
-		CoinSearchTreeBase *t = createSearchType(tree->compName());
+		CoinSearchTreeBase *t = new CoinSearchTree<CoinSearchTreeCompareBest>;
 		std::cout<<"change candidate heap size:"<<tree->size()<<std::endl;
         MCND_node_branch_data * user_data;
 		BCP_tm_node * n;
@@ -195,11 +195,11 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 		while(tree->size()){
 			*add = tree->top();
 			n = dynamic_cast<BCP_tm_node*>(*add);
-            user_data =  dynamic_cast<MCND_node_branch_data*>(n->_data._user.GetRawPtr());
-            (*add)->setQuality(-user_data->score);
-			//std::cout<<n->getQuality()<<std::endl;
+            //user_data =  dynamic_cast<MCND_node_branch_data*>(n->_data._user.GetRawPtr());
 			if(n->status > BCP_PrunedNode_Discarded ||
 			   n->status < BCP_PrunedNode_OverUB){
+			   (*add)->setQuality((*add)->getTrueLB()-lower_bound());
+				//std::cout<<n->getQuality()<<" "<<(*add)->getTrueLB()<<" "<<lower_bound()<<std::endl;
 				t->push(1, add);
 			}
 			tree->pop();
@@ -207,10 +207,9 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 		candidates.setTree(t);
 		delete add;
 		std::cout<<"final size "<<t->size()<<std::endl;
-	}
+	//}
 	
-  std::cout<<"change candidate heap size:"<<std::endl;*/
-  BCP_tm_user::change_candidate_heap(candidates,new_solution);
+	//BCP_tm_user::change_candidate_heap(candidates,new_solution);
 }
 /*
 //-----------------------------------------------------------------------------
@@ -244,8 +243,15 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
 	BCP_tm_user::display_final_information(lp_stat);
     if(Best_LB<lower_bound())
         Best_LB=lower_bound();
-	std::cout<<"The global lower bound: "<<Best_LB<<std::endl;
+	std::cout<<"The global lower bound: "<<Best_LB<<" / "<<lower_bound()<<std::endl;
 	
+	double ub = upper_bound();
+    std::ofstream file("fileout", std::ios::app);
+    file<<std::setprecision(10)<<instance<<" lb: "<<Best_LB<<" ub: "<<ub<<" gap: "<<(ub-Best_LB)/ub*100<<" nodes: "<<getTmProblemPointer()->search_tree.processed()
+    <<" t: "<<double( clock() - t_start ) / double( CLOCKS_PER_SEC )<<std::endl;
+    file.close();
+    
+    
 }
 
 //-----------------------------------------------------------------------------

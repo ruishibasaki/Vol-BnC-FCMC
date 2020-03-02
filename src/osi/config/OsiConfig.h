@@ -23,21 +23,7 @@
 #ifndef __OSICONFIG_H__
 #define __OSICONFIG_H__
 
-#ifdef HAVE_CONFIG_H
-#ifdef OSI_BUILD
 #include "config.h"
-#else
 #include "config_osi.h"
-#endif
-
-#else /* HAVE_CONFIG_H */
-
-#ifdef OSI_BUILD
-#include "config_default.h"
-#else
-#include "config_osi_default.h"
-#endif
-
-#endif /* HAVE_CONFIG_H */
 
 #endif /*__OSICONFIG_H__*/

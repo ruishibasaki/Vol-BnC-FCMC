@@ -27,7 +27,6 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     
     std::cout<<"select_branching_candidates"<<std::endl;
 
-	//LBi = lpres.objval();
     //return BCP_DoNotBranch_Fathomed;
 
    /* if(current_level() == 2){
@@ -50,11 +49,11 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	BCP_vec<double> vbd(4, 0.0);
     BCP_vec<int> vpos(1, 0);
     const double * psol = lpres.x();
-    int max_cand = 1;
+    int max_cand = 1 ;
     if(lp_mode==LP_Normal || candidates.empty()){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1){
-				candidates.push_back(Pair2(a, abs(psol[a]-0.5)));
+				candidates.push_back(Pair2(a, -abs(psol[a]-0.7)));
 			}
 		}
 	}else max_cand = 1;
@@ -65,7 +64,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		std::cout<<"candidate "<<arc<<" "<<y[arc]<<std::endl;
+		std::cout<<"candidate "<<arc<<" "<<y[arc]<<" "<<psol[arc]<<std::endl;
         candidates.pop_front();		
 		vpos[0] = arc;
 		vbd[0] = 0.0;
@@ -101,13 +100,24 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
     //return;
     const double* psol = lpres.x();
     const double * rcsol = lpres.dj();
+    double * yarcs = new double [data.narcs];
     double lb = lpres.objval();
     double gij;
     
-    
+    for (int a=data.narcs; a--;) yarcs[a] = 0;
+    const int cutnum = cuts.size();
+	for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
+		CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
+		cut->check_logical_fix( vars, yarcs);
+	}
+    	
 	for (int a=data.narcs; a--;){
-		//std::cout<<"logical fix "<<a<<" "<<freq[a]<<"  "<<psol[a]<<std::endl;
-		if(vars[a]->lb()==0 && vars[a]->ub()==1){
+		if(yarcs[a]==1){
+			//std::cout<<"logical fix "<<a<<"  "<<psol[a]<<std::endl;
+			changed_pos.push_back(a);
+			new_bd.push_back(1.0);
+			new_bd.push_back(1.0);
+		}else if(vars[a]->lb()==0 && vars[a]->ub()==1){
 			gij = rcsol[a];
 			//std::cout<<"penalty test: "<<a<<" "<<gij<<std::endl;
 			if(gij>0 && (lb+gij)>=upper_bound()){
@@ -135,6 +145,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			}*/
 		}
 	}
+	delete [] yarcs;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -150,13 +161,13 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
     const BCP_lp_result & child1  = newobj->lpres(1);
 
     std::cout<<" comparing ("<<var_new<<") y: "<<y[var_new]<<
-    	" fst: "<<newobj->candidate()->forced_var_pos->front()<<", bd: "<<newobj->candidate()->forced_var_bd->front()<<
-    	" snd: "<<newobj->candidate()->forced_var_pos->back()<<", bd: "<<newobj->candidate()->forced_var_bd->back()
-    	<<std::endl;
+    	//" fst: "<<newobj->candidate()->forced_var_pos->front()<<", bd: "<<newobj->candidate()->forced_var_bd->front()<<
+    	//" snd: "<<newobj->candidate()->forced_var_pos->back()<<", bd: "<<newobj->candidate()->forced_var_bd->back()<<
+    	std::endl;
    
     int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
-    newobj->user_data()[0] = new MCND_node_branch_data(sz, y[var_new], 0, var_new, 0, 0);
-    newobj->user_data()[1] = new MCND_node_branch_data(sz, y[var_new], 0, var_new, 1, 0);
+    newobj->user_data()[0] = new MCND_node_branch_data(sz, y[var_new], 0, var_new, 0, 0, LBi);
+    newobj->user_data()[1] = new MCND_node_branch_data(sz, y[var_new], 0, var_new, 1, 0, LBi);
     
      
      if((child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){

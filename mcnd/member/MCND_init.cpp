@@ -16,23 +16,20 @@
 #include "MCND_tm.hpp"
 #include "MCND_lp.hpp"
 #include "MCND_data.hpp"
-//#############################################################################
 
+//#############################################################################
 
 void 
 MCND_packer::pack_user_data(const BCP_user_data* ud, BCP_buffer& buf){
 	//std::cout<<"pack_user_data"<<std::endl;
 	const MCND_node_branch_data * user = dynamic_cast<const MCND_node_branch_data *>(ud);
 	if(user) user->pack(buf);
-
 }
     
 //-----------------------------------------------------------------------------
 
 BCP_user_data* 
 MCND_packer::unpack_user_data(BCP_buffer& buf){
-	//std::cout<<"unpack_user_data"<<std::endl;
-
 	 MCND_node_branch_data*  user = new MCND_node_branch_data;
 	 user->unpack(buf);
 	 return user;
@@ -57,7 +54,6 @@ MCND_packer::unpack_cut_algo(BCP_buffer& buf){
 	return cut;
 }
 
-
 //#############################################################################
 
 
@@ -79,6 +75,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    double ub=0;
    std::string inst(arglist[2]);
    inst = inst.substr(inst.find("instances")+10); 
+   tm->instance = inst;
    ub = read_init_sol("upper_bound.txt", inst, xy);
    if(ub>0){
    		int sz = tm->data.narcs+tm->data.narcs*tm->data.ndemands;
@@ -97,6 +94,8 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    p.par.set_entry(BCP_tm_par::RemoveExploredBranches, true);
    p.par.set_entry(BCP_tm_par::MessagePassingIsSerial, true);
 
+   p.par.set_entry(BCP_tm_par::MaxRunTime, 3600.0);
+   tm->t_start = clock();
    return tm; 
 }
 
@@ -108,10 +107,19 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
    MCND_lp* lp = new MCND_lp;
    p.par.set_entry(BCP_lp_par::LpVerb_GeneratedCutCount, true);
    p.par.set_entry(BCP_lp_par::LpVerb_CutsToCutPoolCount, true);
+   p.par.set_entry(BCP_lp_par::LpVerb_ReportLocalCutPoolSize, false);
+
+   p.par.set_entry(BCP_lp_par::LpVerb_GeneratedVarCount, true);
+   p.par.set_entry(BCP_lp_par::LpVerb_VarsToVarPoolCount, false);
+   p.par.set_entry(BCP_lp_par::LpVerb_AddedVarCount, false);
+   p.par.set_entry(BCP_lp_par::LpVerb_ColumnGenerationInfo, false); 
+   p.par.set_entry(BCP_lp_par::LpVerb_ReportLocalVarPoolSize, false);
+   
    p.par.set_entry(BCP_lp_par::LpVerb_PresolveResult, false);
    p.par.set_entry(BCP_lp_par::LpVerb_StrongBranchResult, false);
    p.par.set_entry(BCP_lp_par::LpVerb_ChildrenInfo, false);
    p.par.set_entry(BCP_lp_par::LpVerb_NodeTime, false);
+   
    p.par.set_entry(BCP_lp_par::DoReducedCostFixingAtZero ,false);
    p.par.set_entry(BCP_lp_par::DoReducedCostFixingAtAnything, false);
    p.par.set_entry(BCP_lp_par::ReportWhenDefaultIsExecuted, false);

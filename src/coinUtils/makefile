@@ -147,12 +147,16 @@ COINH   = include/$(includecoin_HEADERS)
 all: $(libCoinUtils_suffix) $(libCoinUtils_) 
 
 $(libCoinUtils_suffix):
-	g++ -fPIC -c ./src/$@.cpp -o build/$@.o $(COININC) -O3
+	g++ -fPIC -c ./src/$@.cpp -o build/$@.o $(COININC) -O3 
 
 #SHARED LIBRARY
+#MAC
 $(libCoinUtils_):
-	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libCoinUtils.so -o $@ $(COINOBJ)
+	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libCoinUtils.so -o $@ $(COINOBJ) -lbz2 -lz -lm -llapack -O3
 
+#LIMOS
+#$(libCoinUtils_):
+#	g++ -shared  -Wl,-soname,/home/prof/rsashiba/bcp/lib/libCoinUtils.so -o $@ $(COINOBJ) -lbz2 -lz
 
 # STATIC LIBRARY
 #$(libCoinUtils_): $(COINOBJ)

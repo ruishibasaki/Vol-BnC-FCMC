@@ -33,6 +33,7 @@ public:
 	
 	bool check_viol(const BCP_vec<BCP_var*>& vars);
 	double check_viol(const double* vars);
+	bool check_logical_fix(const BCP_vec<BCP_var*>& vars, double* yarcs);
 
 };
 

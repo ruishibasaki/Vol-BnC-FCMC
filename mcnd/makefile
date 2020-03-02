@@ -58,17 +58,19 @@ CONCERTDIR = /Applications/CPLEX_Studio128/concert
 CPLEXDIR = 	/Applications/CPLEX_Studio128/cplex
 CPLEXLIBDIR = $(CPLEXDIR)/lib/$(SYSTEM)/$(LIBFORMAT)
 CONCERTLIBDIR = $(CONCERTDIR)/lib/$(SYSTEM)/$(LIBFORMAT)
+
 CPLEXFLAGS =   -L$(CPLEXLIBDIR) -lilocplex -lcplex -L$(CONCERTLIBDIR) -lconcert -lm -ldl -lpthread
 
 	
 CPLEXINC = -DIL_STD -I$(CPLEXDIR)/include -I$(CONCERTDIR)/include
-COININC = -I../src/CoinUtils/include/ -I../src/CoinUtils/config/ 
-OSIINC = -I../src/Osi/include/
-VOLINC = -I../src/Vol/include/
-BCPINC = -I../src/Bcp/include/ -I../src/Bcp/config/
+COININC = -I../src/coinUtils/include/ -I../src/coinUtils/config/ 
+OSIINC = -I../src/osi/include/
+VOLINC = -I../src/vol/include/
+BCPINC = -I../src/bcp/include/ -I../src/bcp/config/
 INC= -I$(DIR)include
 
 LINKPATH = /Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/
+#LINKPATH = /home/prof/rsashiba/bcp/lib/
 LINK = -Wl,-rpath,$(LINKPATH) -L$(LINKPATH) -lCoinUtils -lOsi -lBcp
 CPLEXFLAGS =   -L$(CPLEXLIBDIR) -lilocplex -lcplex -L$(CONCERTLIBDIR) -lconcert -lm -ldl -lpthread
 

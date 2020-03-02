@@ -73,7 +73,8 @@ public:
     /// Is the given primal objective limit reached?
     virtual bool isPrimalObjectiveLimitReached() const;
     
-    
+    virtual int canDoSimplexInterface () const{return 0;}
+
     
     //---------------------------------------------------------------------------
     
@@ -384,8 +385,7 @@ private:
     double  *rc_;
     /// Pointer to dense vector of left hand sides (row activity levels)
     double  *lhs_;
-    /// The Lagrangean cost, a lower bound on the objective value
-    double   lagrangeanCost_;
+     
     //@}
     
     //---------------------------------------------------------------------------
@@ -478,6 +478,7 @@ public:
     int * actv;  
     int lim_to_remv, maxNumVI, intvlVI;
     double upper_bound;
+    double min_lower_bound;
     CoverManager* cover_manager;
     CutSetManager* ss_manager;
     int mode;

@@ -168,8 +168,8 @@ bcplp_o= $(libBcplp_suffix:%=build/%.o)
 
 LINK = -Wl,-rpath,../../lib -L../../lib -lCoinUtils -lOsi 
 
-COININC = -I../CoinUtils/include/ -I../CoinUtils/config/
-OSIINC = -I../Osi/include/
+COININC = -I../coinUtils/include/ -I../coinUtils/config/
+OSIINC = -I../osi/include/
 
 # macroes to be exported- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -180,7 +180,7 @@ OSIINC = -I../Osi/include/
 #SHARED LIBRARY
 libBcp_ = ../../lib/libBcp.so
 
-BCPINC = -Iinclude/ -Iconfig/
+BCPINC = -Iconfig/ -Iinclude/ 
 BCPH   = $(includebcp_HEADERS)
 
 # dependencies: every .o from its .C + every recursively included .h- - - - -
@@ -203,11 +203,16 @@ $(bcplp_o): build/%.o: lp/%.cpp
 	g++ -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
 	
 #SHARED LIBRARY
-$(libBcp_): clean_exe
+#MAC
+$(libBcp_):
 	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libBcp.so -o $@ $(LINK) $(libBcp_o)
 
+#LIMOS
+#$(libBcp_):
+#	g++ -shared  -Wl,-soname,/home/prof/rsashiba/bcp/lib/libBcp.so -o $@ $(LINK) $(libBcp_o)
+
 # STATIC LIBRARY
-#$(libCoinUtils_): $(COINOBJ)
+#$(libBcp_): $(COINOBJ)
 #	g++ -shared
 
 clean::

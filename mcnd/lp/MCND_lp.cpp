@@ -29,7 +29,6 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     srand(10);
 }
 
-
 //-------------------------------------------------------------------------------------------
 
 OsiSolverInterface *
@@ -63,10 +62,13 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
     if(nodedata!=0){
         //std::cout<<"user_data hotstart: "<<nodedata->hs<<std::endl;
+        LBi = nodedata->min_lb;
         if(nodedata->hs!=0){
             getLpProblemPointer()->lp_solver->setWarmStart(nodedata->hs);
         }
-    }
+        std::cout<<"node comes from branch on: "<<nodedata->branch_var;
+        std::cout<<" of "<<nodedata->pos_neg<<" side "<<std::endl;
+    }else LBi=0;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -108,7 +110,7 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
 void 
 MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
                               bool in_strong_branching){
-    std::cout<<"modify lp param "<<changeType<<" "<<in_strong_branching<<" iter: "<<current_level()<<std::endl;
+    //std::cout<<"modify lp param "<<changeType<<" "<<in_strong_branching<<" iter: "<<current_level()<<std::endl;
     lp->setDblParam(OsiPrimalTolerance, 1e-4);
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = vollp->volprob_.parm;
@@ -124,7 +126,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     }else par.maxsgriters = 250;
      
     if(current_level()>0){  AppVolData.intvlVI = 100;}
-    if(in_strong_branching){ vollp->mode=0;}
+    if(in_strong_branching){ vollp->min_lower_bound = LBi;  vollp->mode=0;}
     else if(changeType==1 && !in_strong_branching){ vollp->mode=-1;}
     else{ vollp->mode=1;}
     vollp->in_strong_branch = in_strong_branching;
@@ -134,65 +136,6 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     //lp->setAuxiliaryInfo(new MCND_parent_branch_data());
     //}
 }
-
-//#############################################################################
-//#############################################################################
-//#############################################################################
-
-double
-MCND_lp::compute_lower_bound(const double old_lower_bound,
-                             const BCP_lp_result& lpres,
-                             const BCP_vec<BCP_var*>& vars,
-                             const BCP_vec<BCP_cut*>& cuts){
-    
-    const int tc = lpres.termcode();
-    std::cout<<"compute lower bound: "<<(tc & BCP_ProvenOptimal)<<" "<<(tc & BCP_PrimalObjLimReached)<<std::endl;
-
-    if (tc & BCP_ProvenOptimal)
-        return lpres.objval();
-    
-    
-    if (tc & BCP_PrimalObjLimReached)
-        return best_soln.cost + 1;
-    
-    
-    return old_lower_bound;
-    
-}
-
-//-------------------------------------------------------------------------------------------
-
-void
-MCND_lp::process_lp_result(const BCP_lp_result& lpres,
-                           const BCP_vec<BCP_var*>& vars,
-                           const BCP_vec<BCP_cut*>& cuts,
-                           const double old_lower_bound,
-                           double& true_lower_bound,
-                           BCP_solution*& sol,
-                           BCP_vec<BCP_cut*>& new_cuts,
-                           BCP_vec<BCP_row*>& new_rows,
-                           BCP_vec<BCP_var*>& new_vars,
-                           BCP_vec<BCP_col*>& new_cols){
-
-    const double *y_vol = lpres.x();
-    y.assign(y_vol, y_vol+data.narcs);
-    getLpProblemPointer()->user_has_lp_result_processing = false;
-    return;
-    /*std::cout<<"process_lp_result and generate"<<std::endl;
-    getLpProblemPointer()->user_has_lp_result_processing = false;
-    const double *y_vol = lpres.x();
-    y.assign(y_vol, y_vol+data.narcs);
-    sol = test_feasibility(lpres, vars, cuts);
-    
-    
-    
-    if(!((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf))
-        true_lower_bound = lpres.objval();*/
-    
-    
-    
-}
-
 
 //#############################################################################
 //#############################################################################
@@ -209,13 +152,13 @@ MCND_lp::generate_cuts_in_lp(const BCP_lp_result& lpres,
     int newly_added = cover_manager.gend;
     Cover *vi = cover_manager.covers.begin;
     cover_manager.covers.advance(vi, cover_manager.num_actv-1);
-    std::cout<<"generate cuts: "<<newly_added<<" sz: "<<sz<<" cutsvecsz: "<<new_cuts.size()<<std::endl;
     for(int i=newly_added;i--;){
     	keep_track(vi);
         new_cuts.push_back(new CoverCut(vi)); 
         vi = vi->prev;
     }
     if(newly_added){
+        std::cout<<"generate cuts: "<<newly_added<<" sz: "<<sz<<" cutsvecsz: "<<new_cuts.size()<<std::endl;
     	lp_mode = LP_CutAdded;
     	cover_manager.gend =0;
     } 
@@ -261,7 +204,7 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 				   const BCP_vec<BCP_cut*>& cuts,
 				   const bool before_fathom,
 				   BCP_vec<int>& deletable){
-	std::cout<<"select_cuts_to_delete "<<before_fathom<<std::endl;
+	//std::cout<<"select_cuts_to_delete "<<before_fathom<<std::endl;
 	
 	//if(!before_fathom){
 	const int cutnum = cuts.size();
@@ -295,17 +238,54 @@ MCND_lp::purge_slack_pool(const BCP_vec<BCP_cut*>& slack_pool,
 //#############################################################################
 //#############################################################################
 
+double
+MCND_lp::compute_lower_bound(const double old_lower_bound,
+                             const BCP_lp_result& lpres,
+                             const BCP_vec<BCP_var*>& vars,
+                             const BCP_vec<BCP_cut*>& cuts){
+    
+    const int tc = lpres.termcode();
+    //std::cout<<"compute lower bound: "<<(tc & BCP_ProvenOptimal)<<" "<<(tc & BCP_PrimalObjLimReached)<<std::endl;
+    LBi = std::max(lpres.objval(),LBi);
+
+    if ((tc & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached)
+        return upper_bound();
+    
+    
+    return old_lower_bound;
+    
+}
+
+//-------------------------------------------------------------------------------------------
+
+void
+MCND_lp::process_lp_result(const BCP_lp_result& lpres,
+                           const BCP_vec<BCP_var*>& vars,
+                           const BCP_vec<BCP_cut*>& cuts,
+                           const double old_lower_bound,
+                           double& true_lower_bound,
+                           BCP_solution*& sol,
+                           BCP_vec<BCP_cut*>& new_cuts,
+                           BCP_vec<BCP_row*>& new_rows,
+                           BCP_vec<BCP_var*>& new_vars,
+                           BCP_vec<BCP_col*>& new_cols){
+
+    const double *y_vol = lpres.x();
+    y.assign(y_vol, y_vol+data.narcs);
+    getLpProblemPointer()->user_has_lp_result_processing = false;
+    return;
+}
+
+//#############################################################################
+//#############################################################################
+//#############################################################################
+
 BCP_solution*
 MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
                           const BCP_vec<BCP_var*>& vars,
                           const BCP_vec<BCP_cut*>& cuts){
     
-    std::cout<<"test feasibility "<<std::endl;
-    MCND_node_branch_data * ndata  = dynamic_cast<MCND_node_branch_data *>(get_user_data());
-    if(ndata){
-        std::cout<<"node comes from branch on: "<<ndata->branch_var;
-        std::cout<<" of "<<ndata->pos_neg<<" side "<<std::endl;
-    }
+    //std::cout<<"test feasibility "<<std::endl;
     /*std::vector<int> topo(data.narcs,-1);
 	for (int a=data.narcs; a--;){
         if(vars[a]->lb()==1.0){ topo[a] = 1;
@@ -337,7 +317,7 @@ BCP_solution*
 MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
                                      const BCP_vec<BCP_var*>& vars,
                                      const BCP_vec<BCP_cut*>& cuts){
-    std::cout<<"try heuristic "<<candidates.size()<<std::endl;
+    //std::cout<<"try heuristic "<<candidates.size()<<std::endl;
     //if(current_level() >100000){ lp_mode=LP_Normal;   return 0;}
 	if(lp_mode == LP_CutAdded){ lp_mode = LP_Normal; return 0;}
 	
@@ -403,13 +383,13 @@ MCND_lp::pack_feasible_solution(BCP_buffer& buf, const BCP_solution* sol){
 
 void
 MCND_lp::update_branch_data(MCND_node_branch_data * ndata){
-    if(ndata){
-        std::cout<<"update branch data"<<std::endl;
+    //if(ndata){
+        //std::cout<<"update branch data"<<std::endl;
         //int index = ndata->pos_neg*data.narcs+ndata->branch_var;
         
         //std::cout<<index<<" new phi "<<branch_data.phi[index]<<" "<<ndata->branch_var;
         //delete ndata;
-    }
+    //}
 }
 
 //=======================================================================================

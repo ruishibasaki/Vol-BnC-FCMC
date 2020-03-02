@@ -40,7 +40,7 @@ includeOSI_HEADERS = \
 
 LINK = -Wl,-rpath,../../lib -L../../lib -lCoinUtils
 
-COININC = -I../CoinUtils/include/ -I../CoinUtils/config/
+COININC = -I../coinUtils/include/ -I../coinUtils/config/
 # macroes to be exported- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #STATIC LIBRARY
@@ -62,8 +62,13 @@ $(libOsi_suffix):
 	$(CC) -fPIC -c src/$@.cpp -o build/$@.o  $(COININC) $(OSIINC) -O3
 
 #SHARED LIBRARY
+#MAC
 $(libOsi_):
 	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libOsi.so -o $@ $(LINK) $(OSIOBJ)
+
+#LIMOS
+#$(libOsi_):
+#	g++ -shared  -Wl,-soname,/home/prof/rsashiba/bcp/lib/libOsi.so -o $@ $(LINK) $(OSIOBJ)
 	
 # STATIC LIBRARY
 #$(libOsi_): $(OSIOBJ)

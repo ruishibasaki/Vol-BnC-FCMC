@@ -12,15 +12,15 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-
+#include "CoinSearchTree.hpp"
 
 #define DBLPRES 1e-8
-  
 
-struct StrongVI{
-    int id;
-    int arc, comm;
-    inline StrongVI(int id_,int a, int k):id(id_), arc(a), comm(k) {};
+struct CoinSearchTreeCompareLowerBound {
+	static inline const char *name() { return "CoinSearchTreeCompareLowerBound"; }
+	inline bool operator()(const CoinTreeSiblings *x, const CoinTreeSiblings *y) const{
+       return x->currentNode()->getQuality() > y->currentNode()->getQuality();
+   }
 };
 
 struct Pair1{

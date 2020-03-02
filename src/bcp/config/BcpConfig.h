@@ -19,21 +19,7 @@
 #ifndef __BCPCONFIG_H__
 #define __BCPCONFIG_H__
 
-#ifdef HAVE_CONFIG_H
-#ifdef BCP_BUILD
 #include "config.h"
-#else
 #include "config_bcp.h"
-#endif
-
-#else /* HAVE_CONFIG_H */
-
-#ifdef BCP_BUILD
-#include "config_default.h"
-#else
-#include "config_bcp_default.h"
-#endif
-
-#endif /* HAVE_CONFIG_H */
 
 #endif /*__BCPCONFIG_H__*/

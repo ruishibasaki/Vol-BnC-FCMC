@@ -5,7 +5,7 @@
 /* #undef BCP_SVN_REV */
 
 /* Version number of project */
-#define BCP_VERSION "1.4.3"
+#define BCP_VERSION "1.4.4"
 
 /* Major Version number of project */
 #define BCP_VERSION_MAJOR 1
@@ -14,7 +14,7 @@
 #define BCP_VERSION_MINOR 4
 
 /* Release Version number of project */
-#define BCP_VERSION_RELEASE 3
+#define BCP_VERSION_RELEASE 4
 
 /* Define to the debug sanity check level (0 is no test) */
 #define COIN_BCP_CHECKLEVEL 0
@@ -50,7 +50,7 @@
 #define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the `mallinfo' function. */
-#define HAVE_MALLINFO 1
+/* #undef HAVE_MALLINFO */
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
@@ -80,7 +80,7 @@
 #define HAVE_SYS_STAT_H 1
 
 /* Define to 1 if you have the <sys/sysinfo.h> header file. */
-#define HAVE_SYS_SYSINFO_H 1
+/* #undef HAVE_SYS_SYSINFO_H */
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #define HAVE_SYS_TYPES_H 1
@@ -98,16 +98,16 @@
 #define PACKAGE_NAME "Bcp"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "Bcp 1.4.3"
+#define PACKAGE_STRING "Bcp 1.4.4"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "bcp"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.4.3"
+#define PACKAGE_VERSION "1.4.4"
 
 /* Define to 1 if you have the ANSI C header files. */
-/* #undef STDC_HEADERS */
+#define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "1.4.3"
+#define VERSION "1.4.4"
