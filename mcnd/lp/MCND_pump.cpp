@@ -20,7 +20,7 @@ Pump::set_data(const Data * d, double alph_init){
 //-------------------------------------------------------------------------------------------
 
 void Pump::set_parameters() {
-	//cplex->setParam(IloCplex::Threads,0);
+	cplex.setParam(IloCplex::Threads,1);
 	//cplex->setParam(IloCplex::RootAlg, 2);
 	//cplex->setParam(IloCplex::NodeAlg, 3);
 	cplex.setParam(IloCplex::ClockType, 1);

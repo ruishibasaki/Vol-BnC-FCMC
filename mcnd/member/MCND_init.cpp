@@ -84,6 +84,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
 		p.upper_bound = ub;
    		p.feas_sol = new MCND_solution(sz, ub, s);
    }
+
    p.par.set_entry(BCP_tm_par::Granularity, 1e-2);
    p.par.set_entry(BCP_tm_par::ReportWhenDefaultIsExecuted, false);
    p.par.set_entry(BCP_tm_par::WarmstartInfo, BCP_WarmstartNone); //BCP_WarmstartParent;

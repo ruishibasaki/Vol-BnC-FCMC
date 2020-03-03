@@ -805,7 +805,7 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
                                    const double* obj,
                                    const double* rowlb_, const double* rowub_){
     
-    //std::cout<<"OsiVolSolverInterface::loadProblem nrows: "<<numrows<<std::endl;
+    std::cout<<"OsiVolSolverInterface::loadProblem nrows: "<<numrows<<std::endl;
     OsiVolAuxInfo * auxinfo  = static_cast<OsiVolAuxInfo*>(OsiSolverInterface::getApplicationData());
     data = auxinfo->data;
     cover_manager = auxinfo->cover_manager;
@@ -825,7 +825,6 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     maxNumcols_ = numcols_ = numcols;
     maxNumrows_ = numrows+maxNumVI;
     numrows_ = numrows + cover_manager->covers.sizeOfCollection;
-    //cover_manager->reset_collection();
     
     if (maxNumrows_ > 0) {
         rowRimAllocator_();
@@ -834,35 +833,17 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
         // Set the initial dual solution
         CoinFillN(dual, maxNumrows_, 0.0);
         CoinFillN(lhs_, maxNumrows_, 0.0);
-        
-        if (rowub) {  CoinDisjointCopyN(rowub_, numrows, rowub); }
-        if (rowlb) { CoinDisjointCopyN(rowlb_, numrows, rowlb); }
-        
+      
     }
-    
+
     if (maxNumcols_ > 0) {
         colRimAllocator_();
-        if (colub) {
-            CoinDisjointCopyN(colub_, numcols, colub);
-        } else {
-            CoinFillN(colub, numcols, OsiVolInfinity);
-        }
-        if (collb) {
-            CoinDisjointCopyN(collb_, numcols, collb);
-        } else {
-            CoinFillN(collb, numcols, 0.0);
-        }
+         
+        CoinFillN(colub, numcols, OsiVolInfinity);
+		CoinFillN(collb, numcols, 0.0);
         // Set the initial rc solution
         CoinFillN(rc_, numcols, 0.0);
-        int c;
-        for ( c=0; c<numcols; c++ ) {
-            if ( fabs(collb[c]) < fabs(colub[c]) ) {
-                solution[c] = collb[c];
-            }
-            else {
-                solution[c] = colub[c];
-            }
-        }
+
     }
     
     

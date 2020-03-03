@@ -652,7 +652,7 @@ CoverManager::add_cover_vi(int added, int * actvS, int & actvSSz, double * h, do
         dual_lb[idx] = 0;
         dual_ub[idx] = 1e31;
         h[idx] = vi->hs;
-        //std::cout<<"add vi: "<< vi->id_vi<<" idx: "<<idx<<" cont: "<<cont<<" h: "<<h[idx]<<std::endl;
+        //std::cout<<"add vi: "<< vi->id_vi<<" idx: "<<idx<<" "<<actvS[vi->id_vi]<<std::endl;
         //vi->print();
         vi = vi->prev;
     }

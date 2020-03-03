@@ -119,7 +119,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			new_bd.push_back(1.0);
 		}else if(vars[a]->lb()==0 && vars[a]->ub()==1){
 			gij = rcsol[a];
-			//std::cout<<"penalty test: "<<a<<" "<<gij<<std::endl;
+			//std::cout<<"penalty test: "<<a<<" "<<gij<<" lbs: "<<lb<<" "<<LBi<<std::endl;
 			if(gij>0 && (lb+gij)>=upper_bound()){
 				std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);

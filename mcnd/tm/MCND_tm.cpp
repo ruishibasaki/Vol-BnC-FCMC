@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 void
 MCND_tm::pack_module_data(BCP_buffer& buf, BCP_process_t ptype)
 {
-    
+
   switch (ptype) {
     case BCP_ProcessType_LP:
     std::cout<<"try to pack data to lp "<<data.ndemands<<" "<<data.narcs<<" "<<data.nnodes<<std::endl;
@@ -67,80 +67,32 @@ MCND_tm::initialize_core(BCP_vec<BCP_var_core*>& vars,
   
   int  corecols = narcs + narcs*ndemands;
   int  corerows = nnodes*ndemands;
-  
-  double* OBJ = new double[corecols];
-  double* EV= new double[corerows*corecols];
-  double* CLB = new double[corecols];
-  double* CUB = new double[corecols];
-  double* RLB = new double[corerows];
-  double* RUB = new double[corerows];
-  int* EI= new int[corerows*corecols];
-  int* VB = new int[corerows+1]; /* VB- Starting positions of major-dimension vectors. */
-  
-  vars.reserve(corecols);
+
+  vars.reserve(corecols); 
   for (int a = 0; a < narcs; ++a){
     vars.unchecked_push_back(new BCP_var_core(BCP_BinaryVar,
 					      data.arcs[a].f, 0, 1));
-	OBJ[contvar] = data.arcs[a].f;
-	CLB[contvar] = 0;
-	CUB[contvar] = 1;
-	
-	++contvar;
   }
   for (int a = 0; a < narcs; ++a)
 	for (int k = 0; k < ndemands; ++k){
 		 vars.unchecked_push_back(new BCP_var_core(BCP_ContinuousVar,
 					      data.arcs[a].c[k], 0, BCP_DBL_MAX));
-		 OBJ[contvar] =  data.arcs[a].c[k];
-		 CLB[contvar] = 0;
-		 CUB[contvar] = BCP_DBL_MAX;
-		 ++contvar;
 	}
-					     
+	     
   
-  //cuts.reserve(corerows);
-  VB[controw]=elems;
+  cuts.reserve(corerows);
   for (int i = 0; i < nnodes; ++i)
 	for (int k = 0; k < ndemands; ++k){
 		if(i==data.d_k[k].O-1){
-			cuts.push_back(new BCP_cut_core(-data.d_k[k].quantity,-data.d_k[k].quantity));
-			RLB[controw] = -data.d_k[k].quantity;
-			RUB[controw] = -data.d_k[k].quantity;
-			
-			
+			cuts.unchecked_push_back(new BCP_cut_core(-data.d_k[k].quantity,-data.d_k[k].quantity));
 		}else if(i==data.d_k[k].D-1){
-			cuts.push_back(new BCP_cut_core(data.d_k[k].quantity,data.d_k[k].quantity));
-			RLB[controw] = data.d_k[k].quantity;
-			RUB[controw] = data.d_k[k].quantity;
+			cuts.unchecked_push_back(new BCP_cut_core(data.d_k[k].quantity,data.d_k[k].quantity));
 			
 		}else{
-			 cuts.push_back(new BCP_cut_core(0,0));
-			 RLB[controw] = 0;
-			 RUB[controw] = 0;
-			
+			 cuts.unchecked_push_back(new BCP_cut_core(0,0));			
 		 }
-		
-		 for (int a = 0; a < narcs; ++a)
-			if(i==data.arcs[a].i-1){
-				EV[elems] = -1.0;
-				EI[elems] = narcs+a*ndemands+k;
-				++elems;
-			}else if(i==data.arcs[a].j-1){
-				EV[elems] = 1.0;
-				EI[elems] = narcs+a*ndemands+k;
-				++elems;
-			}
-		++controw;
-		VB[controw]=elems;
+		 
 	}
-  
-  //std::cout<<"done "<<vars.size()<<" "<<cuts.size()<<std::endl;
-  matrix = new BCP_lp_relax(false, corerows, corecols, elems,
-			   VB,  EI, EV,
-			   OBJ, CLB, CUB,
-			   RLB,RUB);
-  
-  
  
 }
 
@@ -201,7 +153,7 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 			   (*add)->setQuality((*add)->getTrueLB()-lower_bound());
 				//std::cout<<n->getQuality()<<" "<<(*add)->getTrueLB()<<" "<<lower_bound()<<std::endl;
 				t->push(1, add);
-			}
+			}else delete *add;
 			tree->pop();
 		}
 		candidates.setTree(t);

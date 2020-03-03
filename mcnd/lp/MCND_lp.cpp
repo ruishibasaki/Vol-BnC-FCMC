@@ -252,7 +252,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
         return upper_bound();
     
     
-    return old_lower_bound;
+    return LBi;
     
 }
 
