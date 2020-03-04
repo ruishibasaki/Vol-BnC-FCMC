@@ -25,14 +25,16 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 				   BCP_vec<BCP_lp_branching_object*>& cands,
 				   bool force_branch){
     
-    std::cout<<"select_branching_candidates"<<std::endl;
+    std::cout<<"select_branching_candidates "<<lp_mode<<std::endl;
 
     //return BCP_DoNotBranch_Fathomed;
 
    /* if(current_level() == 2){
         return BCP_DoNotBranch_Fathomed;
 	}*/
-	if(abort){
+	
+	if(lp_mode == LP_ForceNodeAbort){
+		lp_mode = LP_Normal;
         return BCP_DoNotBranch_Fathomed;
 	}
 	
@@ -49,7 +51,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	BCP_vec<double> vbd(4, 0.0);
     BCP_vec<int> vpos(1, 0);
     const double * psol = lpres.x();
-    int max_cand = 1 ;
+    int max_cand = 3 ;
     if(lp_mode==LP_Normal || candidates.empty()){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1){
@@ -96,7 +98,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		   const int var_bound_changes_since_logical_fixing,
 		   BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd)
 {
-	std::cout<<"logical_fixing "<<std::endl;
+	std::cout<<"logical_fixing "<<var_bound_changes_since_logical_fixing<<std::endl;
     //return;
     const double* psol = lpres.x();
     const double * rcsol = lpres.dj();
@@ -110,10 +112,12 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
 		cut->check_logical_fix( vars, yarcs);
 	}
-    	
+    
+    BCP_vec<int> changed_to0;
+    changed_to0.reserve(data.narcs);
 	for (int a=data.narcs; a--;){
 		if(yarcs[a]==1){
-			//std::cout<<"logical fix "<<a<<"  "<<psol[a]<<std::endl;
+			std::cout<<"logical fix "<<a<<"  "<<psol[a]<<std::endl;
 			changed_pos.push_back(a);
 			new_bd.push_back(1.0);
 			new_bd.push_back(1.0);
@@ -123,8 +127,10 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			if(gij>0 && (lb+gij)>=upper_bound()){
 				std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
+				changed_to0.unchecked_push_back(a);
 				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
+				
 			}else if(gij<0 && (lb-gij)>=upper_bound()){
 				std::cout<<a<<" WILL FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
@@ -145,6 +151,11 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			}*/
 		}
 	}
+	if(changed_to0.size()>0){
+		if(!verify_feasibility( changed_to0, changed_to0.size()))
+			lp_mode = LP_ForceNodeAbort;
+		changed_to0.clear();
+	}
 	delete [] yarcs;
 }
 
@@ -155,21 +166,19 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
 				    BCP_presolved_lp_brobj* oldobj)
 {
 
+	int var_new = newobj->candidate()->forced_var_pos->front();
     std::cout<<"compare_branching_candidates"<<std::endl;
-    int var_new = newobj->candidate()->forced_var_pos->front();
+    
     const BCP_lp_result & child0  = newobj->lpres(0);
     const BCP_lp_result & child1  = newobj->lpres(1);
 
-    std::cout<<" comparing ("<<var_new<<") y: "<<y[var_new]<<
-    	//" fst: "<<newobj->candidate()->forced_var_pos->front()<<", bd: "<<newobj->candidate()->forced_var_bd->front()<<
-    	//" snd: "<<newobj->candidate()->forced_var_pos->back()<<", bd: "<<newobj->candidate()->forced_var_bd->back()<<
-    	std::endl;
-   
     int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
-    newobj->user_data()[0] = new MCND_node_branch_data(sz, y[var_new], 0, var_new, 0, 0, LBi);
-    newobj->user_data()[1] = new MCND_node_branch_data(sz, y[var_new], 0, var_new, 1, 0, LBi);
+   	double score = std::min((child0.objval() - LBi), (child1.objval() - LBi));
+    newobj->user_data()[0] = new MCND_node_branch_data(sz, score , var_new, 0, LBi);
+    newobj->user_data()[1] = new MCND_node_branch_data(sz, score , var_new, 1, LBi);
     
-     
+    std::cout<<" comparing ("<<var_new<<") y: "<<y[var_new]<<" score: "<<score<<" mode: "<<lp_mode<<std::endl;
+
      if((child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
      	return BCP_NewPresolvedIsBetter_BranchOnIt;
      }
@@ -177,13 +186,17 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
     if(oldobj==0){
     	return BCP_NewPresolvedIsBetter;
     }
-    int var_old = *oldobj->candidate()->forced_var_pos->begin();
+    int var_old = oldobj->candidate()->forced_var_pos->front();
+    MCND_node_branch_data* old_data = dynamic_cast<MCND_node_branch_data*>(oldobj->user_data()[0]);
+    double score_old = old_data->score;
+    
+
     if(lp_mode==LP_DiveToFeasibility){
 		if(y[var_new] > y[var_old]){
           	return BCP_NewPresolvedIsBetter;
       	}else return BCP_OldPresolvedIsBetter;
   	}else{
-		if(y[var_new] > y[var_old]){
+		if(score > score_old){
 		  return BCP_NewPresolvedIsBetter;
 		}else return BCP_OldPresolvedIsBetter;
     }
@@ -221,9 +234,9 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
 
 void
 MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
-	int vars = best->candidate()->vars_affected();
-	BCP_vec< int > & var = *(best->candidate()->forced_var_pos);
-	for(;vars--;) std::cout<<"branching variable: "<<var[vars]<<std::endl;
+	int nvars = best->candidate()->vars_affected();
+	BCP_vec< int > & vars = *(best->candidate()->forced_var_pos);
+	for(int v=nvars;v--;) std::cout<<"branching variable: "<<vars[v]<<std::endl;
 
 	const BCP_lp_result & child0  = best->lpres(0);
 	const BCP_lp_result & child1  = best->lpres(1);
@@ -234,9 +247,14 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		(child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
 		childs_action[0] = BCP_FathomChild;
 		zero_fathomed=true;
-	}else if(lp_mode==LP_DiveToFeasibility){
-		 childs_action[0] = BCP_KeepChild;
-	}else childs_action[0] = BCP_ReturnChild;
+	}else{
+		if(!verify_feasibility(vars, nvars)){
+			childs_action[0] = BCP_FathomChild;
+			zero_fathomed=true;
+		}else if(lp_mode==LP_DiveToFeasibility){
+			childs_action[0] = BCP_KeepChild;
+		}else childs_action[0] = BCP_ReturnChild;
+	}
 	
 	if(zero_fathomed && !((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached)){
 		childs_action[1] = BCP_KeepChild;
@@ -245,46 +263,26 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	}else childs_action[1] = BCP_ReturnChild;
 	std::cout<<" 0-side childs_action "<<childs_action[0]<<std::endl;
 	std::cout<<" 1-side childs_action "<<childs_action[1]<<std::endl;
-
+	lp_mode = LP_Normal;
 }
 
 
-//#############################################################################
-//#############################################################################
-//#############################################################################
+//=======================================================================================
 
-
-double 
-MCND_lp::lag_subproblem(int a, const double * u){
-	double kpsack =0;
-	double fillUp =0;
-	double x, rc;
-
-	std::list<HeapCell> heap;
-	//get reduced cost for each commodity in arc e
-    Arc * item = &data.arcs[a];
-	for(int k=0;k<data.ndemands;++k){
-		rc =  item->c[k] - u[k*data.nnodes + item->j-1] + u[k*data.nnodes + item->i-1];
-		if(rc<0.0){
-			heap.push_back(HeapCell(k,rc));
-		}
-	}  
+bool 
+MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, int nvars){
+	OsiVolSolverInterface* lpsolver = getOsiVolBabSolver();
 	
-	heap.sort(comp());
-	//std::stable_sort(heap.begin(), heap.end(), comp());
-	while(heap.size()>0){
-		if(fillUp < item->capa){
-			x = std::min((item->capa - fillUp),  data.d_k[heap.back().k].quantity);
-			fillUp += x;
-			kpsack += heap.back().rc_ * x;
-			heap.pop_back();
-			//std::cout<<"in"<<std::endl;
-		}else{
-			heap.pop_back();
-		}	
-	}
-	return kpsack;
+	for(;nvars--;){
+		lpsolver->setColUpper(vars_chngd[nvars], 0.0);
+	} 
+	
+	const double * collb = lpsolver->getColLower();
+    const double * colub = lpsolver->getColUpper();
+    
+    int ret = lpfeaschecker.solve(collb, colub);
+    if(ret<0) return false;
+    else return true;
 }
-
 
 

@@ -309,10 +309,11 @@ OsiVolSolverInterface::resolve(){
     // Set the dual starting point
     retval = volprob_.solve(*this, true);
     numrows_ +=  cover_manager->gend;
+    
+    std::cout<<std::setprecision(10)<<"result: "<<volprob_.value<<" retval: "<<retval<<" iters: "<<volprob_.iter()<<std::endl;
     if(volprob_.value< min_lower_bound && in_strong_branch){
      	volprob_.value = min_lower_bound;
     }
-    std::cout<<std::setprecision(10)<<"result: "<<volprob_.value<<" retval: "<<retval<<" iters: "<<volprob_.iter()<<std::endl;
     translate_sol();
     //std::cout<<"ok"<<std::endl;
 
@@ -353,12 +354,14 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
         VItt = lcost;
         letgen = true;
         for(int a=szunfxd; a--; ){ rc_[nz_arcs[a]] = rc[a];}
+        //std::cout<<"iter: "<<iter<<" lb: "<<lcost<<std::endl;
         //for(int a=szunfxd; a--; ){ std::cout<<"rc:  "<<nz_arcs[a]<<" "<<rc_[nz_arcs[a]]<<std::endl;}
     }
     
     if(mode == 0) return 0;
     
-    if(maxNumVI<=(cover_manager->covers.sizeOfCollection)) return 0;
+    if((data->nnodes*data->ndemands + cover_manager->covers.sizeOfCollection)>=maxNumrows_) return 0;
+
     if(iter>0 && iter%intvlVI==0 ){
         translate_primal(xstar);
         int num_new_sets=ss_manager->cutset_generation_main( yhit, VItopo, false);
@@ -366,12 +369,12 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     }
     
     if(letgen && iter>=100){
-        int num_covers = cover_manager->cover_generation_main(xstar.v, x.v, &ss_manager->sets, actvSSz);
+        int num_covers = cover_manager->cover_generation_main(xstar.v, x.v, &ss_manager->sets, actvSSz, maxNumrows_);
         cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dual.v, dual_lb.v,  dual_ub.v );
         
         if(num_covers>0){
         	reposition_covers(num_covers);
-            //std::cout<<std::setprecision(10)<<"iter: "<<iter<<" added cuts "<<num_covers<<" L: "<<VItt<<std::endl;
+            std::cout<<std::setprecision(10)<<"iter: "<<iter<<" added cuts "<<num_covers<<" L: "<<VItt<<std::endl;
         	/*Cover * c = cover_manager->covers.begin ;
         	for(int i =cover_manager->covers.sizeOfCollection; i--; ){
         		std::cout<<"vi "<<c->id_vi<<std::endl;
@@ -460,6 +463,7 @@ OsiVolSolverInterface::solve_subproblem(const VOL_dvector& xstar,
     pcost= 0;
     lcost =0;
     for(int a=szunfxd; a--; ){
+    	if(xstar[a]>1)std::cout<<"WHAT? "<<xstar[a]<<std::endl;
         arc = nz_arcs[a];
         rc[a] += knapsack(a, rc.v, x.v);
         addrc[a]+= rc[a];

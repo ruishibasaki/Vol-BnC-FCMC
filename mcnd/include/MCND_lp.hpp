@@ -9,6 +9,7 @@
 #include <stdlib.h>     /* abs */
 
 #include "OsiVolSolverInterface.hpp"
+#include "MCND_checklpfeas.hpp"
 
 #include <vector>
 #include <deque>
@@ -32,8 +33,8 @@ enum LP_Mode{
    LP_Normal,
    /** Extra Iteration due to cut addition.*/
    LP_CutAdded,
-	/** Force Abort.*/
-   LP_ForceAbort
+	/** Force node Abort.*/
+   LP_ForceNodeAbort
 };
 
 
@@ -45,11 +46,12 @@ public:
     OsiVolAuxInfo AppVolData;
     CoverManager cover_manager;
     CutSetManager ss_manager;
-    
+    LPFeasChecker lpfeaschecker;
+
     Pump pump_heur;
     
     LP_Mode lp_mode;
-    bool abort;
+    bool aborted;
     bool has_sol;
     std::vector<double> y;
     std::deque<const Cover *> track;
@@ -65,7 +67,7 @@ public:
     int MaxIt;
     
 public:
-    MCND_lp() : LBi(0), cut_off(false), has_sol(false), track(0), abort(false) {}
+    MCND_lp() : LBi(0), cut_off(false), has_sol(false), track(0), aborted(false) {}
     ~MCND_lp();
     
     
@@ -237,14 +239,16 @@ public:
     //--------------------------------------------------------------------------
     // helper functions
     OsiVolSolverInterface* getOsiVolBabSolver();
-
     virtual void pack_feasible_solution(BCP_buffer& buf, const BCP_solution* sol);
     
     //--------------------------------------------------------------------------
     
     void update_branch_data(MCND_node_branch_data * ndata);
-    double lag_subproblem(int a, const double * u);
     void keep_track(const Cover* vi);
+    
+    //--------------------------------------------------------------------------
+	bool verify_feasibility(const BCP_vec<int> & vars_chngd, int nvars);
+    
 };
 
 #endif

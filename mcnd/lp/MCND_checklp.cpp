@@ -75,7 +75,7 @@ void LPChecker::create_model(const std::vector<int> & topo, const CoverCollectio
             constraint.end();
         }
     }
-    
+    /*
     Cover * vi = covers.end;
     for(int i=covers.sizeOfCollection; i--;){
         IloExpr constraint(env);
@@ -88,7 +88,7 @@ void LPChecker::create_model(const std::vector<int> & topo, const CoverCollectio
         model->add(constraint >= 0);
         constraint.end();
         vi = vi->prev;
-    }
+    }*/
     cplex->extract(*model);
     x.end();
     y.end();

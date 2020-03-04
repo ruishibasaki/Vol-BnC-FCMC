@@ -9,7 +9,6 @@
 #include "BCP_lp_node.hpp"
 
 #include "MCND_lp.hpp"
-#include "MCND_mincostflow.hpp"
 
 //#############################################################################
 
@@ -22,6 +21,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     ss_manager.initialize(&data);
     cover_manager.initialize(&data, 10);
     pump_heur.set_data(&data, 0.5);
+    lpfeaschecker.initialize(&data);
     
     AppVolData.data = &data;
     AppVolData.ss_manager = &ss_manager;
@@ -152,11 +152,20 @@ MCND_lp::generate_cuts_in_lp(const BCP_lp_result& lpres,
     int newly_added = cover_manager.gend;
     Cover *vi = cover_manager.covers.begin;
     cover_manager.covers.advance(vi, cover_manager.num_actv-1);
+    if(lp_mode == LP_ForceNodeAbort){
+     	for(int i=newly_added;i--;){
+			keep_track(vi);
+			vi = vi->prev;
+		}
+     	return;
+    }
+    
     for(int i=newly_added;i--;){
     	keep_track(vi);
         new_cuts.push_back(new CoverCut(vi)); 
         vi = vi->prev;
     }
+
     if(newly_added){
         std::cout<<"generate cuts: "<<newly_added<<" sz: "<<sz<<" cutsvecsz: "<<new_cuts.size()<<std::endl;
     	lp_mode = LP_CutAdded;
@@ -205,7 +214,7 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 				   const bool before_fathom,
 				   BCP_vec<int>& deletable){
 	//std::cout<<"select_cuts_to_delete "<<before_fathom<<std::endl;
-	
+	if(lp_mode == LP_ForceNodeAbort) return;
 	//if(!before_fathom){
 	const int cutnum = cuts.size();
 	deletable.reserve(cutnum-getLpProblemPointer()->core->cutnum()+1);
@@ -229,7 +238,6 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 void
 MCND_lp::purge_slack_pool(const BCP_vec<BCP_cut*>& slack_pool,
 		     BCP_vec<int>& to_be_purged){
-				 
 	//std::cout<<"try to purge "<<slack_pool.size()<<std::endl;	 
 	BCP_lp_user::purge_slack_pool(slack_pool, to_be_purged);	 
 }
@@ -245,6 +253,11 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
                              const BCP_vec<BCP_cut*>& cuts){
     
     const int tc = lpres.termcode();
+    if((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
+    	std::cout<<"aqui"<<std::endl;
+		abort();
+	}
+	 
     //std::cout<<"compute lower bound: "<<(tc & BCP_ProvenOptimal)<<" "<<(tc & BCP_PrimalObjLimReached)<<std::endl;
     LBi = std::max(lpres.objval(),LBi);
 
@@ -289,12 +302,13 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     /*std::vector<int> topo(data.narcs,-1);
 	for (int a=data.narcs; a--;){
         if(vars[a]->lb()==1.0){ topo[a] = 1;
-        }else if(vars[a]->ub()==0.0){ topo[a] = 0;}
+        }else if(vars[a]->ub()==0.0){ topo[a] = 0; std::cout<<"closed arc: "<<a<<std::endl;}
     }
     LPChecker checker;
     checker.initialize(&data);
     checker.create_model( topo, cover_manager.covers);
-    checker.solve();*/
+    int ret = checker.solve();
+    if(ret<0) std::cout<<"UNFEASIBLE!!!!!!!!"<<std::endl;*/
     return 0;
 }
 
@@ -319,6 +333,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
                                      const BCP_vec<BCP_cut*>& cuts){
     //std::cout<<"try heuristic "<<candidates.size()<<std::endl;
     //if(current_level() >100000){ lp_mode=LP_Normal;   return 0;}
+    if(lp_mode == LP_ForceNodeAbort) return 0;
 	if(lp_mode == LP_CutAdded){ lp_mode = LP_Normal; return 0;}
 	
     const double * x = lpres.x();
@@ -399,6 +414,7 @@ void
 MCND_lp::keep_track(const Cover* vi){
 	track.push_back(vi);
 }
+
 
 //#############################################################################
 

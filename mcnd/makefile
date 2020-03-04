@@ -29,7 +29,7 @@ suffix_lp = \
 	MCND_lp_branch  
 
 suffix_lp_cplex = \
-	MCND_mincostflow \
+	MCND_checklpfeas \
 	MCND_pump \
 	MCND_checklp
 	

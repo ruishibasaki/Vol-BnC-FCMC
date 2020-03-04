@@ -72,18 +72,19 @@ CoverManager::clean_collection(){
 //-------------------------------------------------------------------------------------------
 
 int
-CoverManager::cover_generation_main(const double * ystar, const double * y,const CutSetCollection * sets, int actvSSz){
+CoverManager::cover_generation_main(const double * ystar, const double * y,const CutSetCollection * sets, int actvSSz, int max){
     CutSet * cutset;
     int added=0;
     int sz = sets->sizeOfCollection;
+    int curr = data->nnodes*data->ndemands + covers.sizeOfCollection;
     //sets->print();
     cutset = sets->begin;
     for(int i=0;i<sz;++i){
 
         added+=cover_generation(cutset->ss_size, cutset->SS_arcs, cutset->uss, cutset->dss, ystar, y, actvSSz+added);
-        //if(added>0) break;
+        if(added+curr>=max) break;
         added+=cover_generation(cutset->s_ssize, cutset->S_Sarcs, cutset->us_s, cutset->ds_s, ystar, y, actvSSz+added );
-        //if(added>0) break;
+        if(added+curr>=max) break;
         //std::cout<<"i: "<<i<<std::endl;
         cutset = cutset->next;
     }
@@ -107,7 +108,7 @@ CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, dou
     //std::cout<<"dss:  "<<dss<<" uss: "<<uss<<std::endl;
     u1 =  cutset_preprocess( ss_size, dss, SS_arcs,  ss_, lift_down, y, ystar);
     delta = dss - u1;
-    //std::cout<<"delta in cover: "<<delta<<std::endl;
+    //std::cout<<"delta in cover: "<<delta<<" "<<ss_.size()<<std::endl;
 
     if(delta<=0){ss_.clear();lift_down.clear();lift_up.clear(); return 0;}
 
@@ -130,6 +131,16 @@ CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, dou
         if(added){
         	++ttgend;
         	++num_actv;
+        	/*
+        	for(int a=ss_size; a--;){
+        		if(arc_map[SS_arcs[a]]>=0)
+            		std::cout<<SS_arcs[a]<<":("<<data->arcs[SS_arcs[a]].i<<"-"<<data->arcs[SS_arcs[a]].j<<") y: "<<y[arc_map[SS_arcs[a]]]<<" y*: "<<ystar[arc_map[SS_arcs[a]]]<<std::endl;
+        		else if(arc_map[SS_arcs[a]]==-2)
+        			std::cout<<SS_arcs[a]<<":("<<data->arcs[SS_arcs[a]].i<<"-"<<data->arcs[SS_arcs[a]].j<<") y: 1 y*: 1 --"<<std::endl;
+        		else std::cout<<SS_arcs[a]<<":("<<data->arcs[SS_arcs[a]].i<<"-"<<data->arcs[SS_arcs[a]].j<<") y: 0 y*: 0 --"<<std::endl;
+
+        	}
+        	cover->print();*/
         }
         //if(added) std::cout<<"cover: "<<cover->get_total_rhs()<<std::endl;
         /*if(added){

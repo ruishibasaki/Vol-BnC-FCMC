@@ -26,7 +26,7 @@ public:
     int maxNumVI, intvlVI;
     
     inline OsiVolAuxInfo():data(0), cover_manager(0), ss_manager(0){
-        maxNumVI =100000000;
+        maxNumVI =1000;
         intvlVI =50;
         appData_ = this;
     }  

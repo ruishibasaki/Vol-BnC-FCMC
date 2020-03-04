@@ -35,7 +35,8 @@ public:
     void copyref(bool stosb, int& ssb_sz, int *& ssb_arcs, double &dss_ ) const;
     void copyref(bool stosb, int& ssb_sz, int *& ssb_arcs, double &dss_, double &uss_ ) const;
     void copyref(bool stosb, int& sb_ssz, int& ssb_sz, int *& sb_sarcs, int *& ssb_arcs, double &dss) const;
-
+    
+    void print(bool reverse ) const;
     
     inline CutSet(int M): next(0), ss_size(0), s_size(0), SS_arcs(0), S_Sarcs(0), s_ssize(0){
         SS_nodes = new unsigned int[M];

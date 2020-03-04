@@ -243,6 +243,24 @@ CutSet::copyref(bool stosb, int& ssb_sz, int *& ssb_arcs, double &dss_, double &
     }
 }
 
+//----------------------------------------------------------------------------------
+
+void
+CutSet::print(bool reverse ) const{
+    if(!reverse){
+        std::cout<<" verse: "<<std::endl;
+        for(int id=0;id<ss_size;++id){
+            std::cout<<SS_arcs[id]<<" ";
+        }
+    }else{
+        std::cout<<" reverse: "<<std::endl;
+        for(int id=0;id<s_ssize;++id){
+            std::cout<<S_Sarcs[id]<<" ";
+        }
+    }
+    std::cout<<std::endl;
+
+}
 //====================================================================================
 //====================================================================================
 // MinCardCS methods

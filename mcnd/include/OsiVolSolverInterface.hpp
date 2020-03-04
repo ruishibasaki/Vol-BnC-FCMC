@@ -193,13 +193,14 @@ public:
     /** Set a single column lower bound<br>
      Use -DBL_MAX for -infinity. */
     virtual void setColLower( int elementIndex, double elementValue ) {
-        
+        collb[elementIndex] = elementValue;
     }
     
     using OsiSolverInterface::setColUpper ;
     /** Set a single column upper bound<br>
      Use DBL_MAX for infinity. */
     virtual void setColUpper( int elementIndex, double elementValue ) {
+        colub[elementIndex] = elementValue;
     }
     
     /** Set a single row lower bound<br>
@@ -483,6 +484,7 @@ public:
     CutSetManager* ss_manager;
     int mode;
     
+    //feasibility solver
     /// The volume solver
     VOL_problem volprob_;
     VOL_problem* volprob() { return &volprob_; }

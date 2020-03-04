@@ -20,10 +20,9 @@ private:
 	
 public: 
 
-    int hiters;
     WarmStartDual * hs;
     int dual_size;
-    double score, score_parent;
+    double score;
     double min_lb;
 	int pos_neg;
 	int branch_var;
@@ -32,8 +31,8 @@ public:
 	
     MCND_node_branch_data(): hs(0), min_lb(0) {}
 	
-    MCND_node_branch_data(int dual_size_, double score_parent_, double score_, int branch_var_, int zrone, int it, double min_lb_):hs(0){
-        score_parent = score_parent_; score = score_; branch_var = branch_var_; pos_neg = zrone; hiters = it;
+    MCND_node_branch_data(int dual_size_, double score_, int branch_var_, int zrone,   double min_lb_):hs(0){
+         score = score_; branch_var = branch_var_; pos_neg = zrone;  
         dual_size = dual_size_;
         min_lb =min_lb_;
     }

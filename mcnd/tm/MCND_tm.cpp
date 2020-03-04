@@ -153,7 +153,7 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 			   (*add)->setQuality((*add)->getTrueLB()-lower_bound());
 				//std::cout<<n->getQuality()<<" "<<(*add)->getTrueLB()<<" "<<lower_bound()<<std::endl;
 				t->push(1, add);
-			}else delete *add;
+			}//else delete *add;
 			tree->pop();
 		}
 		candidates.setTree(t);
