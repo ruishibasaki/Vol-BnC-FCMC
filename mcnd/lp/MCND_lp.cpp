@@ -35,7 +35,7 @@ OsiSolverInterface *
 MCND_lp::initialize_solver_interface(){
     OsiVolSolverInterface* volsolver = new OsiVolSolverInterface("volmcnd.par");
     setOsiBabSolver(volsolver);
-    MaxIt = volsolver->volprob_.parm.maxsgriters;
+    //MaxIt = volsolver->volprob_.parm.maxsgriters;
     //std::cout<<"vol instantiated "<<MaxIt<<std::endl;
     return volsolver;
     
@@ -68,6 +68,19 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         }
         std::cout<<"node comes from branch on: "<<nodedata->branch_var;
         std::cout<<" of "<<nodedata->pos_neg<<" side "<<std::endl;
+        int arc;
+        int sz = nodedata->tofix.size();  
+        Pair2 *p; 
+        for(;sz--;){
+        	p = &nodedata->tofix[sz];
+        	arc = p->fst;
+        	if(vars[arc]->lb()<0.5 && vars[arc]->ub()>0.5){
+        		std::cout<<"FIX! "<<arc<<"  "<<p->snd<<std::endl;
+        		var_changed_pos.push_back(arc);
+        		var_new_bd.push_back(p->snd);
+        		var_new_bd.push_back(p->snd);
+        	}
+        }
     }else LBi=0;
 }
 

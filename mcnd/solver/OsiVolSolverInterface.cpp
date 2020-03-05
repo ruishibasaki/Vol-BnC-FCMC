@@ -124,7 +124,7 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
             arc_map[arc] = -2;
             VItopo[arc] =  yhit[arc] = 1.0;
             ++szopnd;
-            //std::cout<<"opened arc: "<<arc<<std::endl;
+            if(!in_strong_branch)std::cout<<"opened arc: "<<arc<<std::endl;
         }else if(colub[arc] == 1){
             ++szunfxd;
             nz_arcs.push_front(arc);
@@ -132,7 +132,7 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
             //std::cout<<"unfix: "<<arc<<" idx: "<<arc_map[arc]<<std::endl;
         }else{
         	VItopo[arc] = yhit[arc] = 0.0;
-            //std::cout<<"closed arc: "<<arc<<std::endl;
+            if(!in_strong_branch)std::cout<<"closed arc: "<<arc<<std::endl;
             arc_map[arc] = -1;
         }
     }

@@ -179,9 +179,12 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
     
     std::cout<<" comparing ("<<var_new<<") y: "<<y[var_new]<<" score: "<<score<<" mode: "<<lp_mode<<std::endl;
 
-     if((child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
-     	return BCP_NewPresolvedIsBetter_BranchOnIt;
-     }
+     if((child0.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
+		(child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
+     	to_logical_fix.push_back(Pair2(var_new,1.0));
+     }else if((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
+     	to_logical_fix.push_back(Pair2(var_new,0.0));
+	 }
 		
     if(oldobj==0){
     	return BCP_NewPresolvedIsBetter;
@@ -225,9 +228,12 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     
 	//int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[0]);
+    cdata->tofix = to_logical_fix;
     cdata->hs = new WarmStartDual(cdata->dual_size, child0.pi(), mapd); //std::cout<<cdata->dual_size<<" "<<sz<<std::endl;
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
+    cdata->tofix = to_logical_fix;
     cdata->hs = new WarmStartDual(cdata->dual_size, child1.pi(), mapd);//std::cout<<cdata->dual_size<<" "<<sz<<std::endl;
+    to_logical_fix.clear();
 }
 
 //-------------------------------------------------------------------------------------------
@@ -235,7 +241,7 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
 void
 MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	int nvars = best->candidate()->vars_affected();
-	BCP_vec< int > & vars = *(best->candidate()->forced_var_pos);
+	BCP_vec< int >  vars = *(best->candidate()->forced_var_pos);
 	for(int v=nvars;v--;) std::cout<<"branching variable: "<<vars[v]<<std::endl;
 
 	const BCP_lp_result & child0  = best->lpres(0);

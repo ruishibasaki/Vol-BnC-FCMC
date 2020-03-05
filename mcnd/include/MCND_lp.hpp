@@ -46,28 +46,26 @@ public:
     OsiVolAuxInfo AppVolData;
     CoverManager cover_manager;
     CutSetManager ss_manager;
+    
     LPFeasChecker lpfeaschecker;
-
     Pump pump_heur;
     
     LP_Mode lp_mode;
+    double LBi;
+
     bool aborted;
     bool has_sol;
     std::vector<double> y;
     std::deque<const Cover *> track;
     std::deque<Pair2> candidates;
+    std::deque<Pair2> to_logical_fix;
+
     std::map<int, int> mapd;
 	
-    double LBi;
     
-    bool cut_off;
-    
-    MCND_solution best_soln;
-    
-    int MaxIt;
-    
+        
 public:
-    MCND_lp() : LBi(0), cut_off(false), has_sol(false), track(0), aborted(false) {}
+    MCND_lp() : LBi(0), has_sol(false), track(0), aborted(false) {}
     ~MCND_lp();
     
     
