@@ -254,7 +254,10 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		childs_action[0] = BCP_FathomChild;
 		zero_fathomed=true;
 	}else{
-		if(!verify_feasibility(vars, nvars)){
+		best->candidate()->apply_child_bd(getOsiVolBabSolver(), 0);
+		if(!verify_feasibility()){
+			std::cout<<"aqui"<<std::endl;
+			abort();
 			childs_action[0] = BCP_FathomChild;
 			zero_fathomed=true;
 		}else if(lp_mode==LP_DiveToFeasibility){
@@ -276,12 +279,8 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 //=======================================================================================
 
 bool 
-MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, int nvars){
+MCND_lp::verify_feasibility(){
 	OsiVolSolverInterface* lpsolver = getOsiVolBabSolver();
-	
-	for(;nvars--;){
-		lpsolver->setColUpper(vars_chngd[nvars], 0.0);
-	} 
 	
 	const double * collb = lpsolver->getColLower();
     const double * colub = lpsolver->getColUpper();

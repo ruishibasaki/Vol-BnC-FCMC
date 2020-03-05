@@ -245,7 +245,7 @@ public:
     void keep_track(const Cover* vi);
     
     //--------------------------------------------------------------------------
-	bool verify_feasibility(const BCP_vec<int> & vars_chngd, int nvars);
+	bool verify_feasibility( );
     
 };
 
