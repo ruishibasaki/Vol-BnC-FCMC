@@ -12,7 +12,6 @@
 #include "BCP_math.hpp"
 #include "BCP_lp.hpp"
 #include "BCP_lp_node.hpp"
-#include "BCP_lp_functions.hpp"
 
 //#############################################################################
 
@@ -215,7 +214,7 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     //BCP_lp_branching_object * cand = best->candidate();
     //std::cout<<" cand children: "<<cand->child_num<<std::endl;
     
-    //std::cout<<" set child data "<<std::endl;
+   // std::cout<<" set child data "<<std::endl;
 
     BCP_vec< BCP_user_data * >& childs_data = best->user_data();
     //int var_ = *best->candidate()->forced_var_pos->begin();
@@ -228,12 +227,12 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     
 	//int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[0]);
-    cdata->tofix = to_logical_fix;
+    //cdata->tofix = to_logical_fix;
     cdata->hs = new WarmStartDual(cdata->dual_size, child0.pi(), mapd); //std::cout<<cdata->dual_size<<" "<<sz<<std::endl;
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
-    cdata->tofix = to_logical_fix;
+    //cdata->tofix = to_logical_fix;
     cdata->hs = new WarmStartDual(cdata->dual_size, child1.pi(), mapd);//std::cout<<cdata->dual_size<<" "<<sz<<std::endl;
-    to_logical_fix.clear();
+    //to_logical_fix.clear();
 }
 
 //-------------------------------------------------------------------------------------------
@@ -241,46 +240,53 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
 void
 MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	int nvars = best->candidate()->vars_affected();
-	BCP_vec< int >  vars = *(best->candidate()->forced_var_pos);
-	for(int v=nvars;v--;) std::cout<<"branching variable: "<<vars[v]<<std::endl;
-
+	BCP_vec< int >&  vars = *(best->candidate()->forced_var_pos);	
+	std::cout<<"branching variable: "<<vars[0]<<std::endl;
+	
+	strong_branch_var_logicfix(best->candidate());
+	if(best->candidate()->forced_var_pos->size()>1)
+		std::cout<<"YES!! "<<best->candidate()->forced_var_pos->size()<<std::endl;
+	
 	const BCP_lp_result & child0  = best->lpres(0);
 	const BCP_lp_result & child1  = best->lpres(1);
 	BCP_vec< BCP_child_action >& childs_action = best->action();
 	
-	bool zero_fathomed=false;
-	if((child0.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
-		(child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
+	bool feas0 = !((child0.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
+		(child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf);
+	bool feas1 = !((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
+		(child1.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf);
+		
+	verify_children_feasibility( best->candidate(),  feas0, feas1 );
+	
+	if(!feas0){
 		childs_action[0] = BCP_FathomChild;
-		zero_fathomed=true;
 	}else{
-		best->candidate()->apply_child_bd(getOsiVolBabSolver(), 0);
-		if(!verify_feasibility()){
-			std::cout<<"aqui"<<std::endl;
-			abort();
-			childs_action[0] = BCP_FathomChild;
-			zero_fathomed=true;
-		}else if(lp_mode==LP_DiveToFeasibility){
+		if(lp_mode==LP_DiveToFeasibility){
 			childs_action[0] = BCP_KeepChild;
 		}else childs_action[0] = BCP_ReturnChild;
 	}
 	
-	if(zero_fathomed && !((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached)){
+	if(!feas0 && feas1){
 		childs_action[1] = BCP_KeepChild;
-	}else if((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
+	}else if(!feas1){
 		childs_action[1] = BCP_FathomChild;
 	}else childs_action[1] = BCP_ReturnChild;
+	
 	std::cout<<" 0-side childs_action "<<childs_action[0]<<std::endl;
 	std::cout<<" 1-side childs_action "<<childs_action[1]<<std::endl;
 	lp_mode = LP_Normal;
 }
 
 
-//=======================================================================================
+//========================================================================================
 
 bool 
-MCND_lp::verify_feasibility(){
+MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, int nvars){
 	OsiVolSolverInterface* lpsolver = getOsiVolBabSolver();
+	
+	for(;nvars--;){
+		lpsolver->setColUpper(vars_chngd[nvars], 0.0);
+	} 
 	
 	const double * collb = lpsolver->getColLower();
     const double * colub = lpsolver->getColUpper();
@@ -289,5 +295,100 @@ MCND_lp::verify_feasibility(){
     if(ret<0) return false;
     else return true;
 }
+
+//========================================================================================
+
+
+void 
+MCND_lp::verify_children_feasibility(BCP_lp_branching_object * candidate, bool& feas0, bool& feas1 ){
+	if(feas0){
+		candidate->apply_child_bd(getOsiVolBabSolver(), 0);
+		std::cout<<"testfeas 0"<<std::endl;
+		feas0 = verify_feasibility(*(candidate->forced_var_pos),0);
+	}
+	if(!feas1) return;
+	const BCP_vec< int >& vars = *candidate->forced_var_pos;
+	const BCP_vec< double >& vars_bd = *candidate->forced_var_bd;
+	int sz_implied = vars.size();
+	for(;sz_implied--;){
+		std::cout<<"testfeas 1 "<<vars[sz_implied]<<" "<<vars_bd[sz_implied*4+3]<<" "<<vars.size()<<" "<<vars_bd.size()<<std::endl;
+		if(vars[sz_implied]<data.narcs && vars_bd[sz_implied*4+3]<0.5){
+			//candidate->apply_child_bd(getOsiVolBabSolver(), 0);
+			candidate->apply_child_bd(getOsiVolBabSolver(), 1);
+			feas1 = verify_feasibility(*(candidate->forced_var_pos),0);
+			break;
+		}
+	}	
+	
+}
+
+
+//========================================================================================
+
+void
+MCND_lp::strong_branch_var_logicfix(BCP_lp_branching_object* candidate){
+	BCP_vec< int >* extra_vars = candidate->forced_var_pos;
+	BCP_vec< double >* bd_extra_vars = candidate->forced_var_bd;
+	int cand = (*candidate->forced_var_pos)[0];
+	int old_sz = extra_vars->size();
+	int added = 0;
+	Pair2* p;   
+	
+	while(!to_logical_fix.empty()){
+		p = &to_logical_fix.back();
+		if(p->fst != cand){
+			std::cout<<"MORE FIX: "<<p->fst<<" "<<p->snd<<std::endl;
+			extra_vars->push_back(p->fst);
+			++added;
+			for(int i=4;i--;)bd_extra_vars->push_back(p->snd);
+		}
+		to_logical_fix.pop_back();
+	}
+	rearrange_bd_vec( old_sz, added, *bd_extra_vars );
+}
+
+//========================================================================================
+
+void
+MCND_lp::rearrange_bd_vec(int old_sz, int added, BCP_vec< double >& bd_vars ){
+	if(!added) return;
+	int sz = old_sz+added;
+	int old_ = old_sz;
+	int strt, strt1;
+	double lb,ub;
+	BCP_vec< double > aux;
+	aux.reserve(bd_vars.size());
+	 
+	strt = 2*old_sz;
+	for(int i=0;i<old_sz;++i){
+		aux.unchecked_push_back(bd_vars[strt]);
+		aux.unchecked_push_back(bd_vars[strt+1]);
+		strt+=2;
+	}
+	
+	for(int i=0;i<added;++i){
+		strt = 4*old_sz + 4*i;
+		strt1 = 2*old_;
+		lb = bd_vars[strt];
+		ub = bd_vars[strt+1];
+		aux.unchecked_push_back(bd_vars[strt+2]);
+		aux.unchecked_push_back(bd_vars[strt+3]);
+		bd_vars[strt1] = lb;
+		bd_vars[strt1+1] = ub;
+		++old_;
+	}
+	
+	strt = 2*old_;
+	for(int i=0;i<sz;++i){
+		strt1 = 2*i;
+		std::cout<<"childone lb: "<<aux[strt1]<<" ub: "<<aux[strt1+1]<<std::endl;
+		bd_vars[strt] = aux[strt1];
+		bd_vars[strt+1] = aux[strt1+1];
+		strt+=2;
+	}
+	aux.clear();
+}
+
+
 
 

@@ -68,7 +68,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         }
         std::cout<<"node comes from branch on: "<<nodedata->branch_var;
         std::cout<<" of "<<nodedata->pos_neg<<" side "<<std::endl;
-        int arc;
+        /*int arc;
         int sz = nodedata->tofix.size();  
         Pair2 *p; 
         for(;sz--;){
@@ -80,7 +80,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         		var_new_bd.push_back(p->snd);
         		var_new_bd.push_back(p->snd);
         	}
-        }
+        }*/
     }else LBi=0;
 }
 
@@ -130,7 +130,8 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     
     vollp->has_sol = has_sol;
     vollp->upper_bound = LBi >0 ? std::min(upper_bound(), LBi*5) : upper_bound();
-    par.dual_limit = vollp->upper_bound*5; std::cout<<"limit: "<<par.dual_limit<<" "<<vollp->upper_bound<<std::endl;
+    par.dual_limit = vollp->upper_bound*5; 
+    std::cout<<"limit: "<<par.dual_limit<<" "<<vollp->upper_bound<<" strongbranching:"<<in_strong_branching<<std::endl;
 
     
     if(!vollp->HotStartSet){

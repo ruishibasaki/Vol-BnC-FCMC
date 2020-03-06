@@ -111,10 +111,11 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
     while (indexFirst != indexLast) {
         collb[*indexFirst] =  boundList[0];
         colub[*indexFirst] = boundList[1];
+        //if(*indexFirst<data->narcs)std::cout<<"col: "<<*indexFirst<<" = "<<boundList[0]<<" "<<boundList[1]<<std::endl;
         ++indexFirst;
         boundList += 2;
-        //std::cout<<"col: "<<*indexFirst<<std::endl;
     }
+
     nz_arcs.clear();
     szopnd=0;
     szunfxd=0;
@@ -124,7 +125,7 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
             arc_map[arc] = -2;
             VItopo[arc] =  yhit[arc] = 1.0;
             ++szopnd;
-            if(!in_strong_branch)std::cout<<"opened arc: "<<arc<<std::endl;
+             std::cout<<"opened arc: "<<arc<<std::endl;
         }else if(colub[arc] == 1){
             ++szunfxd;
             nz_arcs.push_front(arc);
@@ -132,10 +133,11 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
             //std::cout<<"unfix: "<<arc<<" idx: "<<arc_map[arc]<<std::endl;
         }else{
         	VItopo[arc] = yhit[arc] = 0.0;
-            if(!in_strong_branch)std::cout<<"closed arc: "<<arc<<std::endl;
+             std::cout<<"closed arc: "<<arc<<std::endl;
             arc_map[arc] = -1;
         }
     }
+
     for(int i = 0; i<szunfxd;++i){
     	arc_map[nz_arcs[i]] = i;
     }
@@ -993,7 +995,7 @@ HotStart_(0){
     mode =1;
     num_purgbl=0;
     min_lower_bound=0;
-    HotStartSet = false;
+    in_strong_branch = HotStartSet = false;
 }
 
 //---------------------------------------------------------------------------
@@ -1018,8 +1020,8 @@ HotStart_(0){
     maxNumrows_ = maxNumcols_ = 0;
     mode =1;
     num_purgbl=0;
-    min_lower_bound=0;
-    HotStartSet = false;
+    min_lower_bound=0; 
+    in_strong_branch = HotStartSet = false;
 }
 
 
@@ -1082,6 +1084,7 @@ HotStart_(0)
     HotStartSet = false;
     num_purgbl=0;
     min_lower_bound=0;
+    in_strong_branch = x.in_strong_branch;
     operator=(x);
 }
 

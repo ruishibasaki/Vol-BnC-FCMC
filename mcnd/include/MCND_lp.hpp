@@ -4,6 +4,7 @@
 #define _MCND_LP_H
 
 #include "BCP_lp_user.hpp"
+#include "BCP_lp_functions.hpp"
 #include "BCP_parameters.hpp"
 #include "CoinHelperFunctions.hpp"
 #include <stdlib.h>     /* abs */
@@ -58,14 +59,14 @@ public:
     std::vector<double> y;
     std::deque<const Cover *> track;
     std::deque<Pair2> candidates;
-    std::deque<Pair2> to_logical_fix;
+    BCP_vec<Pair2> to_logical_fix;
 
     std::map<int, int> mapd;
 	
     
         
 public:
-    MCND_lp() : LBi(0), has_sol(false), track(0), aborted(false) {}
+    MCND_lp() : LBi(0), has_sol(false), track(0), aborted(false) { lp_mode = LP_Normal;}
     ~MCND_lp();
     
     
@@ -243,10 +244,12 @@ public:
     
     void update_branch_data(MCND_node_branch_data * ndata);
     void keep_track(const Cover* vi);
+    void rearrange_bd_vec(int old_sz, int added, BCP_vec< double >& bd_vars );
     
     //--------------------------------------------------------------------------
-	bool verify_feasibility( );
-    
+    void verify_children_feasibility(BCP_lp_branching_object * candidate, bool& feas0, bool& feas1 );
+	bool verify_feasibility(const BCP_vec<int> & vars_chngd, int nvars);
+	void strong_branch_var_logicfix(BCP_lp_branching_object * candidate);    
 };
 
 #endif
