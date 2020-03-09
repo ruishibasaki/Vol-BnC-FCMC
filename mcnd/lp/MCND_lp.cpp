@@ -17,6 +17,8 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     //std::cout<<"try unpack to lp "<<std::endl;
     data.unpack(buf);
     y.resize(data.narcs,0);
+    ninsp.resize(data.narcs,Pair(0,0));
+    psdcost.resize(data.narcs,PairF(0,0));
     
     ss_manager.initialize(&data);
     cover_manager.initialize(&data, 10);
@@ -68,19 +70,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         }
         std::cout<<"node comes from branch on: "<<nodedata->branch_var;
         std::cout<<" of "<<nodedata->pos_neg<<" side "<<std::endl;
-        /*int arc;
-        int sz = nodedata->tofix.size();  
-        Pair2 *p; 
-        for(;sz--;){
-        	p = &nodedata->tofix[sz];
-        	arc = p->fst;
-        	if(vars[arc]->lb()<0.5 && vars[arc]->ub()>0.5){
-        		std::cout<<"FIX! "<<arc<<"  "<<p->snd<<std::endl;
-        		var_changed_pos.push_back(arc);
-        		var_new_bd.push_back(p->snd);
-        		var_new_bd.push_back(p->snd);
-        	}
-        }*/
+         
     }else LBi=0;
 }
 
@@ -129,7 +119,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     VOL_parms& par = vollp->volprob_.parm;
     
     vollp->has_sol = has_sol;
-    vollp->upper_bound = LBi >0 ? std::min(upper_bound(), LBi*5) : upper_bound();
+    vollp->upper_bound = LBi >0 ? fmin(upper_bound(), LBi*5) : upper_bound();
     par.dual_limit = vollp->upper_bound*5; 
     std::cout<<"limit: "<<par.dual_limit<<" "<<vollp->upper_bound<<" strongbranching:"<<in_strong_branching<<std::endl;
 
@@ -366,7 +356,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
             		topo.push_front(Pair2(a, 1));
             	}else topo.push_front(Pair2(a, 0));
             	++unfixed;
-            }else if(x[a]>=0.05){ candidates.push_back(Pair2(a,-x[a])); }//std::cout<<"cand: "<<a<<" "<<x[a]<<std::endl;}
+            }else if(x[a]>=0.05){ candidates.push_back(Pair2(a, -x[a])); }//std::cout<<"cand: "<<a<<" "<<x[a]<<std::endl;}
         }
     }
     if(unfixed>=data.narcs*0.1){
@@ -389,7 +379,8 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     	delete sol;
     	return 0;
     }
-    lp_mode = LP_DiveToFeasibility;
+    candidates.clear();					//testing
+    //lp_mode = LP_DiveToFeasibility;	//testing
     return 0;
 }
 
@@ -443,6 +434,7 @@ MCND_lp::getOsiVolBabSolver(){
 
 MCND_lp::~MCND_lp(){
 	y.clear(); 
+	ninsp.clear(); 
     std::deque<const Cover *> track;
     candidates.clear();
     mapd.clear();

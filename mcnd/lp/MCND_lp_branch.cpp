@@ -42,19 +42,27 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     OsiVolSolverInterface * s = getOsiVolBabSolver();
     
     if(local_cut_pool.size()>0){
-		//lp_mode = LP_CutAdded;
 		return BCP_DoNotBranch;
 	}
 	
     
 	BCP_vec<double> vbd(4, 0.0);
     BCP_vec<int> vpos(1, 0);
+    double psc0, psc1;
     const double * psol = lpres.x();
-    int max_cand = 3 ;
+    int max_cand = 4 ;
     if(lp_mode==LP_Normal || candidates.empty()){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1){
-				candidates.push_back(Pair2(a, -abs(psol[a]-0.7)));
+				if(min(ninsp[a].fst, ninsp[a].snd) >= data.narcs*0.1){
+					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
+					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
+				}else{
+					psc0 = psol[a];
+					psc1 = (1.0-psol[a]);
+				} 
+				candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+				//candidates.push_back(Pair2(a, min(psol[a]-0.7)));
 			}
 		}
 	}else max_cand = 1;
@@ -65,7 +73,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		std::cout<<"candidate "<<arc<<" "<<y[arc]<<" "<<psol[arc]<<std::endl;
+		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<std::endl;
         candidates.pop_front();		
 		vpos[0] = arc;
 		vbd[0] = 0.0;
@@ -95,8 +103,8 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		   const BCP_vec<BCP_obj_status>& var_status,
 		   const BCP_vec<BCP_obj_status>& cut_status,
 		   const int var_bound_changes_since_logical_fixing,
-		   BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd)
-{
+		   BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd){
+		   
 	std::cout<<"logical_fixing "<<var_bound_changes_since_logical_fixing<<std::endl;
     //return;
     const double* psol = lpres.x();
@@ -172,7 +180,9 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
     const BCP_lp_result & child1  = newobj->lpres(1);
 
     int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
-   	double score = std::min((child0.objval() - LBi), (child1.objval() - LBi));
+    double diff0 = (child0.objval() - LBi);
+    double diff1 = (child1.objval() - LBi);
+   	double score = fmin(diff0, diff1);
     newobj->user_data()[0] = new MCND_node_branch_data(sz, score , var_new, 0, LBi);
     newobj->user_data()[1] = new MCND_node_branch_data(sz, score , var_new, 1, LBi);
     
@@ -184,7 +194,8 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
      }else if((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
      	to_logical_fix.push_back(Pair2(var_new,0.0));
 	 }
-		
+	 
+	
     if(oldobj==0){
     	return BCP_NewPresolvedIsBetter;
     }
@@ -217,22 +228,21 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
    // std::cout<<" set child data "<<std::endl;
 
     BCP_vec< BCP_user_data * >& childs_data = best->user_data();
+
     //int var_ = *best->candidate()->forced_var_pos->begin();
     
     const BCP_lp_result & child0  = best->lpres(0);
     const BCP_lp_result & child1  = best->lpres(1);
+    
     
     MCND_node_branch_data * cdata;
     //stock  for further investigation WarmStartDual(getNumRows(), dual, actv);
     
 	//int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[0]);
-    //cdata->tofix = to_logical_fix;
     cdata->hs = new WarmStartDual(cdata->dual_size, child0.pi(), mapd); //std::cout<<cdata->dual_size<<" "<<sz<<std::endl;
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
-    //cdata->tofix = to_logical_fix;
     cdata->hs = new WarmStartDual(cdata->dual_size, child1.pi(), mapd);//std::cout<<cdata->dual_size<<" "<<sz<<std::endl;
-    //to_logical_fix.clear();
 }
 
 //-------------------------------------------------------------------------------------------
@@ -240,8 +250,9 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
 void
 MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	int nvars = best->candidate()->vars_affected();
-	BCP_vec< int >&  vars = *(best->candidate()->forced_var_pos);	
-	std::cout<<"branching variable: "<<vars[0]<<std::endl;
+	BCP_vec< int >&  vars = *(best->candidate()->forced_var_pos);
+	int var_branch = vars[0];
+	std::cout<<"branching variable: "<<var_branch<<std::endl;
 	
 	strong_branch_var_logicfix(best->candidate());
 	if(best->candidate()->forced_var_pos->size()>1)
@@ -257,21 +268,35 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		(child1.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf);
 		
 	verify_children_feasibility( best->candidate(),  feas0, feas1 );
-	
+	double ybar_branch = child0.x()[var_branch];
+    double diff0 = (child0.objval() - LBi);
+    double diff1 = (child1.objval() - LBi);
+    
 	if(!feas0){
 		childs_action[0] = BCP_FathomChild;
 	}else{
+		++ninsp[var_branch].fst;
+		if((ybar_branch)>1e-8) psdcost[var_branch].fst+=diff0/ybar_branch;
+		else psdcost[var_branch].fst+=diff0*1e8;
 		if(lp_mode==LP_DiveToFeasibility){
 			childs_action[0] = BCP_KeepChild;
 		}else childs_action[0] = BCP_ReturnChild;
 	}
 	
+	double ybar_branch_ = (1.0- ybar_branch);
 	if(!feas0 && feas1){
+		++ninsp[var_branch].snd;
+		if(ybar_branch_>1e-8)psdcost[var_branch].snd+=diff1/ybar_branch_;
+		else psdcost[var_branch].snd+=diff1*1e8;
 		childs_action[1] = BCP_KeepChild;
 	}else if(!feas1){
 		childs_action[1] = BCP_FathomChild;
-	}else childs_action[1] = BCP_ReturnChild;
-	
+	}else{
+		++ninsp[var_branch].snd;
+		if(ybar_branch_>1e-8)psdcost[var_branch].snd+=diff1/ybar_branch_;
+		else psdcost[var_branch].snd+=diff1*1e8;
+		childs_action[1] = BCP_ReturnChild;
+	}
 	std::cout<<" 0-side childs_action "<<childs_action[0]<<std::endl;
 	std::cout<<" 1-side childs_action "<<childs_action[1]<<std::endl;
 	lp_mode = LP_Normal;
@@ -303,7 +328,7 @@ void
 MCND_lp::verify_children_feasibility(BCP_lp_branching_object * candidate, bool& feas0, bool& feas1 ){
 	if(feas0){
 		candidate->apply_child_bd(getOsiVolBabSolver(), 0);
-		std::cout<<"testfeas 0"<<std::endl;
+		//std::cout<<"testfeas 0"<<std::endl;
 		feas0 = verify_feasibility(*(candidate->forced_var_pos),0);
 	}
 	if(!feas1) return;
@@ -311,7 +336,7 @@ MCND_lp::verify_children_feasibility(BCP_lp_branching_object * candidate, bool& 
 	const BCP_vec< double >& vars_bd = *candidate->forced_var_bd;
 	int sz_implied = vars.size();
 	for(;sz_implied--;){
-		std::cout<<"testfeas 1 "<<vars[sz_implied]<<" "<<vars_bd[sz_implied*4+3]<<" "<<vars.size()<<" "<<vars_bd.size()<<std::endl;
+		//std::cout<<"testfeas 1 "<<vars[sz_implied]<<" "<<vars_bd[sz_implied*4+3]<<" "<<vars.size()<<" "<<vars_bd.size()<<std::endl;
 		if(vars[sz_implied]<data.narcs && vars_bd[sz_implied*4+3]<0.5){
 			//candidate->apply_child_bd(getOsiVolBabSolver(), 0);
 			candidate->apply_child_bd(getOsiVolBabSolver(), 1);
@@ -381,7 +406,7 @@ MCND_lp::rearrange_bd_vec(int old_sz, int added, BCP_vec< double >& bd_vars ){
 	strt = 2*old_;
 	for(int i=0;i<sz;++i){
 		strt1 = 2*i;
-		std::cout<<"childone lb: "<<aux[strt1]<<" ub: "<<aux[strt1+1]<<std::endl;
+		//std::cout<<"childone lb: "<<aux[strt1]<<" ub: "<<aux[strt1+1]<<std::endl;
 		bd_vars[strt] = aux[strt1];
 		bd_vars[strt+1] = aux[strt1+1];
 		strt+=2;

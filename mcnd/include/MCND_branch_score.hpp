@@ -26,8 +26,7 @@ public:
     double min_lb;
 	int pos_neg;
 	int branch_var;
-	std::deque<Pair2> tofix;
-
+ 
 	
 	MCND_node_branch_data(const MCND_node_branch_data& rhs);
 	
@@ -41,8 +40,7 @@ public:
     
 	inline ~MCND_node_branch_data(){
         //std::cout<<"delete MCND_node_branch_data "<<hs<<std::endl;
-        tofix.clear();
-        if(hs!=0)delete hs;
+         if(hs!=0)delete hs;
         //std::cout<<" MCND_node_branch_data deleted"<<std::endl;
 
     }

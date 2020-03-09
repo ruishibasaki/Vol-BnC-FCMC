@@ -78,7 +78,7 @@ LPFeasChecker::initialize(const Data* d){
 void LPFeasChecker::create_model(const double *collb, const double * colub) {
     IloNum ub;
     for(int a=0;a<narcs;++a){
-        if(colub[a]<=0.5){ ub = 0.0; std::cout<<"close: "<<a<<std::endl;
+        if(colub[a]<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<std::endl;
         }else{ ub = IloInfinity;}
         
         for(int k=0;k<ndemands;++k){

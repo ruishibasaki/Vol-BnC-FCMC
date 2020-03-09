@@ -57,6 +57,9 @@ public:
     bool aborted;
     bool has_sol;
     std::vector<double> y;
+    std::vector<Pair> ninsp;
+    std::vector<PairF> psdcost;
+
     std::deque<const Cover *> track;
     std::deque<Pair2> candidates;
     BCP_vec<Pair2> to_logical_fix;
