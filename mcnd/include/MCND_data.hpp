@@ -5,7 +5,7 @@
 
 #include <iostream>
 #include <vector>
-#include <deque>
+#include <list>
 #include "BCP_var.hpp"
 #include "BCP_cut.hpp"
 #include "Structures.hpp"
@@ -35,6 +35,26 @@ public:
     BCP_buffer& unpack(BCP_buffer& buf);
 };
 
+//-----------------------------------------------------
+
+class FlowConnect{
+public:
+    Data * data;
+    int nnodes, ndemands, narcs;
+    std::vector<int*> Km;
+    std::vector<int*> Kp;
+	std::vector<int> labelf;
+	std::vector<int> labelb;
+	
+	list<int> *adjf; 
+	list<int> *adjb; 
+
+	inline FlowConnect(){}
+	inline FlowConnect(Data* d){ initialize(d);}
+	void initialize(Data *d);
+	
+	void check_connectivity();
+};
 
 
 

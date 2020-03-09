@@ -73,7 +73,10 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<std::endl;
+		psc0 = psol[arc]*psdcost[arc].fst/double(ninsp[arc].fst);
+		psc1 = (1.0-psol[arc])*psdcost[arc].snd/double(ninsp[arc].snd);
+		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd
+		<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)<<std::endl;
         candidates.pop_front();		
 		vpos[0] = arc;
 		vbd[0] = 0.0;

@@ -20,15 +20,15 @@
 void MCND_read_data(std::string fname, Data & data);
 double read_init_sol(std::string fname, std::string instance, double * xy);
 bool getScalar(int id,const std::vector<PairF> & mapset, double & gam1, double & gam2);
+
 //----------------------------------------------------------------------------------
 // Flow methods
 //----------------------------------------------------------------------------------
 double dijkstra(int source, int sink, const std::vector<int> &grid, std::vector<Pair1> & preced, const std::vector<double>& cij);
-
 //Auxiliary
 void remove_i(int p, std::list<int> &N);
 Pair1 arg_min(const std::list<int> & nodes, const std::vector<double> & costs);
-
+ 
 
 //----------------------------------------------------------------------------------
 // Knapsack dp
