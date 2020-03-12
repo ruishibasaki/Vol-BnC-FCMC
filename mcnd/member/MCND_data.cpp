@@ -15,97 +15,176 @@
 
 void 
 FlowConnect::initialize(Data *d){
-	data = d;
-	narcs =  data->narcs;
-	ndemands = data->ndemands;
-	nnodes  = data->nnodes;
-	int szlbl = narcs*ndemands;
-	labelf.resize(szlbl,0);
-	labelb.resize(szlbl,0);
-	Km.resize(nnodes,0);
-	Kp.resize(nnodes,0);
-	adjf = new list<int>[nnodes]; 
-	adjb = new list<int>[nnodes]; 
+    data = d;
+    narcs =  data->narcs;
+    ndemands = data->ndemands;
+    nnodes  = data->nnodes;
+    int szlbl = narcs*ndemands;
+    labelf.resize(szlbl,0);
+    labelb.resize(szlbl,0);
+    Kd.resize(nnodes);
+    Ko.resize(nnodes);
+    adjf = new std::list<int>[nnodes];
+    adjb = new std::list<int>[nnodes];
+    
+    std::deque<int> comm;
+    for(int i=nnodes;i--;){
+        Kd[i] = new int[ndemands+1];
+        Ko[i] = new int[ndemands+1];
+        Kd[i][0]=0;
+        Ko[i][0]=0;
+    }
+    int orig, dest, pos;
+    int* setm; int* setp;
+    for(int i=0;i<ndemands;++i){
+        orig = data->d_k[i].O-1;
+        dest = data->d_k[i].D-1;
+        setm = Kd[dest];
+        setp = Ko[orig];
+        pos = ++setm[0];
+        setm[pos] = i;
+        pos = ++setp[0];
+        setp[pos] = i;
+        
+    }
+}
 
-	std::deque<int> comm;
-	for(int i=nnodes;i--;){
-		Km[i] = new int[ndemands+1];
-		Kp[i] = new int[ndemands+1];
-		Km[i][0]=0;
-		Kp[i][0]=0;
-	}
-	int orig, dest, pos;
-	int* setm; int* setp;
-	for(int i=ndemands;i--;){
-		orig = data->d_k[i].O-1;
-		dest = data->d_k[i].D-1;
-		setm = Km[dest];
-		setp = Kp[orig];
-		pos = ++setm[0];
-		setm[pos] = i;
-		pos = ++setp[0];
-		setp[pos] = i;
-		
-	}
+//-------------------------------------------------------------------------------
+
+bool
+FlowConnect::translate_results(const std::deque<int>& nonzro, BCP_vec<Pair2>& collb, BCP_vec<Pair2>& colub){
+    std::list<int>::const_iterator it;
+    int arc, i,j;
+    int nk, comm;
+    int arc_unique;
+    bool is_unique;
+    int comm_sat = 0;
+
+    std::vector<int>count_closed(narcs,0);
+    for(int n=nnodes;n--;){
+        std::cout<<"node "<<n+1<<std::endl;
+        for(int k = ndemands; k--;){
+            arc_unique = -1;
+            is_unique = false;
+            comm_sat = 0;
+            for (it = adjf[n].begin(); it != adjf[n].end(); ++it){
+                arc = data->grid[n*nnodes+(*it)];
+                if(labelf[k*narcs+arc] && labelb[k*narcs+arc]){
+                    if(is_unique) is_unique = false;
+                    else is_unique = true;
+                    arc_unique = arc;
+                    ++comm_sat;
+                }else{
+                    std::cout<<"set x_"<<arc+1<<"^"<<k+1<<" to zero"<<std::endl;
+                    colub.unchecked_push_back(Pair2(narcs+k*narcs+arc, 0.0)); 
+                    if(++count_closed[arc] == ndemands){
+                    	colub.unchecked_push_back(Pair2(arc, 0.0)); 
+                    	std::cout<<"close the entire arc "<<arc+1<<std::endl;
+                    }
+                }
+            }
+            if(n == (data->d_k[k].O-1)){
+                if(is_unique){
+                	collb.unchecked_push_back(Pair2(narcs+k*narcs+arc, data->d_k[k].quantity)); 
+                	collb.unchecked_push_back(Pair2(arc, 1.0)); 
+                    std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
+                    std::cout<<"open the entire arc "<<arc+1<<std::endl;
+                }else if(comm_sat==0){
+                    return false;
+                }
+            }else if(n == (data->d_k[k].D-1)){
+                is_unique = false;
+                for (it = adjb[n].begin(); it != adjb[n].end(); ++it){
+                    arc = data->grid[(*it)*nnodes+n];
+                    if(labelf[k*narcs+arc] && labelb[k*narcs+arc]){
+                        if(is_unique) is_unique = false;
+                        else is_unique = true;
+                        arc_unique = arc;
+                    }else{
+                    	colub.unchecked_push_back(Pair2(narcs+k*narcs+arc, 0.0)); 
+                        std::cout<<"set x_"<<arc+1<<"^"<<k+1<<" to zero"<<std::endl;
+                        if(++count_closed[arc] == ndemands){
+							colub.unchecked_push_back(Pair2(arc, 0.0)); 
+							std::cout<<"close the entire arc "<<arc+1<<std::endl;
+						}
+                    }
+                }
+                if(is_unique){
+                	collb.unchecked_push_back(Pair2(narcs+k*narcs+arc, data->d_k[k].quantity)); 
+                	collb.unchecked_push_back(Pair2(arc, 1.0)); 
+                    std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
+                    std::cout<<"open the entire arc "<<arc+1<<std::endl;
+                }
+            }
+        }
+        
+    }
+    return true;
 }
 
 //-------------------------------------------------------------------------------
 
 bool 
-FlowConnect::check_connectivity(const deque<int>& nonzro){
-	int arc, i, j;
-	const Arc& a;
-	for(int i=nonzro.size();i--;){
-		arc = nonzro[i];
-		a = data->arcs[arc];
-		adjf[a.i-1].push_back(a.j-1);
-		adjb[a.j-1].push_back(a.i-1);
-	}
-	for(int i=nnodes;i--;){
-		if(Kp[0]>0){
-			BFS(true, i, adjf, labelf, Kp[i]);
-		}
-		if(Km[0]>0){
-			BFS(false, i, adjb, labelb, Km[i]);
-		}
-	}
+FlowConnect::check_connectivity(const std::deque<int>& nonzro,BCP_vec<Pair2>& collb, BCP_vec<Pair2>& colub){
+    int arc, i, j;
+    for(int i=nonzro.size();i--;){
+        arc = nonzro[i];
+        const Arc& a = data->arcs[arc];
+        adjf[a.i-1].push_back(a.j-1);
+        adjb[a.j-1].push_back(a.i-1);
+    }
+
+    for(int i=nnodes;i--;){
+        if(Ko[i][0]>0){
+            BFS(true, i, adjf, labelf, Ko[i]);
+        }
+        if(Kd[i][0]>0){
+            BFS(false, i, adjb, labelb, Kd[i]);
+        }
+    }
+    if(!translate_results(nonzro, collb, colub))return false;
+     
+    return true;
 }
 
 //-------------------------------------------------------------------------------
 
 void
-FlowConnect::BFS(bool forwback, int s, const list<int> * adj, std::vector<int>& label,const int* K ){ 
+FlowConnect::BFS(bool forwback, int s, const std::list<int> * adj, std::vector<int>& label,const int* K ){ 
     
-    bool *visited = new bool[nnodes]; 
-    for(int i = 0; i < nnodes; i++) 
-        visited[i] = false; 
-  
-    std::list<int> queue; 
-    visited[s] = true; 
-    queue.push_back(s); 
-  
+     bool *visited = new bool[nnodes];
+    for(int i = 0; i < nnodes; i++)
+        visited[i] = false;
+    
+    std::list<int> queue;
+    visited[s] = true;
+    queue.push_back(s);
+    
     int arc, comm, nk;
-    std::list<int>::iterator i; 
-    while(!queue.empty()){ 
-
-        s = queue.front(); 
-        queue.pop_front(); 
+    std::list<int>::const_iterator i;
+    while(!queue.empty()){
+        
+        s = queue.front();
+        queue.pop_front();
         
         for (i = adj[s].begin(); i != adj[s].end(); ++i){
-        	if(forwback)arc = data->grid[s*nnodes+(*i)];
-        	else arc = data->grid[(*i)*nnodes+s];
-        	nk = K[0];
-        	for(int k=1;k<=nk;++k){
-        		comm = K[k];
-        		label[comm*ndemands+arc] = 1;
-        	}
-        	
-            if (!visited[*i]) { 
-                visited[*i] = true; 
-                queue.push_back(*i); 
-            } 
-        } 
-    } 
+            if(forwback)arc = data->grid[s*nnodes+(*i)];
+            else arc = data->grid[(*i)*nnodes+s];
+            //std::cout<<"node i: "<<s+1<<" adj"<<forwback<<": "<<*i+1<<" arc "<<arc<<std::endl;
+
+            nk = K[0];
+            for(int k=1;k<=nk;++k){
+                comm = K[k];
+                label[comm*narcs+arc] = 1;
+            }
+            
+            if (!visited[*i]) {
+                visited[*i] = true;
+                queue.push_back(*i);
+            }
+        }
+    }
+} 
 
 //-------------------------------------------------------------------------------
 
@@ -114,14 +193,14 @@ FlowConnect::~FlowConnect(){
 	labelf.clear();
 	labelb.clear();
 	for(int i=data->ndemands;i--;){
-		delete [] Km[i] ;
-		delete [] Kp[i] ;	
+		delete [] Ko[i] ;
+		delete [] Kd[i] ;	
 	}
 	delete []adjf;
 	delete []adjb;
 
-	Km.clear();
-	Kp.clear();	
+	Ko.clear();
+	Kd.clear();	
 }
 
 //-------------------------------------------------------------------------------

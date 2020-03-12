@@ -347,6 +347,7 @@ CoverManager::checkViol(const Cover * c, const double *y){
     double comp=c->get_total_rhs();
     int sz = c->get_total_sz();
     int id_arc;
+
     for(int a=0;a<sz;++a){
         id_arc = arc_map[c->at(a)];
         if(id_arc>=0){
@@ -451,6 +452,7 @@ CoverManager::update_rc_neg(double dimsh, int nvi, const Cover * vi, std::vector
 		if(id_arc < 0) continue;
 		//if(id_arc==33)std::cout<<rc[id_arc]<<" "<<rc[id_arc] - vi->gamma_at(a)*dimsh<<" "<<vi->gamma_at(a)<<std::endl;
         rc[id_arc] -=  vi->gamma_at(a)*dimsh;
+        if(rc[id_arc]>-1e-10) rc[id_arc] =0;
         con_arcs_map[arc].snd -= ws[nvi].snd;
     }
 
@@ -499,7 +501,7 @@ CoverManager::set_new_mult_neg(double *rc, std::vector<Trio1>& ws,  double * dua
         alphsum = con_arcs_map[arc].snd;
 
         //if(id_arc==33)std::cout<<"arc: "<<arc<<" fk: "<<fk[id_arc]<<" rc: "<<rc[id_arc]<<" mult: "<<mult<<" tt: "<<tt<<" al: "<<alphsum<<std::endl;
-        if(mult > -1e-10 || alphsum  < 1e-10 ){
+        if(((mult > -1e-10 )&&(mult <1e-10 ))|| alphsum  < 1e-10 ){
         	continue;
     	}
 

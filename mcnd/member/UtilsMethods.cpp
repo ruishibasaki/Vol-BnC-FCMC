@@ -160,6 +160,41 @@ double read_init_sol(std::string fname, std::string instance, double * xy) {
 
 //----------------------------------------------------------------------------------
 
+void read_init_dualsol(std::string fname, const Data & data, double * dual){
+	std::ifstream file;
+    file.open(fname.c_str());
+    if (!file.is_open()) {
+        std::cout<<"Failure to open datafile: %s\n "<<fname;
+        abort();
+    }
+    std::string s;
+    std::string aux;
+    std::istringstream ss;
+     int iaux;
+    for(int k=0;k<data.ndemands;++k){
+    	for(int i=0;i<data.nnodes;++i){
+    		getline(file,s);
+    		ss.str(s);
+    		ss>>aux;
+    		ss>>iaux;
+    		ss>>iaux;
+    		ss>>dual[k*data.nnodes+i];
+    		ss.clear();
+    	}
+    }
+    int cont=0;
+    while (getline(file,s)) {
+        ss.str(s);
+        ss>>aux;
+    	ss>>iaux;
+    	ss>>dual[data.ndemands*data.nnodes+cont];
+    	++cont;
+        ss.clear();
+    }
+}
+
+//----------------------------------------------------------------------------------
+
 bool getScalar(int id,const std::vector<PairF> & mapset, double & gam1, double & gam2){
     if(mapset[id].fst < 0 &&  mapset[id].fst != mapset[id].snd){
         std::cout<<"!!!!!! PROBLEMS !!!! getScalar"<<std::endl;

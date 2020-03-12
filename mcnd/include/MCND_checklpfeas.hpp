@@ -16,14 +16,13 @@ public:
     IloModel model;
     
     IloNumVarArray x;
-    IloRangeArray flow;
-    IloRangeArray capa;
+    
 
     int ndemands, nnodes, narcs;
     const Data* data;
     
     // construtores
-    inline LPFeasChecker():model(env), cplex(env), x(env), capa(env), flow(env){};
+    inline LPFeasChecker():model(env), cplex(env), x(env) {};
     virtual ~LPFeasChecker();
     
     

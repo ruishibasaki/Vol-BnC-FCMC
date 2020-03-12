@@ -8,12 +8,13 @@ ILOSTLBEGIN
 //---------------------------------------------------------------------------
 
 void LPFeasChecker::set_parameters() {
-    //cplex->setParam(IloCplex::Threads,0);
+	cplex.setParam(IloCplex::Threads,1);
     //cplex->setParam(IloCplex::RootAlg, 2);
     //cplex->setParam(IloCplex::NodeAlg, 3);
     cplex.setParam(IloCplex::ClockType, 1);
     //cplex->setParam(IloCplex::MIPDisplay, 4);
     cplex.setOut(env.getNullStream());
+    //cplex.setParam(IloCplex::DataCheck, CPX_DATACHECK_ASSIST);
     cplex.setParam(IloCplex::TiLim, 3600.0); // Time limit in seconds
     
 }
@@ -30,9 +31,10 @@ LPFeasChecker::initialize(const Data* d){
     set_parameters();
     
     IloExpr obj(env);
+    x = IloNumVarArray(env);
     for(int a=0;a<narcs;++a){
         for (int k = 0; k < ndemands; ++k){
-            x.add(IloNumVar(env));
+            x.add(IloNumVar(env, 0.0, IloInfinity));
             obj += x[a*ndemands+k];
         }
     }
@@ -78,7 +80,7 @@ LPFeasChecker::initialize(const Data* d){
 void LPFeasChecker::create_model(const double *collb, const double * colub) {
     IloNum ub;
     for(int a=0;a<narcs;++a){
-        if(colub[a]<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<std::endl;
+        if(colub[a]<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
         }else{ ub = IloInfinity;}
         
         for(int k=0;k<ndemands;++k){
@@ -91,22 +93,19 @@ void LPFeasChecker::create_model(const double *collb, const double * colub) {
 //---------------------------------------------------------------------------
 
 int LPFeasChecker::solve(const double *collb, const double * colub){
-    //std::cout<<"VERIFY FEAS!!"<<std::endl;
-    //cplex.exportModel("rl.lp");
     create_model( collb,   colub);
+    //cplex.exportModel("rl.lp");
 	cplex.solve();
-	
+
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		 
         std::cout<<"infeasible"<<std::endl;
 		return -1;
-	}else if(cplex.getStatus() == IloAlgorithm::InfeasibleOrUnbounded){
-		 
+	}else if(cplex.getStatus() == IloAlgorithm::InfeasibleOrUnbounded){		 
         std::cout<<"InfeasibleOrUnbounded"<<std::endl;
 		return -2;
 		
 	}else if(cplex.getStatus() == IloAlgorithm::Optimal){
-		 
+		 //std::cout<<"optimal "<<cplex.getObjValue()<<std::endl;
 		return 0;
 	}
 	else return -3;
@@ -121,8 +120,7 @@ LPFeasChecker::~LPFeasChecker() {
 		cplex.clearModel();
 
 		x.end();
-        flow.end();
-        capa.end();
+         
         model.end();
 		cplex.end();
 		env.end();

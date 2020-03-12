@@ -8,6 +8,8 @@
 #include <list>
 #include "BCP_var.hpp"
 #include "BCP_cut.hpp"
+#include "BCP_vector.hpp"
+
 #include "Structures.hpp"
 
 class BCP_buffer;
@@ -41,20 +43,24 @@ class FlowConnect{
 public:
     Data * data;
     int nnodes, ndemands, narcs;
-    std::vector<int*> Km;
-    std::vector<int*> Kp;
+    std::vector<int*> Kd;
+    std::vector<int*> Ko;
 	std::vector<int> labelf;
 	std::vector<int> labelb;
-	
-	list<int> *adjf; 
-	list<int> *adjb; 
+    
+	std::list<int> *adjf;
+	std::list<int> *adjb;
 
 	inline FlowConnect(){}
 	inline FlowConnect(Data* d){ initialize(d);}
+    ~FlowConnect();
 	void initialize(Data *d);
 	
-	void check_connectivity();
+    void BFS(bool forwback, int s, const std::list<int> * adj, std::vector<int>& label,const int* K );
+	bool check_connectivity(const std::deque<int>& nonzro, BCP_vec<Pair2>& collb, BCP_vec<Pair2>& colub);
+    bool translate_results(const std::deque<int>& nonzro, BCP_vec<Pair2>& collb, BCP_vec<Pair2>& colub);
 };
+
 
 
 

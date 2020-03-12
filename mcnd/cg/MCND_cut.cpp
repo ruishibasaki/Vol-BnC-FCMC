@@ -58,7 +58,7 @@ CoverCut::check_logical_fix(const BCP_vec<BCP_var*>& vars, double* yarcs){
 				 yarcs[arc] = 1;
 			}
 		}
-		cover->print();
+		std::cout<<"serial: "<<cover->serial_nmbr<<" "; cover->print();
 		return true;
 	}
 	return false;

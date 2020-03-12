@@ -76,7 +76,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 		psc0 = psol[arc]*psdcost[arc].fst/double(ninsp[arc].fst);
 		psc1 = (1.0-psol[arc])*psdcost[arc].snd/double(ninsp[arc].snd);
 		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd
-		<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)<<std::endl;
+		/*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
         candidates.pop_front();		
 		vpos[0] = arc;
 		vbd[0] = 0.0;
@@ -265,12 +265,14 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	const BCP_lp_result & child1  = best->lpres(1);
 	BCP_vec< BCP_child_action >& childs_action = best->action();
 	
+
 	bool feas0 = !((child0.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
 		(child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf);
 	bool feas1 = !((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
 		(child1.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf);
 		
 	verify_children_feasibility( best->candidate(),  feas0, feas1 );
+
 	double ybar_branch = child0.x()[var_branch];
     double diff0 = (child0.objval() - LBi);
     double diff1 = (child1.objval() - LBi);
