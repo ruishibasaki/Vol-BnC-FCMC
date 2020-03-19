@@ -33,6 +33,7 @@ CoverManager::reset_and_map_collection(int fsize, const double* topo, double * d
     int sz = covers.sizeOfCollection;
     Cover* vi = covers.begin;
     num_actv =0; cont=0;
+    //std::cout<<"sz: "<<sz<<std::endl;
     for(int i=0;i<sz;++i){
         vi->n_zerom =0;
         vi->n_nviol = 0;
@@ -51,7 +52,6 @@ CoverManager::reset_and_map_collection(int fsize, const double* topo, double * d
         	vi = covers.move_to_end(vi);
         }
     }
-    gend=0;
     return cont;
 }
 
@@ -194,7 +194,7 @@ CoverManager::make_cover(double& delta, const std::deque<Trio1> & ss_, const dou
         minimize_cover(delta, candidates, cover, ystar, lift_down);
     }
     candidates.clear();
-    return covers.createNewCover(cover, delta,  id_vi, ttgend);
+    return covers.createNewCover(cover, id_vi, ttgend);
 }
 
 //----------------------------------------------------------------------------------
@@ -356,6 +356,26 @@ CoverManager::checkViol(const Cover * c, const double *y){
         if(sum>=comp){return 0.0;}
     }
     return comp-sum;
+}
+
+//----------------------------------------------------------------------------------
+
+int 
+CoverManager::add_external_cover(const std::deque<Pair2>& c, int maxNumrows_){
+	int id =data->nnodes*data->ndemands + covers.sizeOfCollection;
+
+	if(id>=maxNumrows_) return 0;
+
+	Cover * vi = covers.createNewCover(c, id, ttgend);
+	int added = covers.addCover(vi, 0);
+	if(added){
+		std::cout<<"add_external_cover:  "<<id<<" "<<ttgend<<" nacvt: "<<num_actv+1<<std::endl;
+		++ttgend;
+		++num_actv;
+		++gend;
+
+	}
+	return added;
 }
 
 
@@ -649,8 +669,11 @@ CoverManager::recompute_mult_pos(double * dual, double * h,  double *rc,
     return ret;
 }
 
-
-//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+//  Volume Integration methods
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
 
 void
 CoverManager::add_cover_vi(int added, int * actvS, int & actvSSz, double * h, double * dual, double * dual_lb, double * dual_ub ){
@@ -659,7 +682,7 @@ CoverManager::add_cover_vi(int added, int * actvS, int & actvSSz, double * h, do
     int idx;
     Cover * vi = covers.end;
     for(int cont = added; cont--;){
-        idx = actvSSz+cont; if(actvS[vi->id_vi]>=0) std::cout<<actvS[vi->id_vi]<<" already taken !!!!!!! for: "<<vi->id_vi<<std::endl;
+        idx = actvSSz+cont; if(actvS[vi->id_vi]>=0){ std::cout<<actvS[vi->id_vi]<<" already taken !!!!!!! for: "<<vi->id_vi<<std::endl;abort();}
         actvS[vi->id_vi]=idx;
         dual[idx] =0;
         dual_lb[idx] = 0;

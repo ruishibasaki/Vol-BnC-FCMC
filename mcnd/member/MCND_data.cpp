@@ -51,69 +51,80 @@ FlowConnect::initialize(Data *d){
 
 //-------------------------------------------------------------------------------
 
+void
+FlowConnect::set_bd(int id, double lb, double ub, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd){
+	changed_pos.push_back(id);
+	new_bd.push_back(lb);
+	new_bd.push_back(ub);
+}
+
+//-------------------------------------------------------------------------------
+
 bool
-FlowConnect::translate_results(const std::deque<int>& nonzro, BCP_vec<Pair2>& collb, BCP_vec<Pair2>& colub){
+FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd){
     std::list<int>::const_iterator it;
-    int arc, i,j;
+    int arc, i,j, id;
     int nk, comm;
     int arc_unique;
-    bool is_unique;
     int comm_sat = 0;
 
     std::vector<int>count_closed(narcs,0);
     for(int n=nnodes;n--;){
-        std::cout<<"node "<<n+1<<std::endl;
+        //std::cout<<"node "<<n+1<<std::endl;
         for(int k = ndemands; k--;){
             arc_unique = -1;
-            is_unique = false;
             comm_sat = 0;
             for (it = adjf[n].begin(); it != adjf[n].end(); ++it){
                 arc = data->grid[n*nnodes+(*it)];
                 if(labelf[k*narcs+arc] && labelb[k*narcs+arc]){
-                    if(is_unique) is_unique = false;
-                    else is_unique = true;
                     arc_unique = arc;
                     ++comm_sat;
                 }else{
-                    std::cout<<"set x_"<<arc+1<<"^"<<k+1<<" to zero"<<std::endl;
-                    colub.unchecked_push_back(Pair2(narcs+k*narcs+arc, 0.0)); 
+                    std::cout<<"set x_"<<arc+1<<"^"<<k+1<<" to zero. "<<vars[narcs+k*narcs+arc]->lb()<<" "<<vars[narcs+k*narcs+arc]->ub()<<std::endl;
+                    id = narcs+k*narcs+arc;
+                    if(vars[id]->ub()>0 && vars[id]->lb()==0)
+                    	set_bd(id, 0.0, 0.0,  changed_pos, new_bd);
+                    else if(vars[id]->lb()>0) return false;
                     if(++count_closed[arc] == ndemands){
-                    	colub.unchecked_push_back(Pair2(arc, 0.0)); 
-                    	std::cout<<"close the entire arc "<<arc+1<<std::endl;
+                    	if(vars[arc]->lb()>0) return false;
+                    	set_bd(arc, 0.0, 0.0,  changed_pos, new_bd);
+						std::cout<<"close the entire arc "<<arc+1<<". "<<vars[arc]->lb()<<" "<<vars[arc]->ub()<<std::endl;
                     }
                 }
             }
             if(n == (data->d_k[k].O-1)){
-                if(is_unique){
-                	collb.unchecked_push_back(Pair2(narcs+k*narcs+arc, data->d_k[k].quantity)); 
-                	collb.unchecked_push_back(Pair2(arc, 1.0)); 
+                if(comm_sat==1){
+                	id = narcs+k*narcs+arc_unique;
+                	double dk = data->d_k[k].quantity;
+                	std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
+                	if(vars[id]->ub() < dk) return false;
+                	set_bd(id, dk, dk,  changed_pos, new_bd);
+                	set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
                     std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
-                    std::cout<<"open the entire arc "<<arc+1<<std::endl;
+                    std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
                 }else if(comm_sat==0){
                     return false;
                 }
             }else if(n == (data->d_k[k].D-1)){
-                is_unique = false;
+                comm_sat = 0;
                 for (it = adjb[n].begin(); it != adjb[n].end(); ++it){
                     arc = data->grid[(*it)*nnodes+n];
                     if(labelf[k*narcs+arc] && labelb[k*narcs+arc]){
-                        if(is_unique) is_unique = false;
-                        else is_unique = true;
+                        ++comm_sat;
                         arc_unique = arc;
-                    }else{
-                    	colub.unchecked_push_back(Pair2(narcs+k*narcs+arc, 0.0)); 
-                        std::cout<<"set x_"<<arc+1<<"^"<<k+1<<" to zero"<<std::endl;
-                        if(++count_closed[arc] == ndemands){
-							colub.unchecked_push_back(Pair2(arc, 0.0)); 
-							std::cout<<"close the entire arc "<<arc+1<<std::endl;
-						}
-                    }
+                    } 
                 }
-                if(is_unique){
-                	collb.unchecked_push_back(Pair2(narcs+k*narcs+arc, data->d_k[k].quantity)); 
-                	collb.unchecked_push_back(Pair2(arc, 1.0)); 
+                if(comm_sat==1){
+                	int id = narcs+k*narcs+arc_unique;
+                	double dk = data->d_k[k].quantity;
+                	std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
+                	if(vars[id]->ub() < dk) return false;
+                	set_bd(id, dk, dk,  changed_pos, new_bd);
+                	set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
                     std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
-                    std::cout<<"open the entire arc "<<arc+1<<std::endl;
+                    std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
+                }else if(comm_sat==0){
+                    return false;
                 }
             }
         }
@@ -125,10 +136,11 @@ FlowConnect::translate_results(const std::deque<int>& nonzro, BCP_vec<Pair2>& co
 //-------------------------------------------------------------------------------
 
 bool 
-FlowConnect::check_connectivity(const std::deque<int>& nonzro,BCP_vec<Pair2>& collb, BCP_vec<Pair2>& colub){
-    int arc, i, j;
-    for(int i=nonzro.size();i--;){
-        arc = nonzro[i];
+FlowConnect::check_connectivity(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd){
+    int i, j;
+    for(int arc=narcs;arc--;){
+    	if(vars[arc]->ub()<0.5) continue;
+    	//std::cout<<"arc: "<<arc<<std::endl;
         const Arc& a = data->arcs[arc];
         adjf[a.i-1].push_back(a.j-1);
         adjb[a.j-1].push_back(a.i-1);
@@ -142,8 +154,9 @@ FlowConnect::check_connectivity(const std::deque<int>& nonzro,BCP_vec<Pair2>& co
             BFS(false, i, adjb, labelb, Kd[i]);
         }
     }
-    if(!translate_results(nonzro, collb, colub))return false;
-     
+    if(!translate_results(vars, changed_pos, new_bd)){ abort(); return false;}
+    
+    reset();
     return true;
 }
 
@@ -185,6 +198,21 @@ FlowConnect::BFS(bool forwback, int s, const std::list<int> * adj, std::vector<i
         }
     }
 } 
+
+//-------------------------------------------------------------------------------
+
+void 
+FlowConnect::reset(){
+	for(int i=nnodes;i--;){
+		adjf[i].clear();
+		adjb[i].clear();
+    }
+    int szlbl = narcs*ndemands;
+    labelf.assign(szlbl,0);
+    labelb.assign(szlbl,0);
+}
+
+	
 
 //-------------------------------------------------------------------------------
 

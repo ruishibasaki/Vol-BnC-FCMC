@@ -67,7 +67,6 @@ void Pump::create_model() {
 	int arc;
 	double c;
 	
-	
 	IloExpr obj(env);
 	x = IloNumVarArray(env);
 	y = IloNumVarArray(env);
@@ -107,20 +106,20 @@ void Pump::create_model() {
 			for(int a=0;a<sznz;++a){
 				arc = ytopo[a].fst;
 				if(i == data->arcs[arc].i){
-					constraint -= x[a*ndemands+k];
+					constraint += x[a*ndemands+k];
 					flag = true;
 				}else if(i == data->arcs[arc].j){
-					constraint += x[a*ndemands+k];
+					constraint -= x[a*ndemands+k];
 					flag = true;
 				}
 			}
 
 		
 			if( i == data->d_k[k].D){
-				constraint -=data->d_k[k].quantity;
-				flag = true;
-			}if( i == data->d_k[k].O){
 				constraint +=data->d_k[k].quantity;
+				flag = true;
+			}else if( i == data->d_k[k].O){
+				constraint -=data->d_k[k].quantity;
 				flag = true;
 			}
 		

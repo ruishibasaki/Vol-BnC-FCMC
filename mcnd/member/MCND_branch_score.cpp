@@ -25,6 +25,7 @@ MCND_node_branch_data::operator=(const MCND_node_branch_data& rhs){
     hs = rhs.hs; pos_neg = rhs.pos_neg; branch_var = rhs.branch_var;
     score = rhs.score;
     dual_size = rhs.dual_size; min_lb = rhs.min_lb;
+    test_conn = rhs.test_conn;
  		return *this;
 }
 
@@ -34,7 +35,7 @@ MCND_node_branch_data::MCND_node_branch_data(const MCND_node_branch_data& rhs){
 	hs = rhs.hs; pos_neg = rhs.pos_neg; branch_var = rhs.branch_var;
     score = rhs.score;
     dual_size = rhs.dual_size;
-             
+    test_conn = rhs.test_conn;
 }
 
 //----------------------------------------------------------------------------------
@@ -52,7 +53,7 @@ MCND_node_branch_data::pack(BCP_buffer& buf) const{
     //std::cout<<branch_var<<" "<<pos_neg<<" "<<score<<" "<<score_parent<<std::endl;
     buf.pack(branch_var).pack(pos_neg).pack(score);
     buf.pack(min_lb);
-     
+    buf.pack(test_conn);
     //std::cout<<"packed size: "<<buf.size()<<std::endl;
     //std::cout<<branch_var<<" "<<pos_neg<<" "<<score<<" "<<score_parent<<std::endl;
 }
@@ -72,7 +73,8 @@ MCND_node_branch_data::unpack(BCP_buffer& buf){
     
     buf.unpack(branch_var).unpack(pos_neg).unpack(score);
     buf.unpack(min_lb);
-     
+    buf.unpack(test_conn);
+
     //std::cout<<branch_var<<" "<<pos_neg<<" "<<score<<" "<<score_parent<<std::endl;
     
 }

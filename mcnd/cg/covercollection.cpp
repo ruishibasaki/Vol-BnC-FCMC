@@ -36,7 +36,7 @@ CoverCollection::initialize(int M){
         //std::cout<<i<<" "<<map[i].fst<<" : "<<map[i].snd<<std::endl;
         
     }
-    newly_added=0;
+
     discarted=0;
     end = begin =0;
 }
@@ -44,7 +44,7 @@ CoverCollection::initialize(int M){
 //----------------------------------------------------------------------------------
 
 Cover *
-CoverCollection::createNewCover(const std::deque<Pair2>& c, double mu,  int id_vi, int serial_num_){
+CoverCollection::createNewCover(const std::deque<Pair2>& c,  int id_vi, int serial_num_){
     int arc;
     int csize =(int) c.size();
     Cover * newC = new Cover(sizeOfIdSeq, csize,  id_vi, serial_num_);
@@ -121,6 +121,7 @@ int
 CoverCollection::compScalar(Cover * c1, Cover * c2){
     int arc;
     int sz = c1->maxsize;
+    if(sz==0) return 0;
     double div;
     double factor;
     double cfactor;
@@ -209,8 +210,10 @@ CoverCollection::addCover(Cover * tryC, const double * xystar){
     ret = collected(tryC);
     if(ret==2){++discarted; delete tryC;return 0;}
     else if(ret==0){
-        //ret = check_maximal(tryC , xystar);
-        //if(ret) return 0;
+    	//if(xystar){
+    		//ret = check_maximal(tryC , xystar);
+        	//if(ret) return 0;
+    	//}
         insert_end(tryC);
         return 1;
     }else return 0;

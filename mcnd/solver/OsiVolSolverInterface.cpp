@@ -184,11 +184,13 @@ OsiVolSolverInterface::map_duals(){
              }
         }
     }
+
     int ret = cover_manager->reset_and_map_collection(fsize, VItopo, dual, actv, csize);
     
-    if(ret>num_purgbl && in_strong_branch){
-    	HotStartSet =false;	
-    }else if(HotStart_ !=0 && in_strong_branch){
+    /*if(ret>num_purgbl && in_strong_branch){
+    	HotStartSet =true;	
+    }else*/
+     if(HotStart_ !=0 && in_strong_branch){
     	HotStartSet =true;	
     }else if(!in_strong_branch){
     	num_purgbl=ret;
@@ -293,10 +295,9 @@ OsiVolSolverInterface::resolve(){
     std::cout<<"mode: "<<mode<<std::endl;
 	if(mode==-1) return;
     int i;
+    
     map_duals();
     volprob_.active_size = fsize + csize;
-
-    
     
     volprob_.dsize = maxNumrows_;
     volprob_.psize = szunfxd + data->ndemands*sznz;
@@ -573,7 +574,9 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
         capa = data->arcs[arc].capa;
         comm = heap.back().k;
         if(fillUp < capa){
-            x[szunfxd + comm*sznz + a] = std::min((capa - fillUp),  data->d_k[comm].quantity);
+        	//if(colub[narcs+comm*narcs+arc]<data->arcs[arc].b[comm])
+        	// std::cout<<narcs+comm*narcs+arc<<" confirm: "<<arc+1<<" comm: "<<comm+1<<" "<<colub[narcs+comm*narcs+arc]<<std::endl;
+            x[szunfxd + comm*sznz + a] = std::min((capa - fillUp), colub[narcs+comm*narcs+arc]);
             fillUp += x[szunfxd + comm*sznz + a];
             kpsack += heap.back().rc_ * x[szunfxd + comm*sznz + a];
             heap.pop_back();
@@ -645,7 +648,7 @@ OsiVolSolverInterface::reposition_covers(int added){
 	
 	if(cover_manager->covers.sizeOfCollection == cover_manager->num_actv) return;
 	
-	//std::cout<<"reposition_covers"<<std::endl;
+	//std::cout<<"reposition_covers "<<cover_manager->covers.sizeOfCollection <<" "<< cover_manager->num_actv<<std::endl;
 	int num_actv = cover_manager->num_actv - added;
 	int sz = cover_manager->covers.sizeOfCollection;
 	Cover * last_actv = cover_manager->covers.begin ;
@@ -678,6 +681,20 @@ OsiVolSolverInterface::reposition_covers(int added){
 	
 }
 
+//-----------------------------------------------------------------------
+
+void 
+OsiVolSolverInterface::add_external_vi(const std::deque<Pair2>& c){
+	int ret = cover_manager->add_external_cover(c, maxNumrows_);
+	if(ret){
+	
+		cover_manager->add_cover_vi(1, actv, volprob_.active_size, volprob_.viol.v, 
+								volprob_.dsol.v, volprob_.dual_lb.v,  volprob_.dual_ub.v );       
+		reposition_covers(1);	
+		++numrows_;
+	}
+	
+}
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
@@ -859,7 +876,7 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
 
 void 
 OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){ 
-	std::cout<<"deleteRows "<<numrows_<<" del "<<cover_manager->purgbl.size()<<std::endl;
+	std::cout<<"deleteRows "<<numrows_<<" del "<<cover_manager->purgbl.size()<<" "<<cover_manager->num_actv<<" "<<cover_manager->covers.sizeOfCollection<<std::endl;
 	numrows_ -= num;
 	int idx;
 	int fidx = nnodes*ndemands;
@@ -869,6 +886,7 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 	Cover* vi;
 	while(!cover_manager->purgbl.empty()){
 		vi = cover_manager->purgbl.back();
+		//std::cout<<"out "<<vi->serial_nmbr<<std::endl;
 		cover_manager->covers.remove_nodel(vi);
 		cover_manager->purgbl.pop_back();
 	}
@@ -880,6 +898,7 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 		idx = actv[vi->id_vi];
 		dvalue = dual[vi->id_vi];
 		vvalue = lhs_[vi->id_vi];
+		actv[vi->id_vi] = -1;
 		vi->id_vi = sz+fidx;
 		actv[vi->id_vi] = idx;
 		dual[vi->id_vi] = dvalue;
@@ -888,12 +907,12 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 		vi = vi->prev;
 	}
 	//std::cout<<"ok"<<std::endl;
-	/*
-	vi = cover_manager->covers.end;
+	cover_manager->num_actv =  cover_manager->covers.sizeOfCollection;
+	/*vi = cover_manager->covers.end;
 	sz = cover_manager->covers.sizeOfCollection;
 	for(;sz--;){
-		//std::cout<<"vi: "<<vi->id_vi<<std::endl;
-		std::cout<<"sol "<<fidx+sz<<" "<<vi->id_vi<<" "<<dual[fidx+sz]<<std::endl;
+		//std::cout<<"vi serial: "<<vi->serial_nmbr<<std::endl;
+		//std::cout<<"sol "<<fidx+sz<<" "<<vi->id_vi<<" "<<dual[fidx+sz]<<std::endl;
 		vi = vi->prev;
 	}*/
 }

@@ -156,7 +156,10 @@ public:
     virtual double getObjValue() const {
         if(retval==-1 || volprob_.value<0 ){
             return getInfinity();
-        }else return volprob_.value;
+        }else{
+        	if(isPrimalObjectiveLimitReached()) return (upper_bound + 0.0001);
+        	else return volprob_.value;
+        } 
     }
     virtual int getIterationCount() const { return volprob_.iter(); }
     
@@ -449,6 +452,8 @@ private:
     void reposition_covers(int num_covers);
     
 public:
+    void add_external_vi(const std::deque<Pair2>& c);
+
     void translate_sol();
     void translate_dualsol();
     void translate_dualws();
@@ -464,11 +469,13 @@ public:
     int szopnd, szunfxd, sznz;
     int fsize, csize;
     
+    int mode;
     int retval;
     int num_purgbl;
     bool HotStartSet;
     bool in_strong_branch;
     bool has_sol;
+    
     //Volume attributes
     double VIub, VItt, B0;
     double * VItopo;
@@ -482,7 +489,6 @@ public:
     double min_lower_bound;
     CoverManager* cover_manager;
     CutSetManager* ss_manager;
-    int mode;
     
     //feasibility solver
     /// The volume solver

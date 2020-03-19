@@ -57,8 +57,10 @@ public:
 	void initialize(Data *d);
 	
     void BFS(bool forwback, int s, const std::list<int> * adj, std::vector<int>& label,const int* K );
-	bool check_connectivity(const std::deque<int>& nonzro, BCP_vec<Pair2>& collb, BCP_vec<Pair2>& colub);
-    bool translate_results(const std::deque<int>& nonzro, BCP_vec<Pair2>& collb, BCP_vec<Pair2>& colub);
+	bool check_connectivity(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd);
+	void set_bd(int id, double lb, double ub, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd);
+    bool translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd);
+    void reset();
 };
 
 

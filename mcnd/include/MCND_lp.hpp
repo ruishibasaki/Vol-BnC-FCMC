@@ -29,13 +29,17 @@ class OsiSolverInterface;
 
 enum LP_Mode{
    /** Branch is driven by a Unfeasible pump problem.*/
-   LP_DiveToFeasibility,
+   LP_Normal = 0,
    /** Branch is driven by a Feasible pump problem.*/
-   LP_Normal,
+   LP_DiveToFeasibility = 2,
    /** Extra Iteration due to cut addition.*/
-   LP_CutAdded,
+   LP_HeuristicRunned = 4,
+   /** Extra Iteration due to cut addition.*/
+   LP_CutAddedFromHeuristic = 8,
 	/** Force node Abort.*/
-   LP_ForceNodeAbort
+   LP_ForceNodeAbort = 16,
+   /** Force node Abort.*/
+   LP_LogicalFixed = 32
 };
 
 
@@ -49,9 +53,10 @@ public:
     CutSetManager ss_manager;
     
     LPFeasChecker lpfeaschecker;
+    FlowConnect flwconnect;
     Pump pump_heur;
     
-    LP_Mode lp_mode;
+    int lp_mode;
     double LBi;
 
     bool aborted;
@@ -59,9 +64,9 @@ public:
     std::vector<double> y;
     std::vector<Pair> ninsp;
     std::vector<PairF> psdcost;
-
+	
+	int num_new_vi;
     std::deque<const Cover *> track;
-    std::deque<Pair2> candidates;
     BCP_vec<Pair2> to_logical_fix;
 
     std::map<int, int> mapd;
@@ -69,7 +74,7 @@ public:
     
         
 public:
-    MCND_lp() : LBi(0), has_sol(false), track(0), aborted(false) { lp_mode = LP_Normal;}
+    MCND_lp() : LBi(0), has_sol(false), track(0), aborted(false) { lp_mode = LP_Normal; num_new_vi=0;}
     ~MCND_lp();
     
     
@@ -250,7 +255,7 @@ public:
     void rearrange_bd_vec(int old_sz, int added, BCP_vec< double >& bd_vars );
     
     //--------------------------------------------------------------------------
-    void verify_children_feasibility(BCP_lp_branching_object * candidate, bool& feas0, bool& feas1 );
+    int verify_children_feasibility(BCP_lp_branching_object * candidate, bool& feas0, bool& feas1 );
 	bool verify_feasibility(const BCP_vec<int> & vars_chngd, int nvars);
 	void strong_branch_var_logicfix(BCP_lp_branching_object * candidate);    
 };

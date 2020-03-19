@@ -27,18 +27,17 @@ public:
     Cover *begin;
     Cover *end;
     
-    int newly_added;
     //--------------------------------------
     //  Construction/Destruction methods
     //---------------------------------------
     
     void initialize(int M);
     inline CoverCollection():map(0),begin(0),end(0){
-        discarted = sizeOfIdSeq = sizeOfMap = sizeOfCollection = newly_added=0; empty=true;}
+        discarted = sizeOfIdSeq = sizeOfMap = sizeOfCollection = 0; empty=true;}
     
     ~CoverCollection();
     
-    Cover * createNewCover(const std::deque<Pair2>& c, double mu, int id_vi, int serial_num_);
+    Cover * createNewCover(const std::deque<Pair2>& c, int id_vi, int serial_num_);
 
     //--------------------------------------
     //  insert/del methods
@@ -130,19 +129,25 @@ public:
     double hs;
     double rhs;
     double rhs_dimsh;
+	
+	//--------------------------------------
 
     void addArc(int iset, int arc);
     void removeArc(int iset, int arc);
     bool hasArc(int iset, int arc) const ;
     int at(int pos)const ;
     double gamma_at(int pos)const;
-    
+
+    //--------------------------------------
+ 
     void print();
     void addLftd(CoverL * l);
     void get_total_sz_rhs(int & sz, double &rhs)const;
     int get_total_sz()const;
     double get_total_rhs() const;
     double get_rhs() const;
+  
+    //--------------------------------------
 
     double viol(const double *y)const;
     bool check_updt_Viol(const double *y);
@@ -161,6 +166,7 @@ public:
         hs=0;
         prgbl=false;
 		serial_nmbr = serial_nmbr_;
+		maxsize=0;
     }
     inline ~Cover(){
         delete [] id_seq;
