@@ -560,7 +560,7 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
     std::list<HeapCell> heap;
     //get reduced cost for each commodity in arc e
     for(int k=ndemands; k--; ){
-        if(rc[szunfxd + k*sznz + a]<0.0){
+        if(rc[szunfxd + k*sznz + a]<0.0 && colub[narcs+k*narcs+arc]>0.0){
             heap.push_back(HeapCell(k,rc[szunfxd + k*sznz + a]));
         }else x[szunfxd + k*sznz + a]=0.0;
     }
@@ -742,7 +742,6 @@ OsiVolSolverInterface::translate_dualsol(){
         }
     }
     //std::cout<<"ok "<<cover_manager->covers.sizeOfCollection<<std::endl;
-    int fidx = ndemands*nnodes;
     int sz = cover_manager->covers.sizeOfCollection;
     Cover* vi = cover_manager->covers.end;    
 	for(;sz--;){

@@ -92,8 +92,11 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	}
 	candidates.clear();
 	std::cout<<"do branch "<<ncands<<" force: "<<force_branch<<std::endl;
-    if(ncands) return BCP_DoBranch;
-    else{
+    if(ncands){
+     	lp_mode |= LP_StrongBranch;
+     	return BCP_DoBranch;
+    }else{
+    	std::cout<<"NO CAND"<<std::endl;
     	lp_mode = LP_Normal;
     	return BCP_DoNotBranch_Fathomed;
 	}
@@ -152,23 +155,25 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
 			}
-			Arc * item  =  &data.arcs[a];
-			double tt=0;
-			for (int k=data.ndemands; k--;){
-				int id = data.narcs+k*data.narcs+a;
-				if(vars[id]->ub()==0.0) continue;
-				ckij = item->c[k] - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
-				if(ckij>0 ){
-					tt = (gij > 0) ? (lb+ gij) : lb;
-					if(tt + ckij*vars[id]->ub() > upper_bound() ){
-						double bd = (upper_bound() - tt)/ckij;
-						if(bd<1e-8)bd=0.0;
-						if(bd > vars[id]->ub()){ std::cout<<"flow logical fix enlarged ub "<<bd<<" "<<vars[id]->ub()<<std::endl; abort();}
-						std::cout<<"flowlogfix: "<<id<<" "<<bd<<" "<<vars[id]->ub()<<std::endl;
-						changed_pos.push_back(id);
-						new_bd.push_back(0.0);
-						new_bd.push_back(bd);
-					}
+		}else if(vars[a]->ub()==0.0) continue;
+		//std::cout<<"aqui "<<a<<std::endl;
+		Arc * item  =  &data.arcs[a];
+		double tt=0;
+		for (int k=data.ndemands; k--;){
+			int id = data.narcs+k*data.narcs+a;
+			if(vars[id]->ub()==0.0) continue;
+			ckij = item->c[k] - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
+			if(ckij>0 ){
+				tt = (gij > 0) ? (lb+ gij) : lb;
+				if(tt + ckij*vars[id]->ub() > upper_bound() ){
+					double bd = (upper_bound() - tt)/ckij;
+					if(bd<1e-8)bd=0.0;
+					if(bd > vars[id]->ub()){ std::cout<<"flow logical fix enlarged ub "<<bd<<" "<<vars[id]->ub()<<std::endl; abort();}
+					else if(vars[id]->ub()-bd <= 1e-4) continue;
+					//std::cout<<"flowlogfix: "<<id<<" "<<bd<<" "<<vars[id]->ub()<<std::endl;
+					changed_pos.push_back(id);
+					new_bd.push_back(0.0);
+					new_bd.push_back(bd);
 				}
 			}
 		}
@@ -341,7 +346,7 @@ MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, int nvars){
 	const double * collb = lpsolver->getColLower();
     const double * colub = lpsolver->getColUpper();
     
-    int ret = lpfeaschecker.solve(collb, colub);
+    int ret = lpfeaschecker.solve_feas(collb, colub);
     if(ret<0) return false;
     else return true;
 }

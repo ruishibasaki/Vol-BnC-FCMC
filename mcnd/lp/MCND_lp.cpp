@@ -90,7 +90,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 void 
 MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
                       BCP_var_set& vars, BCP_cut_set& cuts){
-    //if(lp_mode & LP_ForceNodeAbort) return;
+	//if(lp_mode & LP_ForceNodeAbort) return;
     std::cout<<"load problem "<<core->varnum()<<" "<<cuts.size()<<std::endl;
     cover_manager.clean_collection();
     int cutnum = cuts.size();
@@ -273,7 +273,6 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
                              const BCP_vec<BCP_var*>& vars,
                              const BCP_vec<BCP_cut*>& cuts){
     
-    if(lp_mode & LP_ForceNodeAbort) return upper_bound();
 
     const int tc = lpres.termcode();
     if((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
@@ -281,12 +280,8 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 		abort();
 	}
 	 
-    //std::cout<<"compute lower bound: "<<(tc & BCP_ProvenOptimal)<<" "<<(tc & BCP_PrimalObjLimReached)<<std::endl;
+    std::cout<<"compute lower bound: "<<(tc & BCP_ProvenOptimal)<<" "<<(tc & BCP_PrimalObjLimReached)<<std::endl;
     LBi = std::max(lpres.objval(),LBi);
-
-    if ((tc & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached)
-        return upper_bound();
-    
     
     return LBi;
     
@@ -324,18 +319,34 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
                           const BCP_vec<BCP_var*>& vars,
                           const BCP_vec<BCP_cut*>& cuts){
     
+    if(lp_mode & LP_StrongBranch || 
+    	lp_mode & LP_ForceNodeAbort ||
+    	lp_mode & LP_HeuristicRunned ) return 0;
+
     //std::cout<<"test feasibility "<<std::endl;
-    /*std::vector<int> topo(data.narcs,-1);
+	const double *sol = lp_result.x();
+	double fathmval=0; int cont=0;
 	for (int a=data.narcs; a--;){
-        if(vars[a]->lb()==1.0){ topo[a] = 1;
-        }else if(vars[a]->ub()==0.0){ topo[a] = 0; std::cout<<"closed arc: "<<a<<std::endl;}
+         if(sol[a]>1e-8 && sol[a]<(1-1e-8)) return 0;
+         if(vars[a]->lb()>0.5)fathmval += data.arcs[a].f;
+         else if(vars[a]->ub()>0.5) ++cont;
     }
-    LPChecker checker;
-    checker.initialize(&data);
-    checker.create_model( topo, cover_manager.covers);
-    int ret = checker.solve();
-    if(ret<0) std::cout<<"UNFEASIBLE!!!!!!!!"<<std::endl;*/
-    return 0;
+    std::cout<<"violation: "<<getOsiVolBabSolver()->getViolation()<<std::endl;
+    //if(cont) return 0;
+    MCND_solution* mipsol = new MCND_solution(data.narcs+data.narcs*data.ndemands);
+    int ret;
+    
+    if(getOsiVolBabSolver()->getViolation()==0) {
+    	ret = lpfeaschecker.solve_opt(vars, sol);
+    	lp_mode |= LP_ForceNodeAbort ;
+    }else{ ret = lpfeaschecker.solve_opt(vars, 0);}
+    
+    if(ret<0) return 0;
+	ret = lpfeaschecker.getSolution(vars, mipsol->xy, mipsol->cost, fathmval);
+	std::cout<<"fathom value: "<<fathmval<<" ret: "<<ret<<" "<<cont<<std::endl;
+	if(ret<0 || fathmval >= upper_bound()) lp_mode |= LP_ForceNodeAbort ;
+	lp_mode |= LP_HeuristicRunned;
+	return mipsol;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -362,7 +373,6 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     if(lp_mode & LP_ForceNodeAbort ) return 0;
 	else if(lp_mode & LP_HeuristicRunned){ return 0;}
 	
-	lp_mode |= LP_HeuristicRunned;
     const double * x = lpres.x();
     double * yl = new double [data.narcs];
     std::deque<Pair2> topo;
@@ -385,15 +395,15 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
         }
     }
     if(unfixed>=data.narcs*0.1){
-		lp_mode=LP_Normal;
     	return 0;
     }
-
+	
     MCND_solution* sol = new MCND_solution(data.narcs+data.narcs*data.ndemands);
     pump_heur.reset( unfixed, topo);
-    int retval = pump_heur.solve(yl, sol->xy, sol->cost);
+    int retval = pump_heur.solve(vars, yl, sol->xy, sol->cost);
     delete [] yl;
     topo.clear();
+    lp_mode |= LP_HeuristicRunned;
     if(retval>=0){
     	has_sol =true;
     	if(upper_bound() > sol->cost)

@@ -140,6 +140,8 @@ public:
     
     /**@name Methods related to querying the solution */
     //@{
+     virtual double  getViolation() const{//std::cout<<"get primal "<<std::endl;
+        return volprob_.max_viol;}
     /// Get pointer to array[getNumCols()] of primal solution vector
     virtual const double * getColSolution() const{//std::cout<<"get primal "<<std::endl;
         return solution;}

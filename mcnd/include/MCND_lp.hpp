@@ -39,7 +39,10 @@ enum LP_Mode{
 	/** Force node Abort.*/
    LP_ForceNodeAbort = 16,
    /** Force node Abort.*/
-   LP_LogicalFixed = 32
+   LP_LogicalFixed = 32,
+	/** strong branching phase.*/
+   LP_StrongBranch = 64
+
 };
 
 

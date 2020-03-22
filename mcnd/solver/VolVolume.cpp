@@ -449,6 +449,8 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     //primal.find_max_viol(dual_lb, dual_ub); // this may be left out for speed
     
     pstar = primal; // set pstar=primal
+    primal.find_max_viol(dual_lb, dual_ub, active_size);
+    max_viol = primal.viol;
     //pstar.find_max_viol(dual_lb, dual_ub); // set violation of pstar
     
     //dual.compute_xrc(pstar.x, primal.x, rc); // compute xrc
@@ -501,6 +503,8 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         //dual.compute_xrc(pstar.x, primal.x, rc); // compute xrc
         if (dual.lcost > dstar.lcost) {
             //std::cout<<"aug: "<<dual.lcost-dstar.lcost<<std::endl;
+            primal.find_max_viol(dual_lb, dual_ub, active_size);
+            max_viol = primal.viol;
             dstar.copy(dual, active_size);
             //std::cout<<"L*: "<<dstar.lcost<<std::endl;
         }
@@ -525,7 +529,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         
         // convex combination with new primal vector
         pstar.cc(power_heur(primal, pstar, dual), primal,active_size);
-        pstar.find_max_viol(dual_lb, dual_ub, active_size); // find maximum violation of pstar
+        //pstar.find_max_viol(dual_lb, dual_ub, active_size); // find maximum violation of pstar
         if (swing.rd)
             dual.copy(dstar, active_size);
         // if there is no improvement reset dual=dstar
@@ -546,7 +550,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         }
 
         // test terminating criteria
-        const bool primal_feas = (pstar.viol < parm.primal_abs_precision);
+        const bool primal_feas = (primal.viol < parm.primal_abs_precision);
         //const double gap = VolAbs(pstar.value - dstar.lcost);
         const double gap = pstar.value - dstar.lcost;
         const bool small_gap = VolAbs(dstar.lcost) < 0.0001 ?

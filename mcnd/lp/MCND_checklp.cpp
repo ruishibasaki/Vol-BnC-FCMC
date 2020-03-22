@@ -139,6 +139,7 @@ LPChecker::solve(){
 LPChecker::~LPChecker() {
     
     try {
+    	
         cplex->clearModel();
         cplex->end();
         model->end();

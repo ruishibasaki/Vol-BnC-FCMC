@@ -196,9 +196,10 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
 	BCP_tm_user::display_final_information(lp_stat);
     if(Best_LB<lower_bound())
         Best_LB=lower_bound();
-	std::cout<<"The global lower bound: "<<Best_LB<<" / "<<lower_bound()<<std::endl;
 	
 	double ub = upper_bound();
+	if(Best_LB > ub) Best_LB = ub;
+	std::cout<<"The global lower bound: "<<Best_LB<<" / "<<lower_bound()<<std::endl;
     std::ofstream file("fileout", std::ios::app);
     file<<std::setprecision(10)<<instance<<" lb: "<<Best_LB<<" ub: "<<ub<<" gap: "<<(ub-Best_LB)/ub*100<<" nodes: "<<getTmProblemPointer()->search_tree.processed()
     <<" t: "<<double( clock() - t_start ) / double( CLOCKS_PER_SEC )<<std::endl;

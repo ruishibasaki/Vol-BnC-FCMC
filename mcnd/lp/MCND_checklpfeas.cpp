@@ -30,17 +30,22 @@ LPFeasChecker::initialize(const Data* d){
     
     set_parameters();
     
-    IloExpr obj(env);
+    IloExpr obj1(env);
+    IloExpr obj2(env);
     x = IloNumVarArray(env);
     for(int a=0;a<narcs;++a){
         for (int k = 0; k < ndemands; ++k){
             x.add(IloNumVar(env, 0.0, IloInfinity));
-            obj += x[a*ndemands+k];
+            obj1 += x[a*ndemands+k];
+            obj2 += data->arcs[a].c[k]*x[a*ndemands+k];
         }
     }
-    model.add(IloMinimize(env, obj));
-    obj.end();
-    
+    fobj1 = IloMinimize(env, obj1);
+    fobj2 = IloMinimize(env, obj2);
+    model.add(fobj1);
+    obj1.end();
+    obj2.end();
+
     for(int a=0;a<narcs;++a){
         IloExpr constraint(env);
         for (int k = 0; k < ndemands; k++) {
@@ -76,8 +81,37 @@ LPFeasChecker::initialize(const Data* d){
 }
 
 //---------------------------------------------------------------------------
+int
+LPFeasChecker::solve_opt(const BCP_vec<BCP_var*>& vars, const double * topo) {
+    IloNum ub;
+    if(topo){
+    	for(int a=0;a<narcs;++a){
+			if(topo[a]<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
+			}else{ ub = IloInfinity;}
+		
+			for(int k=0;k<ndemands;++k){
+				x[a*ndemands+k].setUB(ub);
+			}
+		}
+    }else{
+		for(int a=0;a<narcs;++a){
+			if(vars[a]->ub()<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
+			}else{ ub = IloInfinity;}
+		
+			for(int k=0;k<ndemands;++k){
+				x[a*ndemands+k].setUB(ub);
+			}
+		}
+    }
+    cplex.getObjective().setExpr(fobj2);
+	return solve();
 
-void LPFeasChecker::create_model(const double *collb, const double * colub) {
+}
+
+
+//---------------------------------------------------------------------------
+
+int LPFeasChecker::solve_feas(const double *collb, const double * colub){
     IloNum ub;
     for(int a=0;a<narcs;++a){
         if(colub[a]<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
@@ -87,14 +121,15 @@ void LPFeasChecker::create_model(const double *collb, const double * colub) {
             x[a*ndemands+k].setUB(ub);
         }
     }
+    
+	cplex.getObjective().setExpr(fobj1);
+	return solve();
 }
-
 
 //---------------------------------------------------------------------------
 
-int LPFeasChecker::solve(const double *collb, const double * colub){
-    create_model( collb,   colub);
-    //cplex.exportModel("rl.lp");
+int LPFeasChecker::solve(){
+	//cplex.exportModel("rl.lp");
 	cplex.solve();
 
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
@@ -109,7 +144,40 @@ int LPFeasChecker::solve(const double *collb, const double * colub){
 		return 0;
 	}
 	else return -3;
+}
+
+//---------------------------------------------------------------------------
+
+
+int 
+LPFeasChecker::getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double& solvalue, double &fathmval){
+ 	double flow;
+	double val;
+	double cij;
+	int ret=-1; 
+	solvalue=0;
+	IloNumArray x_(env);
+
+	cplex.getValues(x_,x);
+	for(int a=0;a<narcs;++a){
+ 		flow = 0.0;
+		for (int k = 0; k < ndemands; ++k){
+			val = x_[a*ndemands+k];
+			sol[narcs+k*narcs+a] = val;
+			cij = data->arcs[a].c[k]*val;
+			solvalue+=cij;
+			fathmval+=cij;
+			flow += val;
+		}
+		if(flow>1e-10){
+			sol[a] = 1.0;
+			solvalue+=data->arcs[a].f;
+			if(vars[a]->lb()<0.5 &&  vars[a]->ub()>0.5) ++ret;
+		}//else if(vars[a]->lb()>=0.5){//std::cout<<"LPFeasChecker::getSolution FATHOM"<<std::endl; ret = -1;
+	}
 	
+ 	std::cout<<"feasibiliy integer sol value: "<<solvalue<<std::endl;
+	return ret;
 }
 
 //---------------------------------------------------------------------------

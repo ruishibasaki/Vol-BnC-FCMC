@@ -80,13 +80,13 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     arc_unique = arc;
                     ++comm_sat;
                 }else{
-                    std::cout<<"set x_"<<arc+1<<"^"<<k+1<<" to zero. "<<vars[narcs+k*narcs+arc]->lb()<<" "<<vars[narcs+k*narcs+arc]->ub()<<std::endl;
+                    //std::cout<<"set x_"<<arc+1<<"^"<<k+1<<" to zero. "<<vars[narcs+k*narcs+arc]->lb()<<" "<<vars[narcs+k*narcs+arc]->ub()<<std::endl;
                     id = narcs+k*narcs+arc;
                     if(vars[id]->ub()>0 && vars[id]->lb()==0)
                     	set_bd(id, 0.0, 0.0,  changed_pos, new_bd);
-                    else if(vars[id]->lb()>0) return false;
+                    else if(vars[id]->lb()>0){ std::cout<<"aqui1"<<std::endl; return false;}
                     if(++count_closed[arc] == ndemands){
-                    	if(vars[arc]->lb()>0) return false;
+                    	if(vars[arc]->lb()>0){ std::cout<<"aqui2 "<<arc<<" "<<vars[arc]->lb()<<std::endl; return false;}
                     	set_bd(arc, 0.0, 0.0,  changed_pos, new_bd);
 						std::cout<<"close the entire arc "<<arc+1<<". "<<vars[arc]->lb()<<" "<<vars[arc]->ub()<<std::endl;
                     }
@@ -97,12 +97,15 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	id = narcs+k*narcs+arc_unique;
                 	double dk = data->d_k[k].quantity;
                 	std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
-                	if(vars[id]->ub() < dk) return false;
+                	if(vars[id]->ub() < dk){ std::cout<<"aqui3"<<std::endl; return false;}
                 	set_bd(id, dk, dk,  changed_pos, new_bd);
-                	set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
-                    std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
-                    std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
+                	if(vars[arc_unique]->lb() < 0.5){
+                		set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
+                    	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
+                    	std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
+                	} 
                 }else if(comm_sat==0){
+                	std::cout<<"aquiinfeas"<<std::endl;  
                     return false;
                 }
             }else if(n == (data->d_k[k].D-1)){
@@ -118,12 +121,15 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	int id = narcs+k*narcs+arc_unique;
                 	double dk = data->d_k[k].quantity;
                 	std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
-                	if(vars[id]->ub() < dk) return false;
+                	if(vars[id]->ub() < dk){ std::cout<<"aqui4"<<std::endl; return false;}
                 	set_bd(id, dk, dk,  changed_pos, new_bd);
-                	set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
-                    std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
-                    std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
+                	if(vars[arc_unique]->lb() < 0.5){
+                		set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
+                    	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
+                    	std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
+                	} 
                 }else if(comm_sat==0){
+                    std::cout<<"aquiinfeas"<<std::endl;  
                     return false;
                 }
             }
@@ -154,7 +160,7 @@ FlowConnect::check_connectivity(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& cha
             BFS(false, i, adjb, labelb, Kd[i]);
         }
     }
-    if(!translate_results(vars, changed_pos, new_bd)){ abort(); return false;}
+    if(!translate_results(vars, changed_pos, new_bd)){ std::cout<<"check_connectivity::false"<<std::endl; return false;}
     
     reset();
     return true;
@@ -220,7 +226,7 @@ FlowConnect::~FlowConnect(){
 	
 	labelf.clear();
 	labelb.clear();
-	for(int i=data->ndemands;i--;){
+	for(int i=data->nnodes;i--;){
 		delete [] Ko[i] ;
 		delete [] Kd[i] ;	
 	}
@@ -239,7 +245,7 @@ FlowConnect::~FlowConnect(){
 
 BCP_buffer& 
 Data::pack(BCP_buffer& buf){
-	std::cout<<"pack data"<<std::endl;
+	//std::cout<<"pack data"<<std::endl;
     const Arc* item;
     const Demand* itemd;
 	buf.pack(nnodes).pack(narcs).pack(ndemands);
@@ -264,7 +270,7 @@ Data::pack(BCP_buffer& buf){
 
 BCP_buffer& 
 Data::unpack(BCP_buffer& buf){
-	std::cout<<"unpack data"<<std::endl;
+	//std::cout<<"unpack data"<<std::endl;
 	buf.unpack(nnodes).unpack(narcs).unpack(ndemands);
     if(arcs.empty()) arcs.resize(narcs);
     if(d_k.empty()) d_k.resize(ndemands);

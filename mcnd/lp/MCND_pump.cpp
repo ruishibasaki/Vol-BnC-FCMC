@@ -42,6 +42,10 @@ Pump::reset( int szunfix_, std::deque<Pair2>& topo ){
 	
 	int arc;
 	double norm=0;
+	
+	if(szunfix_==0) alpha= 1.0;
+	else alpha= 0.5; 
+	
 	for(int a=szunfix;a--;){
 		arc = topo[a].fst;
 		norm+= pow(data->arcs[arc].f,2);
@@ -62,7 +66,7 @@ Pump::reset( int szunfix_, std::deque<Pair2>& topo ){
 
 //-------------------------------------------------------------------------------------------
 
-void Pump::create_model() {	
+void Pump::create_model(const BCP_vec<BCP_var*>& vars) {	
 	Pair2 item;
 	int arc;
 	double c;
@@ -79,7 +83,7 @@ void Pump::create_model() {
 		obj += c*y[a];
 		
 		for (int k = 0; k < ndemands; ++k){
-			x.add(IloNumVar(env));
+			x.add(IloNumVar(env, 0.0, vars[narcs+k*narcs+arc]->ub()));
 			obj += factorxy*data->arcs[arc].c[k]*x[a*ndemands+k];
 		}
 	}
@@ -152,16 +156,18 @@ void Pump::create_model() {
 
 
 int 
-Pump::cut(const IloNumArray & y_, const IloNumArray & x_){
+Pump::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArray & x_){
 	int arc;
 	int cont=0;
+	double ub;
 	for(int a=0;a<szunfix;++a){
 		arc = ytopo[a].fst;
 		for (int k = 0; k < ndemands; ++k){
-			if(x_[a*ndemands+k] - data->arcs[arc].b[k]*y_[a]> 1e-10 ){
+			ub = vars[narcs+k*narcs+arc]->ub();
+			if(x_[a*ndemands+k] - ub*y_[a]> 1e-10 ){
 				IloExpr constraint(env);
 				constraint -= x[a*ndemands+k];
-				constraint+= data->arcs[arc].b[k]*y[a];
+				constraint+= ub*y[a];
 				++cont;
 				model->add((constraint >= 0));
 				constraint.end();
@@ -179,9 +185,9 @@ Pump::cut(const IloNumArray & y_, const IloNumArray & x_){
 
 
 int 
-Pump::solve(double * yl, double * xy, double & val){
+Pump::solve(const BCP_vec<BCP_var*>& vars, double * yl, double * xy, double & val){
 	
-	create_model();
+	create_model(vars);
 	//cplex.exportModel("t.lp");
 	cplex.solve();
 	
@@ -199,7 +205,7 @@ Pump::solve(double * yl, double * xy, double & val){
 
 	cplex.getValues(x_,x);
 	cplex.getValues(y_,y);
-	while(cut(y_,x_)){
+	while(cut(vars, y_,x_)){
 		cplex.solve();
 		std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
 		cplex.getValues(y_,y);

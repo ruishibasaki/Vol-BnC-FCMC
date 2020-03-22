@@ -345,7 +345,7 @@ public:
    // v=b-Ax, for the relaxed constraints
    VOL_dvector v; 
 
-    VOL_primal(const int psize, const int dsize) : x(psize), v(dsize) {v=0.0; x=0.0; viol=0.0; value=0.0;}
+    VOL_primal(const int psize, const int dsize) : x(psize), v(dsize) {v=0.0; x=0.0; viol=1e30; value=0.0;}
    VOL_primal(const VOL_primal& primal) :
       value(primal.value), viol(primal.viol), x(primal.x), v(primal.v) {}
    ~VOL_primal() {}
@@ -677,6 +677,7 @@ public:
    //@{
    /** final lagrangian value (OUTPUT) */
    double value;
+   double max_viol;
    /** final dual solution (INPUT/OUTPUT) */
    VOL_dvector dsol;
    /** final primal solution (OUTPUT) */

@@ -14,7 +14,10 @@ public:
     IloEnv env;
     IloCplex cplex;
     IloModel model;
-    
+   
+    IloObjective fobj1;
+    IloObjective fobj2;
+
     IloNumVarArray x;
     
 
@@ -22,14 +25,16 @@ public:
     const Data* data;
     
     // construtores
-    inline LPFeasChecker():model(env), cplex(env), x(env) {};
+    inline LPFeasChecker():model(env), cplex(env), x(env), fobj1(env), fobj2(env) {};
     virtual ~LPFeasChecker();
     
     
     void set_parameters();
     void initialize(const Data* d);
-    void create_model(const double *collb, const double * colub);
-    int solve(const double *collb, const double * colub);
+    int solve_opt(const BCP_vec<BCP_var*>& vars, const double * topo);
+    int solve_feas(const double *collb, const double * colub);
+    int solve();
+    int getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double & solvalue, double &fathmval);
 
 };
 

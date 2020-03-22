@@ -4,6 +4,7 @@
 #include <ilcplex/ilocplex.h>
 
 #include "MCND_data.hpp"
+
 #include <vector>
 #include <deque>
 
@@ -34,11 +35,11 @@ public:
 	
 	//--------------------------
 	void reset( int szunfix_, std::deque<Pair2>& topo );
-	void create_model();
+	void create_model(const BCP_vec<BCP_var*>& vars);
 	
 	//--------------------------
-	int solve(double * yl, double * xy, double & val);
-	int cut(const IloNumArray & y_, const IloNumArray & x_);
+	int solve(const BCP_vec<BCP_var*>& vars, double * yl, double * xy, double & val );
+	int cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArray & x_);
 	double getSolution(double * yl, double * xy, const IloNumArray & x_, const IloNumArray & y_ );
 
 	
