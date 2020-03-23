@@ -37,7 +37,7 @@ public:
 
 
   MCND_solution& operator=(const MCND_solution& sol);
-
+  void copy(const MCND_solution& sol, int sz);
 
   void resize(int sz){
 	 if(size == 0){

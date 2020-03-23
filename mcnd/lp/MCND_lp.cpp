@@ -15,7 +15,11 @@
 void
 MCND_lp::unpack_module_data(BCP_buffer & buf){
     //std::cout<<"try unpack to lp "<<std::endl;
-    data.unpack(buf);
+    data.unpack(buf); 
+    bool has_init_sol;
+    buf.unpack(has_init_sol);
+    if(has_init_sol) best_sol.unpack(buf);
+
     y.resize(data.narcs,0);
     ninsp.resize(data.narcs,Pair(0,0));
     psdcost.resize(data.narcs,PairF(0,0));
@@ -30,6 +34,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     AppVolData.ss_manager = &ss_manager;
     AppVolData.cover_manager = &cover_manager;
     srand(10);
+     
 }
 
 //-------------------------------------------------------------------------------------------
@@ -60,7 +65,9 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
                                          BCP_vec<double>& cut_new_bd){
     
     
-    //std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
+    ++num_nodes;
+    //std::cout<<"initialize_new_search_tree_node "<<num_nodes<<std::endl;
+    
     has_sol = getLpProblemPointer()->has_ub();
     MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
     if(nodedata!=0){
@@ -77,12 +84,13 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         		var_new_bd.clear();
         		std::cout<<"fathom node flwconnect.check_connectivity"<<std::endl;
         		lp_mode |= LP_ForceNodeAbort;
-        	}
-        		
-        } 
+        	}	
+        }
+        if(nodedata->reduced_run)lp_mode |= LP_ReducedRun;
+        std::cout<<"reduced run? "<<nodedata->reduced_run<<std::endl;
 
     }else LBi=0;
-    
+     
 }
 
 //-------------------------------------------------------------------------------------------
@@ -134,8 +142,10 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     par.dual_limit = vollp->upper_bound*5; 
     std::cout<<"limit: "<<par.dual_limit<<" "<<vollp->upper_bound<<" strongbranching:"<<in_strong_branching<<std::endl;
 
-    
-    if(!vollp->HotStartSet){
+    if(lp_mode & LP_ReducedRun){
+    	 par.maxsgriters = 100;
+    	 lp_mode &= ~LP_ReducedRun;
+    }else if(!vollp->HotStartSet){
     	if(current_level()==0) par.maxsgriters = 1000;
     	else par.maxsgriters = 500;
     }else par.maxsgriters = 250;
@@ -244,7 +254,7 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 		CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
 		if (!cut->check_viol(vars) || cut->get_cover()->prgbl ||
 			(cut->check_viol(lpres.x())==0 && lpres.pi()[cut->get_cover()->id_vi]==0)) {
-			//std::cout<<"out: "<<i<<" id: "<<cut->get_cover()->id_vi<<" srnb: "<<cut->get_cover()->serial_nmbr<<std::endl;
+			//std::cout<<"out / dual: "<<lpres.pi()[cut->get_cover()->id_vi]<<" id: "<<cut->get_cover()->id_vi<<" srnb: "<<cut->get_cover()->serial_nmbr<<std::endl;
 			cover_manager.purgbl.push_back(cut->get_cover());
 			deletable.unchecked_push_back(i);
 			cut->get_cover()->prgbl=false;
@@ -280,7 +290,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 		abort();
 	}
 	 
-    std::cout<<"compute lower bound: "<<(tc & BCP_ProvenOptimal)<<" "<<(tc & BCP_PrimalObjLimReached)<<std::endl;
+    //std::cout<<"compute lower bound: "<<(tc & BCP_ProvenOptimal)<<" "<<(tc & BCP_PrimalObjLimReached)<<std::endl;
     LBi = std::max(lpres.objval(),LBi);
     
     return LBi;
@@ -323,30 +333,45 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     	lp_mode & LP_ForceNodeAbort ||
     	lp_mode & LP_HeuristicRunned ) return 0;
 
-    //std::cout<<"test feasibility "<<std::endl;
+    std::cout<<"test feasibility "<<std::endl;
 	const double *sol = lp_result.x();
-	double fathmval=0; int cont=0;
+	double fathmval=0; 
+	int cont=0;
+	bool integer=true;
 	for (int a=data.narcs; a--;){
-         if(sol[a]>1e-8 && sol[a]<(1-1e-8)) return 0;
+         if(sol[a]>1e-8 && sol[a]<(1-1e-8)) integer=false;
          if(vars[a]->lb()>0.5)fathmval += data.arcs[a].f;
          else if(vars[a]->ub()>0.5) ++cont;
     }
-    std::cout<<"violation: "<<getOsiVolBabSolver()->getViolation()<<std::endl;
-    //if(cont) return 0;
-    MCND_solution* mipsol = new MCND_solution(data.narcs+data.narcs*data.ndemands);
-    int ret;
-    
-    if(getOsiVolBabSolver()->getViolation()==0) {
+    std::cout<<"violation: "<<getOsiVolBabSolver()->getViolation()<<" integ: "<<integer<<" unfx: "<<cont<<std::endl;
+
+    int ret=-1;
+    if(getOsiVolBabSolver()->getViolation()==0 && integer) {
     	ret = lpfeaschecker.solve_opt(vars, sol);
+    	std::cout<<"optimal::no_branch"<<std::endl;
     	lp_mode |= LP_ForceNodeAbort ;
-    }else{ ret = lpfeaschecker.solve_opt(vars, 0);}
+    }else if(cont==0 || integer){ ret = lpfeaschecker.solve_opt(vars, 0);}
+
+    if(ret<0){ return 0;} 
     
-    if(ret<0) return 0;
+    MCND_solution* mipsol = new MCND_solution(data.narcs+data.narcs*data.ndemands);
 	ret = lpfeaschecker.getSolution(vars, mipsol->xy, mipsol->cost, fathmval);
-	std::cout<<"fathom value: "<<fathmval<<" ret: "<<ret<<" "<<cont<<std::endl;
-	if(ret<0 || fathmval >= upper_bound()) lp_mode |= LP_ForceNodeAbort ;
+	if(ret<0 || fathmval >= upper_bound()){
+		std::cout<<"fathom value: "<<fathmval<<" ret: "<<ret<<" "<<cont<<std::endl;
+		lp_mode |= LP_ForceNodeAbort ;
+	}
+	
+	if(cont ==0) lp_mode |= LP_ForceNodeAbort;
 	lp_mode |= LP_HeuristicRunned;
-	return mipsol;
+	    		
+	if(upper_bound() > mipsol->cost){
+		has_sol =true;
+		best_sol.copy(*sol, data.narcs);
+		return mipsol;
+	}
+	delete mipsol;
+	return 0;
+	
 }
 
 //-------------------------------------------------------------------------------------------
@@ -368,17 +393,16 @@ BCP_solution*
 MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
                                      const BCP_vec<BCP_var*>& vars,
                                      const BCP_vec<BCP_cut*>& cuts){
-    std::cout<<"try heuristic "<<std::endl;
     //if(current_level() >100000){ lp_mode=LP_Normal;   return 0;}
     if(lp_mode & LP_ForceNodeAbort ) return 0;
-	else if(lp_mode & LP_HeuristicRunned){ return 0;}
-	
+
     const double * x = lpres.x();
     double * yl = new double [data.narcs];
     std::deque<Pair2> topo;
     std::deque<Pair2> forced0;
     
     int unfixed=0;
+    int cont=0;
     for (int a=data.narcs; a--;){
     	yl[a] = 0;
         if(vars[a]->lb()==1.0){
@@ -392,12 +416,17 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
             	}else topo.push_front(Pair2(a, 0));
             	++unfixed;
             }else{ forced0.push_back(Pair2(a,1.0)); }//std::cout<<"cand: "<<a<<" "<<x[a]<<std::endl;}
+        	++cont;
         }
     }
-    if(unfixed>=data.narcs*0.1){
-    	return 0;
-    }
-	
+    
+    if(cont>0){
+    if(lp_mode & LP_HeuristicRunned){ topo.clear(); forced0.clear(); return 0;}
+	else if(num_nodes%100){ topo.clear(); forced0.clear();  return 0;}
+    else if(unfixed>=data.narcs*0.1){ topo.clear(); forced0.clear(); return 0; }}
+    
+	std::cout<<"try heuristic "<<std::endl;
+
     MCND_solution* sol = new MCND_solution(data.narcs+data.narcs*data.ndemands);
     pump_heur.reset( unfixed, topo);
     int retval = pump_heur.solve(vars, yl, sol->xy, sol->cost);
@@ -405,9 +434,12 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     topo.clear();
     lp_mode |= LP_HeuristicRunned;
     if(retval>=0){
-    	has_sol =true;
-    	if(upper_bound() > sol->cost)
+    	if(upper_bound() > sol->cost){
+    		has_sol =true;
+    		best_sol.copy(*sol, data.narcs);
     		return sol;
+    	}
+    		
     }else{
     	OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     	vollp->add_external_vi(forced0);

@@ -18,7 +18,7 @@ public:
   double Best_LB;
   std::string instance;
   
-  MCND_solution best_soln;
+  MCND_solution init_sol;
   
   clock_t t_start;
 public:

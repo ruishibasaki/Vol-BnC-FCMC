@@ -155,6 +155,34 @@ double read_init_sol(std::string fname, std::string instance, double * xy) {
         ss.clear();
     }
     file.close();
+    instance_inline = "../results/heursolutions/sol"+instance_inline.substr(instance_inline.find("/")+1); 
+    std::cout<<"file: "<<instance_inline<<std::endl;
+    file.open(instance_inline.c_str());
+    if (!file.is_open()) {
+        std::cout<<"Failure to open datafile: %s\n "<<fname;
+        abort();
+    }
+    
+    std::string aux;
+	int sz, arc;
+    ss.clear();
+    getline(file,s);
+    ss.str(s);
+    
+    ss>>aux;
+	ss>>sz;
+	ss.clear();
+	//std::cout<<aux<<" "<<sz<<std::endl;
+    for(;sz--;){
+    	getline(file,s);
+    	ss.str(s);
+    	ss>>aux;
+    	ss>>arc;
+    	xy[arc] =1.0;
+    	//std::cout<<arc<<std::endl;
+    	ss.clear();
+    }
+    file.close();
     return val;
 }
 
@@ -191,6 +219,8 @@ void read_init_dualsol(std::string fname, const Data & data, double * dual){
     	++cont;
         ss.clear();
     }
+    file.close();
+    
 }
 
 //----------------------------------------------------------------------------------

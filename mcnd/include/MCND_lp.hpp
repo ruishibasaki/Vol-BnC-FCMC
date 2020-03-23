@@ -38,11 +38,14 @@ enum LP_Mode{
    LP_CutAddedFromHeuristic = 8,
 	/** Force node Abort.*/
    LP_ForceNodeAbort = 16,
-   /** Force node Abort.*/
+   /** logical fixing happend in strong branch.*/
    LP_LogicalFixed = 32,
+	/**test connectivity due to Logical fix.*/
+   LP_TestConnectivity = 64,
 	/** strong branching phase.*/
-   LP_StrongBranch = 64
-
+   LP_StrongBranch = 128,
+  /** Make less iterations.*/
+   LP_ReducedRun = 256
 };
 
 
@@ -64,20 +67,22 @@ public:
 
     bool aborted;
     bool has_sol;
+    MCND_solution best_sol;
+
     std::vector<double> y;
     std::vector<Pair> ninsp;
     std::vector<PairF> psdcost;
 	
 	int num_new_vi;
+	int num_nodes;
     std::deque<const Cover *> track;
     BCP_vec<Pair2> to_logical_fix;
 
     std::map<int, int> mapd;
-	
     
         
 public:
-    MCND_lp() : LBi(0), has_sol(false), track(0), aborted(false) { lp_mode = LP_Normal; num_new_vi=0;}
+    MCND_lp() : LBi(0), has_sol(false), track(0), aborted(false) { lp_mode = LP_Normal; num_new_vi=0; num_nodes=0;}
     ~MCND_lp();
     
     

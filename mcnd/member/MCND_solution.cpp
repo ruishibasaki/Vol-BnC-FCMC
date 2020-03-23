@@ -48,6 +48,24 @@ MCND_solution::unpack(BCP_buffer& buf) {
 
 //#############################################################################
 
+void 
+MCND_solution::copy(const MCND_solution& sol, int sz){
+  bool alloc=false;
+  if(size==0)alloc=true;
+  
+  sz = sol.size < sz? sol.size: sz;
+  cost = sol.cost;
+  size = sz;
+  
+  if(alloc)xy=new double[sz];
+    for(int i=sz;i--;)
+		xy[i] = sol.xy[i];
+		
+}
+
+
+//#############################################################################
+
 MCND_solution&
 MCND_solution::operator=(const MCND_solution& sol) {
 	//std::cout<<"copy solution"<<std::endl;

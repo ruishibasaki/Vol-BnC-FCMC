@@ -111,7 +111,7 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
     while (indexFirst != indexLast) {
         collb[*indexFirst] =  boundList[0];
         colub[*indexFirst] = boundList[1];
-        //if(*indexFirst<data->narcs)std::cout<<"col: "<<*indexFirst<<" = "<<boundList[0]<<" "<<boundList[1]<<std::endl;
+         //std::cout<<"col: "<<*indexFirst<<" = "<<boundList[0]<<" "<<boundList[1]<<std::endl;
         ++indexFirst;
         boundList += 2;
     }
@@ -179,9 +179,9 @@ OsiVolSolverInterface::map_duals(){
             }
             if(flag){
                 actv[k*nnodes + i] = fsize++;
-            }else{
+            }/*else{
             	HotStartSet =false;
-             }
+             }*/
         }
     }
 
@@ -256,8 +256,10 @@ OsiVolSolverInterface::set_start(){
         vi = vi->next;
     }
     
+    
     if(HotStartSet){
-    	volprob_.parm.maxsgriters=250;
+    	if(volprob_.parm.maxsgriters>250)
+    		volprob_.parm.maxsgriters=250;
 		translate_hotstart();
     }else volprob_.parm.maxsgriters=500;
 }
@@ -892,25 +894,31 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 	
 	vi = cover_manager->covers.end;
 	int sz = cover_manager->covers.sizeOfCollection;
+	std::vector<Trio1> collect(sz);
 	for(;sz--;){
-		//std::cout<<" new indice: "<<sz+fidx<<" id: "<<vi->id_vi<<" srnb: "<<vi->serial_nmbr<<std::endl;
-		idx = actv[vi->id_vi];
-		dvalue = dual[vi->id_vi];
-		vvalue = lhs_[vi->id_vi];
-		actv[vi->id_vi] = -1;
-		vi->id_vi = sz+fidx;
-		actv[vi->id_vi] = idx;
-		dual[vi->id_vi] = dvalue;
-		lhs_[vi->id_vi] = vvalue;
-			 
+		collect[sz].fst = actv[vi->id_vi];
+		collect[sz].snd = dual[vi->id_vi];
+		collect[sz].trd = lhs_[vi->id_vi];
 		vi = vi->prev;
 	}
+	sz = cover_manager->covers.sizeOfCollection;
+	vi = cover_manager->covers.end;
+	for(;sz--;){
+		//std::cout<<" new indice: "<<sz+fidx<<" id: "<<vi->id_vi<<" srnb: "<<vi->serial_nmbr<<std::endl;		 
+		actv[vi->id_vi] = -1;
+		vi->id_vi = sz+fidx;
+		actv[vi->id_vi] = collect[sz].fst;
+		dual[vi->id_vi] = collect[sz].snd;
+		lhs_[vi->id_vi] = collect[sz].trd;	 
+		vi = vi->prev;
+	}
+	collect.clear();
 	//std::cout<<"ok"<<std::endl;
 	cover_manager->num_actv =  cover_manager->covers.sizeOfCollection;
 	/*vi = cover_manager->covers.end;
 	sz = cover_manager->covers.sizeOfCollection;
 	for(;sz--;){
-		//std::cout<<"vi serial: "<<vi->serial_nmbr<<std::endl;
+		std::cout<<"vi serial: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<" sol: "<<dual[vi->id_vi]<<std::endl;
 		//std::cout<<"sol "<<fidx+sz<<" "<<vi->id_vi<<" "<<dual[fidx+sz]<<std::endl;
 		vi = vi->prev;
 	}*/

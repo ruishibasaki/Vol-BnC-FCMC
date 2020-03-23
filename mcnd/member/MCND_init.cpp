@@ -71,18 +71,20 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    MCND_tm* tm = new MCND_tm;
 
    MCND_read_data(arglist[2], tm->data);
-   double * xy=0;
-   double ub=0;
    std::string inst(arglist[2]);
    inst = inst.substr(inst.find("instances")+10); 
    tm->instance = inst;
-   ub = read_init_sol("upper_bound.txt", inst, xy);
-   if(ub>0){
-   		int sz = tm->data.narcs+tm->data.narcs*tm->data.ndemands;
-   		double *s = new double[sz];
-   		for(int i=sz;i--;) s[i]=0;
-		p.upper_bound = ub;
-   		p.feas_sol = new MCND_solution(sz, ub, s);
+   		 
+  
+   tm->init_sol.size = tm->data.narcs;
+   tm->init_sol.xy = new double [tm->data.narcs];
+   for(int a=tm->data.narcs;a--;)tm->init_sol.xy[a]=0.0;
+   tm->init_sol.cost = read_init_sol("upper_bound.txt", inst, tm->init_sol.xy);
+   if(tm->init_sol.cost>0){
+		p.upper_bound = tm->init_sol.cost;
+		MCND_solution * sol = new MCND_solution();
+		sol->copy(tm->init_sol, tm->data.narcs);
+   		p.feas_sol = sol;
    }
 
    p.par.set_entry(BCP_tm_par::Granularity, 1e-2);
@@ -96,6 +98,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    p.par.set_entry(BCP_tm_par::MessagePassingIsSerial, true);
 
    p.par.set_entry(BCP_tm_par::MaxRunTime, 3600.0);
+
    tm->t_start = clock();
    return tm; 
 }

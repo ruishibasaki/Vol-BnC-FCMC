@@ -27,16 +27,18 @@ public:
 	int pos_neg;
 	int branch_var;
  	bool test_conn;
+ 	bool reduced_run;
 	
 	MCND_node_branch_data(const MCND_node_branch_data& rhs);
 	
-    MCND_node_branch_data(): hs(0), min_lb(0), test_conn(false) {}
+    MCND_node_branch_data(): hs(0), min_lb(0), test_conn(false) {reduced_run=false;}
 	
     MCND_node_branch_data(int dual_size_, double score_, int branch_var_, int zrone,   double min_lb_, bool test_con):hs(0){
          score = score_; branch_var = branch_var_; pos_neg = zrone;  
         dual_size = dual_size_;
         min_lb =min_lb_;
         test_conn = test_con;
+        reduced_run=false;
     }
     
 	inline ~MCND_node_branch_data(){

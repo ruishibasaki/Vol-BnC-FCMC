@@ -28,6 +28,8 @@ MCND_tm::pack_module_data(BCP_buffer& buf, BCP_process_t ptype)
     case BCP_ProcessType_LP:
     std::cout<<"try to pack data to lp "<<data.ndemands<<" "<<data.narcs<<" "<<data.nnodes<<std::endl;
           data.pack(buf);
+          buf.pack(getTmProblemPointer()->has_ub());
+          init_sol.pack(buf);
     break;
   default:
 abort();
@@ -40,11 +42,11 @@ BCP_solution*
 MCND_tm::unpack_feasible_solution(BCP_buffer& buf)
 {
 	
-	//std::cout<<"unpack feas solu"<<std::endl;
+	std::cout<<"unpack feas solu"<<std::endl;
    MCND_solution* new_sol = new MCND_solution;
    new_sol->unpack(buf);
    //if (new_sol->objective_value() > best_soln.objective_value())
-	best_soln = *new_sol;
+   //init_sol = *new_sol;
       	//std::cout<<"done"<<std::endl;
 
    return new_sol;
