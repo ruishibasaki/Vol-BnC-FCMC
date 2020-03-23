@@ -34,7 +34,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	if(lp_mode & LP_ForceNodeAbort){
 		std::cout<<"node abort"<<std::endl;
-		lp_mode = LP_Normal;
+		//lp_mode = LP_Normal;
         return BCP_DoNotBranch_Fathomed;
 	}
 	
@@ -102,7 +102,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
      	return BCP_DoBranch;
     }else{
     	std::cout<<"NO CAND"<<std::endl;
-    	lp_mode = LP_Normal;
+    	//lp_mode = LP_Normal;
     	return BCP_DoNotBranch_Fathomed;
 	}
 }
@@ -263,7 +263,7 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     //BCP_lp_branching_object * cand = best->candidate();
     //std::cout<<" cand children: "<<cand->child_num<<std::endl;
     if(lp_mode & LP_ForceNodeAbort){
-		lp_mode = LP_Normal;
+		//lp_mode = LP_Normal;
 		return;
 	}
 	
@@ -288,7 +288,7 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
     if(lp_mode & LP_TestConnectivity) cdata->test_conn=true;
     cdata->hs = new WarmStartDual(cdata->dual_size, child1.pi(), mapd);//std::cout<<cdata->dual_size<<" "<<sz<<std::endl;
-    lp_mode = LP_Normal;
+    //lp_mode = LP_Normal;
 }
 
 //-------------------------------------------------------------------------------------------

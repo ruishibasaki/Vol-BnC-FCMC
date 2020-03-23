@@ -119,7 +119,9 @@ int LPFeasChecker::solve_feas(const double *collb, const double * colub){
         }else{ ub = IloInfinity;}
         
         for(int k=0;k<ndemands;++k){
-            x[a*ndemands+k].setUB(ub);
+        	if(ub>0)
+            	x[a*ndemands+k].setUB(colub[narcs+k*narcs+a]);
+            else x[a*ndemands+k].setUB(0.0);
         }
     }
     

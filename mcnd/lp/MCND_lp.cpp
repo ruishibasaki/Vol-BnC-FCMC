@@ -66,7 +66,8 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     
     
     ++num_nodes;
-    //std::cout<<"initialize_new_search_tree_node "<<num_nodes<<std::endl;
+    lp_mode = LP_Normal;
+    std::cout<<"initialize_new_search_tree_node "<<num_nodes<<" "<<lp_mode <<std::endl;
     
     has_sol = getLpProblemPointer()->has_ub();
     MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
@@ -153,8 +154,8 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     if(current_level()>0){  AppVolData.intvlVI = 100;}
     
     if(in_strong_branching){ vollp->min_lower_bound = LBi;  vollp->mode=0;}
-    else if(changeType==1 || lp_mode & LP_ForceNodeAbort ){ vollp->mode=-1;  }
-    else if((lp_mode & LP_CutAddedFromHeuristic) ){vollp->mode=-1; }
+    else if(changeType==1 || lp_mode & LP_ForceNodeAbort ){ vollp->mode=-1; std::cout<<"changeType "<<changeType<<" lpmode: "<<(lp_mode & LP_ForceNodeAbort)<<std::endl; }
+    else if((lp_mode & LP_CutAddedFromHeuristic) ){vollp->mode=-1; std::cout<<"LP_CutAddedFromHeuristic"<<std::endl;}
     else{ vollp->mode=1;}
     vollp->in_strong_branch = in_strong_branching;
 
