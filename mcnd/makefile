@@ -18,7 +18,9 @@ suffix_cg = \
 	covermanager \
 	cutsetmanager \
 	cutsetcollection \
-	lift 
+	lift\
+	localcutmanager\
+	localcutcollection
 
 suffix_tm = \
 	MCND_tm \

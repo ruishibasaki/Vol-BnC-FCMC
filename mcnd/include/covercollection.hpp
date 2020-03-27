@@ -49,7 +49,7 @@ public:
     void replace(Cover * out, Cover * in);
     void pop_back_nodel();
     Cover * remove_nodel(Cover * trgt);
-    int removeCover(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu);
+    int desactvCover(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu, int num_actv);
 
     //--------------------------------------
     //  VI methods

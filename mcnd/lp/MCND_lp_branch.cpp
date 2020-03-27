@@ -64,10 +64,10 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 					psc0 = psol[a];
 					psc1 = (1.0-psol[a]);
 				} 
-				if(has_sol){
+				/*if(has_sol){
 					psc0 = abs(best_sol.xy[a] - psol[a]);
 					psc1 = abs(best_sol.xy[a] - psol[a]);
-				}
+				}*/
 				candidates.push_back(Pair2(a, fmin(psc0, psc1)));
 				//candidates.push_back(Pair2(a, min(psol[a]-0.7)));
 			}
@@ -129,7 +129,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
     double lb = lpres.objval();
     double gij, ckij;
     
-    for (int a=data.narcs; a--;) yarcs[a] = 0;
+    std::fill(yarcs, yarcs+data.narcs, 0);
     const int cutnum = cuts.size();
 	for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
 		CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
@@ -159,6 +159,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				changed_pos.push_back(a);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
+				yarcs[a]=1;
 			}
 		}else if(vars[a]->ub()==0.0) continue;
 		Arc * item  =  &data.arcs[a];
@@ -167,9 +168,9 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			int id = data.narcs+k*data.narcs+a;
 			if(vars[id]->ub()==0.0) continue;
 			ckij = item->c[k] - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
-			if(ckij>0){
-				tt = (gij > 0) ? (lb+ gij) : lb;
-				if(tt + ckij*vars[id]->ub() > upper_bound() ){
+			if(ckij>1e-4){
+				tt = ((gij > 0)&& (yarcs[a]==0)) ? (lb+ gij) : lb;
+				if(tt + ckij*vars[id]->ub() > (upper_bound()+1e-4) ){
 					double bd = (upper_bound() - tt)/ckij;
 					if(bd<1e-8)bd=0.0;
 					if(bd > vars[id]->ub()){ std::cout<<"flow logical fix enlarged ub "<<bd<<" "<<vars[id]->ub()<<std::endl; abort();}

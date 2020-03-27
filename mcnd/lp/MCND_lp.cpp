@@ -29,10 +29,12 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     pump_heur.set_data(&data, 0.5);
     lpfeaschecker.initialize(&data);
     flwconnect.initialize(&data);
+    localc_manager.initialize(&data, 10);
     
     AppVolData.data = &data;
     AppVolData.ss_manager = &ss_manager;
     AppVolData.cover_manager = &cover_manager;
+    AppVolData.localc_manager = &localc_manager;
     srand(10);
      
 }
@@ -313,7 +315,11 @@ MCND_lp::process_lp_result(const BCP_lp_result& lpres,
                            BCP_vec<BCP_col*>& new_cols){
 
 	if(lp_mode & LP_ForceNodeAbort) return;
-
+	
+	/*if(current_level()==0){
+		for (int a=data.narcs; a--;)
+			std::cout<<"sol y_"<<a<<" "<<lpres.x()[a]<<std::endl;
+	}*/
     const double *y_vol = lpres.x();
     y.assign(y_vol, y_vol+data.narcs);
     getLpProblemPointer()->user_has_lp_result_processing = false;
@@ -334,7 +340,6 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     	lp_mode & LP_ForceNodeAbort ||
     	lp_mode & LP_HeuristicRunned ) return 0;
 
-    std::cout<<"test feasibility "<<std::endl;
 	const double *sol = lp_result.x();
 	double fathmval=0; 
 	int cont=0;
@@ -353,16 +358,28 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     	lp_mode |= LP_ForceNodeAbort ;
     }else if(cont==0 || integer){ ret = lpfeaschecker.solve_opt(vars, 0);}
 
+
     if(ret<0){ return 0;} 
     
     MCND_solution* mipsol = new MCND_solution(data.narcs+data.narcs*data.ndemands);
 	ret = lpfeaschecker.getSolution(vars, mipsol->xy, mipsol->cost, fathmval);
+	std::cout<<"test feasibility "<<mipsol->cost<<std::endl;
 	if(ret<0 || fathmval >= upper_bound()){
 		std::cout<<"fathom value: "<<fathmval<<" ret: "<<ret<<" "<<cont<<std::endl;
 		lp_mode |= LP_ForceNodeAbort ;
 	}
 	
-	if(cont ==0) lp_mode |= LP_ForceNodeAbort;
+	if(cont ==0){ lp_mode |= LP_ForceNodeAbort;}
+	/*if(upper_bound() > mipsol->cost && cont ==0){
+		for (int a=data.narcs; a--;){
+			for (int k=data.ndemands; k--;){
+				double val = mipsol->xy[data.narcs+k*data.narcs+a];
+				if(val > vars[data.narcs+k*data.narcs+a]->ub()){
+					std::cout<<"MCND_lp::test_feasibility "<<val<<" "<<vars[data.narcs+k*data.narcs+a]->ub()<<std::endl; abort();}
+			}
+		}
+	}*/
+	
 	lp_mode |= LP_HeuristicRunned;
 	    		
 	if(upper_bound() > mipsol->cost){

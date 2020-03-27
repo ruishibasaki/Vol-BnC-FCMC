@@ -72,19 +72,18 @@ CoverManager::clean_collection(){
 //-------------------------------------------------------------------------------------------
 
 int
-CoverManager::cover_generation_main(const double * ystar, const double * y,const CutSetCollection * sets, int actvSSz, int max){
+CoverManager::cover_generation_main(const double * ystar, const double * y,const CutSetCollection * sets, int curr_id, int max){
     CutSet * cutset;
     int added=0;
     int sz = sets->sizeOfCollection;
-    int curr = data->nnodes*data->ndemands + covers.sizeOfCollection;
-    //sets->print();
+     //sets->print();
     cutset = sets->begin;
     for(int i=0;i<sz;++i){
 
-        added+=cover_generation(cutset->ss_size, cutset->SS_arcs, cutset->uss, cutset->dss, ystar, y, actvSSz+added);
-        if(added+curr>=max) break;
-        added+=cover_generation(cutset->s_ssize, cutset->S_Sarcs, cutset->us_s, cutset->ds_s, ystar, y, actvSSz+added );
-        if(added+curr>=max) break;
+        added+=cover_generation(cutset->ss_size, cutset->SS_arcs, cutset->uss, cutset->dss, ystar, y, curr_id+added);
+        if(added+curr_id>=max) break;
+        added+=cover_generation(cutset->s_ssize, cutset->S_Sarcs, cutset->us_s, cutset->ds_s, ystar, y, curr_id+added );
+        if(added+curr_id>=max) break;
         //std::cout<<"i: "<<i<<std::endl;
         cutset = cutset->next;
     }
@@ -95,7 +94,7 @@ CoverManager::cover_generation_main(const double * ystar, const double * y,const
 //------------------------------------------------------------------------------------------
 
 int
-CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, double dss, const double * ystar, const double * y, int actvSSz){
+CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, double dss, const double * ystar, const double * y, int curr_id){
     
     std::deque<Trio1> ss_;
     std::deque<Pair2> lift_down;
@@ -114,8 +113,7 @@ CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, dou
 
     restrict_cutset(lift_down, lift_up, ss_, ystar, delta, dss, uss);
     //std::cout<<"delta in cover1: "<<delta<<std::endl;
-    int id = data->nnodes*data->ndemands + covers.sizeOfCollection;
-    cover = make_cover(delta, ss_, ystar, lift_down, luc, id );
+    cover = make_cover(delta, ss_, ystar, lift_down, luc, curr_id );
     //std::cout<<&luc<<std::endl;
     
     vi = coverlift.lift_cover(luc, lift_down , lift_up , int( delta), int(cover->rhs), int(dss));
@@ -378,6 +376,45 @@ CoverManager::add_external_cover(const std::deque<Pair2>& c, int maxNumrows_){
 	return added;
 }
 
+//----------------------------------------------------------------------------------
+
+void
+CoverManager::reposition_covers(int added){
+	
+	if(covers.sizeOfCollection == num_actv) return;
+	
+	//std::cout<<"reposition_covers "<<cover_manager->covers.sizeOfCollection <<" "<< cover_manager->num_actv<<std::endl;
+	int num_adv = num_actv - added;
+	int sz = covers.sizeOfCollection;
+	Cover * last_actv = covers.begin ;
+	covers.advance(last_actv, num_adv-1);
+	Cover * trgt = covers.end ;
+	
+	if(num_adv == 0){ 
+		for(int i = added; i-- ; ){
+			covers.begin = trgt;
+			covers.end = trgt->prev;
+			covers.end->next = 0;
+			trgt->prev = 0;
+			trgt->next = last_actv;
+			last_actv->prev = trgt;
+			last_actv = trgt;
+			trgt = covers.end ;
+		}
+		return;
+	}
+
+	for(int i = added; i--  ; ){
+		covers.end = trgt->prev;
+		covers.end->next = 0;
+		trgt->next = last_actv->next;
+		last_actv->next->prev = trgt;
+		last_actv->next = trgt;
+		trgt->prev = last_actv;
+		trgt = covers.end ;
+	}
+	
+}
 
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
@@ -682,7 +719,7 @@ CoverManager::add_cover_vi(int added, int * actvS, int & actvSSz, double * h, do
     int idx;
     Cover * vi = covers.end;
     for(int cont = added; cont--;){
-        idx = actvSSz+cont; if(actvS[vi->id_vi]>=0){ std::cout<<actvS[vi->id_vi]<<" already taken !!!!!!! for: "<<vi->id_vi<<std::endl;abort();}
+        idx = actvSSz+cont; //if(actvS[vi->id_vi]>=0){ std::cout<<actvS[vi->id_vi]<<" already taken !!!!!!! for: "<<vi->id_vi<<std::endl;abort();}
         actvS[vi->id_vi]=idx;
         dual[idx] =0;
         dual_lb[idx] = 0;

@@ -451,7 +451,6 @@ private:
     int mark_topo( VOL_dvector& x, double lcost);
     void translate_primal(const VOL_dvector& xhist);
     void translate_hotstart();
-    void reposition_covers(int num_covers);
     
 public:
     void add_external_vi(const std::deque<Pair2>& c);
@@ -491,6 +490,7 @@ public:
     double min_lower_bound;
     CoverManager* cover_manager;
     CutSetManager* ss_manager;
+    LocalCutManager* localc_manager;
     
     //feasibility solver
     /// The volume solver

@@ -144,7 +144,8 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
     
     sznz = nz_arcs.size();
     cover_manager->set_arc_map(arc_map);
-    
+	localc_manager->set_arc_map(arc_map);
+
 }
 
 //---------------------------------------------------------------------------
@@ -155,7 +156,7 @@ OsiVolSolverInterface::map_duals(){
     fsize= csize = 0;
     bool flag=false;
     const Arc* item; const Demand* itemd;
-    CoinFillN(actv, maxNumrows_, -1);
+    CoinFillN(actv, numrows_, -1);
     for(int k=0; k<ndemands; ++k ){
         for(int i=0; i<nnodes; ++i ){
             flag = false;
@@ -313,7 +314,6 @@ OsiVolSolverInterface::resolve(){
     
     // Set the dual starting point
     retval = volprob_.solve(*this, true);
-    numrows_ +=  cover_manager->gend;
     
     std::cout<<std::setprecision(10)<<"result: "<<volprob_.value<<" retval: "<<retval<<" iters: "<<volprob_.iter()<<std::endl;
     if(volprob_.value< min_lower_bound && in_strong_branch){
@@ -365,7 +365,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     
     if(mode == 0) return 0;
     
-    if((data->nnodes*data->ndemands + cover_manager->covers.sizeOfCollection)>=maxNumrows_) return 0;
+    if(numrows_>=maxNumrows_) return 0;
 
     if(iter>0 && iter%intvlVI==0 ){
         translate_primal(xstar);
@@ -374,18 +374,20 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     }
     
     if(letgen && iter>=100){
-        int num_covers = cover_manager->cover_generation_main(xstar.v, x.v, &ss_manager->sets, actvSSz, maxNumrows_);
+
+        int num_covers = cover_manager->cover_generation_main(xstar.v, x.v, &ss_manager->sets, numrows_, maxNumrows_);
         cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dual.v, dual_lb.v,  dual_ub.v );
-        
         if(num_covers>0){
-        	reposition_covers(num_covers);
+        	numrows_ +=  num_covers;
+        	cover_manager->reposition_covers(num_covers);
             std::cout<<std::setprecision(10)<<"iter: "<<iter<<" added cuts "<<num_covers<<" L: "<<VItt<<std::endl;
         	/*Cover * c = cover_manager->covers.begin ;
         	for(int i =cover_manager->covers.sizeOfCollection; i--; ){
         		std::cout<<"vi "<<c->id_vi<<std::endl;
         		c = c->next;
 			}*/
-        }   
+        } 
+
     }
     return 0;
 }
@@ -645,46 +647,6 @@ OsiVolSolverInterface::translate_primal( const VOL_dvector& xhist){
 
 //-----------------------------------------------------------------------
 
-void
-OsiVolSolverInterface::reposition_covers(int added){
-	
-	if(cover_manager->covers.sizeOfCollection == cover_manager->num_actv) return;
-	
-	//std::cout<<"reposition_covers "<<cover_manager->covers.sizeOfCollection <<" "<< cover_manager->num_actv<<std::endl;
-	int num_actv = cover_manager->num_actv - added;
-	int sz = cover_manager->covers.sizeOfCollection;
-	Cover * last_actv = cover_manager->covers.begin ;
-	cover_manager->covers.advance(last_actv, num_actv-1);
-	Cover * trgt = cover_manager->covers.end ;
-	
-	if(num_actv == 0){ 
-		for(int i = added; i--  ; ){
-			cover_manager->covers.begin = trgt;
-			cover_manager->covers.end = trgt->prev;
-			cover_manager->covers.end->next = 0;
-			trgt->prev = 0;
-			trgt->next = last_actv;
-			last_actv->prev = trgt;
-			last_actv = trgt;
-			trgt = cover_manager->covers.end ;
-		}
-		return;
-	}
-
-	for(int i = added; i--  ; ){
-		cover_manager->covers.end = trgt->prev;
-		cover_manager->covers.end->next = 0;
-		trgt->next = last_actv->next;
-		last_actv->next->prev = trgt;
-		last_actv->next = trgt;
-		trgt->prev = last_actv;
-		trgt = cover_manager->covers.end ;
-	}
-	
-}
-
-//-----------------------------------------------------------------------
-
 void 
 OsiVolSolverInterface::add_external_vi(const std::deque<Pair2>& c){
 	int ret = cover_manager->add_external_cover(c, maxNumrows_);
@@ -692,7 +654,7 @@ OsiVolSolverInterface::add_external_vi(const std::deque<Pair2>& c){
 	
 		cover_manager->add_cover_vi(1, actv, volprob_.active_size, volprob_.viol.v, 
 								volprob_.dsol.v, volprob_.dual_lb.v,  volprob_.dual_ub.v );       
-		reposition_covers(1);	
+		cover_manager->reposition_covers(1);	
 		++numrows_;
 	}
 	
@@ -834,6 +796,7 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     data = auxinfo->data;
     cover_manager = auxinfo->cover_manager;
     ss_manager = auxinfo->ss_manager;
+    localc_manager = auxinfo->localc_manager;
     
     nnodes =  data->nnodes;
     ndemands = data->ndemands;
@@ -849,6 +812,7 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     maxNumcols_ = numcols_ = numcols;
     maxNumrows_ = numrows+maxNumVI;
     numrows_ = numrows + cover_manager->covers.sizeOfCollection;
+    numrows_ += localc_manager->locals.sizeOfCollection;
     
     if (maxNumrows_ > 0) {
         rowRimAllocator_();

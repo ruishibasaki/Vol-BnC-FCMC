@@ -57,6 +57,7 @@ public:
     OsiVolAuxInfo AppVolData;
     CoverManager cover_manager;
     CutSetManager ss_manager;
+    LocalCutManager localc_manager;
     
     LPFeasChecker lpfeaschecker;
     FlowConnect flwconnect;
