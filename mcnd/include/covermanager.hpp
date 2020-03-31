@@ -12,9 +12,10 @@
 #include "covercollection.hpp"
 #include "cutsetmanager.hpp"
 #include "lift.hpp"
+#include "MCND_cut.hpp"
 
 
-class CoverManager {
+class CoverManager: virtual public CutManager {
 
 public:
     
@@ -25,13 +26,12 @@ public:
     int num_actv;
     int lim_to_remv;
     int gend;
-    int ttgend;
     std::deque<Cover*> purgbl;
     //-------------------------------------------------------------------------------------------
     //  initializing methods
     //-------------------------------------------------------------------------------------------
     
-    inline CoverManager(): data(0), arc_map(0){ num_actv = lim_to_remv = gend =0;}
+    inline CoverManager(): data(0), arc_map(0){ num_actv = lim_to_remv =0;}
     inline void set_arc_map(const int * map){ arc_map = map;}
     void initialize(const Data * d, int lim);
     int reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize);
@@ -68,7 +68,7 @@ public:
     //-------------------------------------------------------------------------------------------
     
     double checkViol(const Cover * c, const double *y);
-    int add_external_cover(const std::deque<Pair2>& c, int maxNumrows_);
+    int add_external_cover(const std::deque<Pair2>& c, int id, int maxNumrows_);
     void reposition_covers(int num_covers);
     //-------------------------------------------------------------------------------------------
     //  Multipliers methods

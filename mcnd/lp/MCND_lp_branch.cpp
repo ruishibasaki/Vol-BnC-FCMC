@@ -38,16 +38,18 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
         return BCP_DoNotBranch_Fathomed;
 	}
 	
+    
+	
     if(local_cut_pool.size()>0 ){
     	return BCP_DoNotBranch;
 	}else if((lp_mode & LP_CutAddedFromHeuristic)){
 		return BCP_DoNotBranch;
-	}
+	} 
 	
 	mapd.clear();
     cover_manager.covers.map_collection(mapd);
-	OsiVolSolverInterface * s = getOsiVolBabSolver();
-    
+	localc_manager.locals.map_collection(mapd);
+	
     std::deque<Pair2> candidates;
 	BCP_vec<double> vbd(4, 0.0);
     BCP_vec<int> vpos(1, 0);
@@ -96,6 +98,9 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 		++ncands;
 	}
 	candidates.clear();
+	
+	
+
 	std::cout<<"do branch "<<ncands<<" force: "<<force_branch<<std::endl;
     if(ncands){
      	lp_mode |= LP_StrongBranch;
@@ -125,27 +130,15 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
     const double* psol = lpres.x();
     const double* dsol = lpres.pi();
     const double * rcsol = lpres.dj();
-    double * yarcs = new double [data.narcs];
     double lb = lpres.objval();
     double gij, ckij;
     
-    std::fill(yarcs, yarcs+data.narcs, 0);
-    const int cutnum = cuts.size();
-	for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
-		CoverCut * cut = dynamic_cast<CoverCut*>(cuts[i]);
-		cut->check_logical_fix( vars, yarcs);
-	}
-
+    std::fill(yfix,yfix+data.narcs, -1);
     BCP_vec<int> changed_to0;
     changed_to0.reserve(data.narcs);
 	for (int a=data.narcs; a--;){
 		gij = rcsol[a];
-		if(yarcs[a]==1){
-			std::cout<<"logical fix "<<a<<"  "<<psol[a]<<std::endl;
-			changed_pos.push_back(a);
-			new_bd.push_back(1.0);
-			new_bd.push_back(1.0);
-		}else if(vars[a]->lb()==0 && vars[a]->ub()==1){
+		if(vars[a]->lb()==0.0 && vars[a]->ub()==1.0){
 			//std::cout<<"penalty test: "<<a<<" "<<gij<<" lbs: "<<lb<<" "<<LBi<<std::endl;
 			if(gij>0 && (lb+gij)>=upper_bound()){
 				std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
@@ -153,15 +146,42 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				changed_to0.unchecked_push_back(a);
 				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
-				continue;
+				yfix[a]=0; 
 			}else if(gij<0 && (lb-gij)>=upper_bound()){
 				std::cout<<a<<" WILL FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
-				yarcs[a]=1;
+				yfix[a]=1;
 			}
-		}else if(vars[a]->ub()==0.0) continue;
+		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
+		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
+	}
+	const int cutnum = cuts.size();
+	for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
+		MCND_Cut * cut = dynamic_cast<MCND_Cut*>(cuts[i]);
+		if(!cut->check_logical_fix( vars, yfix)){
+			lp_mode |= LP_ForceNodeAbort;
+			return;
+		}
+	}
+	for(int a=data.narcs; a--;){
+		if(yfix[a]==0){ continue;
+		}else if(yfix[a]==2){
+			std::cout<<a<<" WILL FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
+			yfix[a] = 1;
+			changed_pos.push_back(a);
+			new_bd.push_back(1.0);
+			new_bd.push_back(1.0);
+		}else if(yfix[a]==3){
+			std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
+			yfix[a] = 0;
+			changed_pos.push_back(a);
+			new_bd.push_back(0.0);
+			new_bd.push_back(0.0);
+			continue;
+		}
+		gij = rcsol[a];
 		Arc * item  =  &data.arcs[a];
 		double tt=0;
 		for (int k=data.ndemands; k--;){
@@ -169,7 +189,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			if(vars[id]->ub()==0.0) continue;
 			ckij = item->c[k] - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
 			if(ckij>1e-4){
-				tt = ((gij > 0)&& (yarcs[a]==0)) ? (lb+ gij) : lb;
+				tt = ((gij > 0)&& (yfix[a]<1)) ? (lb+ gij) : lb;
 				if(tt + ckij*vars[id]->ub() > (upper_bound()+1e-4) ){
 					double bd = (upper_bound() - tt)/ckij;
 					if(bd<1e-8)bd=0.0;
@@ -183,17 +203,12 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			}
 		}
 	}
-	if(changed_pos.size()){ 
-		if(changed_to0.size()>0){
-			lp_mode |= LP_TestConnectivity;
-			if(!verify_feasibility( changed_to0, changed_to0.size()))
-				lp_mode |= LP_ForceNodeAbort;
-			changed_to0.clear();
-		}
+	if(changed_to0.size()>0){
+		lp_mode |= LP_TestConnectivity;
+		if(!verify_feasibility( changed_to0, changed_to0.size()))
+			lp_mode |= LP_ForceNodeAbort;
+		changed_to0.clear();
 	}
-	
-	delete [] yarcs;
-
 }
 
 //-------------------------------------------------------------------------------------------

@@ -23,8 +23,7 @@ suffix_cg = \
 	localcutcollection
 
 suffix_tm = \
-	MCND_tm \
-	#MCND_tm_param 
+	MCND_tm
 	
 suffix_lp = \
 	MCND_lp \

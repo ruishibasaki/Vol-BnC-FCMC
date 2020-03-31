@@ -437,6 +437,8 @@ private:
     
     int removeVI( int & actvSSz,VOL_dvector& pstarv, VOL_dvector& dstaru,  VOL_dvector& dualu);
     
+    double arc_dg_imp(int arc, const double * xy, const double * h,  int actvSSz);
+
     //---------------------------------------------------------------------------
     //  solving methods
     //---------------------------------------------------------------------------
@@ -447,21 +449,22 @@ private:
     //  auxiliary methods
     //---------------------------------------------------------------------------
     
-    double arc_dg_imp(int arc, const double * xy, const double * h,  int actvSSz);
     int mark_topo( VOL_dvector& x, double lcost);
     void translate_primal(const VOL_dvector& xhist);
     void translate_hotstart();
-    
-public:
-    void add_external_vi(const std::deque<Pair2>& c);
-
     void translate_sol();
     void translate_dualsol();
     void translate_dualws();
     void set_start();
-    
+    void map_topology();
     void map_duals();
+    void rebuild_collections();
+    
+public:
+    void add_external_cover(const std::deque<Pair2>& c);
+    int add_external_localc( const int * y);
     void direct_solve(const std::deque<int>& topo, const CoinWarmStart* warmstart);
+    
     
     const Data * data;
     int narcs, ndemands, nnodes;

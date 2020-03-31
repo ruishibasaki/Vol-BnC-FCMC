@@ -21,7 +21,7 @@ CoverManager::initialize(const Data * d, int lim) {
     coverlift.set_data(d);
     covers.initialize(data->narcs);
     lim_to_remv = lim;
-    num_actv = gend = ttgend= 0;
+    num_actv = gend = 0;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -29,7 +29,6 @@ CoverManager::initialize(const Data * d, int lim) {
 int
 CoverManager::reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize){
     int cont;
-    int idxf = data->nnodes*data->ndemands;
     int sz = covers.sizeOfCollection;
     Cover* vi = covers.begin;
     num_actv =0; cont=0;
@@ -52,6 +51,12 @@ CoverManager::reset_and_map_collection(int fsize, const double* topo, double * d
         	vi = covers.move_to_end(vi);
         }
     }
+    if(sz)covers.begin->prev = covers.end->next = 0;
+    /*vi = covers.begin;
+    for(int i=0;i<sz;++i){
+        std::cout<<"in: id_vi "<<vi->id_vi<<" serial: "<<vi->serial_nmbr<<std::endl;
+        vi = vi->next;
+    }*/
     return cont;
 }
 
@@ -359,11 +364,7 @@ CoverManager::checkViol(const Cover * c, const double *y){
 //----------------------------------------------------------------------------------
 
 int 
-CoverManager::add_external_cover(const std::deque<Pair2>& c, int maxNumrows_){
-	int id =data->nnodes*data->ndemands + covers.sizeOfCollection;
-
-	if(id>=maxNumrows_) return 0;
-
+CoverManager::add_external_cover(const std::deque<Pair2>& c, int id, int maxNumrows_){
 	Cover * vi = covers.createNewCover(c, id, ttgend);
 	int added = covers.addCover(vi, 0);
 	if(added){

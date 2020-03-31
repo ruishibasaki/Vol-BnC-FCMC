@@ -12,8 +12,9 @@
 #include <list>
 #include <vector>
 #include "localcutcollection.hpp"
+#include "MCND_cut.hpp"
 
-class LocalCutManager {
+class LocalCutManager: virtual public CutManager {
 
 public:
     
@@ -23,7 +24,7 @@ public:
     int num_actv;
     int lim_to_remv;
     int gend;
-    int ttgend;
+
     std::deque<LocalCut *> purgbl;
     std::vector<int> fixbl_arcs;
     //-------------------------------------------------------------------------------------------
@@ -40,8 +41,8 @@ public:
     //  main methods
     //-------------------------------------------------------------------------------------------
     
-    int localc_generation_main(double lb, double ub, const double * ystar, const double * y, const double * rc, int curr_id, int max);
-    int make_localcut(std::vector<int>& T, const double * ystar, const double * y, int curr_id, int oneor0);
+    int localc1_generation_main(double lb, double ub, const double * ystar, const int * y, const double * rc, int curr_id, int max);
+    int make_localcut(std::vector<int>& T, const double * ystar, int curr_id, int oneor0);
     int check_fixable(std::list<Pair2>& rc_, std::vector<int>& T, double lb, double ub, int oneor0);
     void form_t(std::list<Pair2>& rc_, std::vector<int>& T, double lb, double ub, double rc_tt);
     
@@ -51,15 +52,15 @@ public:
     
     double checkViol(const LocalCut * c, const double *y);
     int add_external_localc(const std::deque<Pair2>& c, int maxNumrows_);
-    
+    void reposition_locals(int added);
     //-------------------------------------------------------------------------------------------
     //  Volume Integration methods
     //-------------------------------------------------------------------------------------------
     
     int compute_cover_rc(const double * dual, const int* actvS, int actvSSz, double * rc, double & B0);
     int compute_cover_sg(const double * x, const int * actvS, int actvSSz,  double * v);
-    void add_cover_vi(int added, int * actvS, int & actvSSz,double * h, double * dual, double * dual_lb, double * dual_ub );
-      
+    void add_local_vi(int added, int * actvS, int & actvSSz,double * h, double * dual, double * dual_lb, double * dual_ub );
+    double arc_dg_imp(int arc, const double * xy, const double * h, const int * actvS, int actvSSz);
 };
 
 #endif /* localcutmanager_hpp */

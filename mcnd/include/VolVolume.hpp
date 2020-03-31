@@ -697,7 +697,6 @@ public:
    int dsize;
    /** number of active dual var (INPUT) */
    int active_size;
-   int original_sz;
 
    /** lower bounds for the duals (if 0 length, then filled with -inf) (INPUT)
     */

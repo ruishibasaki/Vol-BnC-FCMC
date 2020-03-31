@@ -11,7 +11,8 @@
 #include <stdio.h>
 #include <algorithm>
 #include <map>
-
+#include "MCND_cut.hpp"
+#include "BCP_buffer.hpp"
 #include "UtilsMethods.hpp"
 
 class LocalCut;
@@ -49,7 +50,6 @@ public:
     void replace(LocalCut * out, LocalCut * in);
     void pop_back_nodel();
     LocalCut * remove_nodel(LocalCut * trgt);
-    int removeLocalCut(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu);
 
     //--------------------------------------
     //  VI methods
@@ -69,6 +69,8 @@ public:
     // modifying methods
     //--------------------------------------
     
+    int desactvLocalc(int lim, int * actvS, int & actvSSz, int& num_actv, double * pstarv, double * dstaru, double * dualu);
+    bool swap(LocalCut * c1, LocalCut * c2);
     int swap_toend_destruct(LocalCut * out, LocalCut *& ret, bool destruct);
     LocalCut* swap_to_end(LocalCut * trgt);
     LocalCut* move_to_end(LocalCut * trgt);
@@ -80,7 +82,7 @@ public:
 //=================================================================================================
 
 
-class LocalCut{
+class LocalCut: public MCND_CutUnit{
 public:
     LocalCut* next;
     LocalCut* prev;
@@ -90,6 +92,7 @@ public:
     int n_zerom;
     int n_nviol;
     bool prgbl;
+    bool toadd;
     
     int size;
     int *vars;
@@ -133,6 +136,7 @@ public:
         rhs_dimsh = 0.0;
         hs=0;
         prgbl=false;
+        toadd = true;
         sense=sense_;
 		serial_nmbr = serial_nmbr_;
     }
@@ -140,6 +144,40 @@ public:
         delete [] id_seq;
         if(size>0){ delete [] vars; }
     }
+};
+
+
+//=================================================================================================
+//=================================================================================================
+//=================================================================================================
+
+//MCND_cut.cpp
+class LocalCCut : public MCND_Cut {
+
+	LocalCut* localc;
+	
+public:
+	
+	inline LocalCCut(LocalCut* c): localc(c){ type = 2;}
+	inline LocalCCut(): localc(0){ type =2;}
+	inline ~LocalCCut(){}
+
+	
+	inline void pack(BCP_buffer& buf) const{ buf.pack(localc); }
+	inline void unpack(BCP_buffer& buf){ buf.unpack(localc);}
+	
+	inline LocalCut* get_localc(){ return localc;}
+	inline void set_localc(LocalCut* c){ localc = c;}
+	
+	bool check_viol(const BCP_vec<BCP_var*>& vars);
+	double check_viol(const double* vars);
+	bool check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs);
+	bool purgbl(){return localc->prgbl;}
+	void mark_unpurgbl(){localc->prgbl=false;}
+	int id_vi(){return localc->id_vi;}
+	int serial_nmbr(){return localc->serial_nmbr;}
+
+
 };
 
 #endif /* localcutcollection_hpp */

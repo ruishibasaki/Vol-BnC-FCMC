@@ -309,8 +309,9 @@ CoverCollection::remove_nodel(Cover * trgt){
 
 
 int
-CoverCollection::desactvCover(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu, int num_actv){
-    int idx_end, idx_out, id_end;
+CoverCollection::desactvCover(int lim, int * actvS, int & actvSSz, int& num_actv, double * pstarv, double * dstaru, double * dualu){
+    int idx_end, idx_out;
+    int curr_num = num_actv;
     Cover * ret=0;
     
     //std::cout<<"remove check "<<std::endl;
@@ -318,39 +319,33 @@ CoverCollection::desactvCover(int lim, int * actvS, int & actvSSz, double * psta
    	Cover *vi = begin;
    	Cover * last_actv;
    	//std::cout<<"reposition_covers "<<cover_manager->covers.sizeOfCollection <<" "<< cover_manager->num_actv<<std::endl;
-    for(int i=num_actv;i--;){
+    for(int i=curr_num;i--;){
         idx_out = actvS[vi->id_vi];
-        //std::cout<<"vi->id_vi: "<<vi->id_vi<<" "<<vi<<" "<<end<<" "<<vi->n_noviol<<" "<<idx_out<<std::endl;
+        //std::cout<<"try vi: "<<vi->serial_nmbr<<std::endl;
         if((vi->n_nviol >= lim /*&& dualu[idx_out]<=0 */&& dstaru[idx_out]<=0)|| vi->prgbl){
-            //std::cout<<"remove vi: "<<vi->id_vi<<" "<<idx_out<<std::endl;;
-            last_actv = covers.begin ;
-			covers.advance(last_actv, num_actv-1);
-            id_end = swap_toend_destruct(vi, ret, true);
-            if( id_end <0 ){
-                actvS[actvSSz-1]=-1;
-                dstaru[actvSSz-1] = 0;
-                dualu[actvSSz-1] = 0;
-                pstarv[actvSSz-1] = 0;
-                //std::cout<<" id_end <0, idx: "<<idx_out<<" new end: "<<end->id_vi<<" sz: "<<sizeOfCollection<<" id_end: "<<id_end<<" now: "<<end->id_vi<<std::endl;
-                
-                --actvSSz;
-                return 0;
-            }
+            //std::cout<<"remove vi: "<<vi->id_vi<<" "<<" srial: "<<vi->serial_nmbr<<" id: "
+            //<<idx_out<<" purgbl: "<<vi->prgbl<<" nviol: "<<vi->n_nviol<<" d* "<<dstaru[idx_out]<<std::endl;;
             
-            idx_end = actvS[id_end];
-            actvS[id_end]=-1;
-            pstarv[idx_out] = pstarv[idx_end];
-            dstaru[idx_out] = dstaru[idx_end];
-            dualu[idx_out] = dualu[idx_end];
-            dstaru[idx_end] = 0;
-            dualu[idx_end] = 0;
-            pstarv[idx_end] = 0;
+            last_actv = begin ;
+			advance(last_actv, num_actv-1);
+			//std::cout<<"last actv: "<<last_actv->id_vi<<" serial: "<<last_actv->serial_nmbr<<std::endl;
+			idx_end = actvS[last_actv->id_vi];
+            if(swap(vi,last_actv)){
+            	pstarv[idx_out] = pstarv[idx_end];
+				dstaru[idx_out] = dstaru[idx_end];
+				dualu[idx_out] = dualu[idx_end];
+				dstaru[idx_end] = 0;
+				dualu[idx_end] = 0;
+				pstarv[idx_end] = 0;
+				actvS[last_actv->id_vi] = idx_out;
+            }
+            actvS[vi->id_vi] = -1;
             --actvSSz;
+            --num_actv;
             //std::cout<<" size: "<<actvSSz<<std::endl;
             //std::cout<<" idx: "<<idx_out<<" new end: "<<end->id_vi<<" sz: "<<sizeOfCollection<<" idx_end: "<<idx_end<<" id_end: "<<id_end<<" now: "<<ret->id_vi<<std::endl;
             
-            vi = ret;
-        }else if( vi == end ){ vi=0; //std::cout<<"end"<<std::endl;
+            vi = last_actv;
         }else vi = vi->next;
     }
     /*RFCI * t = begin;
@@ -419,9 +414,27 @@ CoverCollection::swap_to_end(Cover * trgt){
 
 //----------------------------------------------------------------------------------
 
-int
+bool
 CoverCollection::swap(Cover * c1, Cover * c2){
 	Cover* aux;
+	if(c1==c2) return false;
+	if(c1 == begin) begin =c2;
+	if(c2 == end) end = c1;
+
+	if(c1->prev){c1->prev->next = c2;	}
+	if(c2->next){c2->next->prev = c1; 	}
+	
+	if(c1->next == c2){
+		c1->next=c2->next;
+		c2->next=c1;
+		c2->prev=c1->prev;
+		c1->prev=c2;
+		return true;
+	}
+	
+	if(c1->next){c1->next->prev = c2;}
+	if(c2->prev){c2->prev->next = c1;}
+	
 	aux = c1->next;
 	c1->next = c2->next;
 	c2->next = aux;
@@ -429,6 +442,7 @@ CoverCollection::swap(Cover * c1, Cover * c2){
 	aux = c1->prev;
 	c1->prev = c2->prev;
 	c2->prev = aux;
+ 	return true;
 }
 
 //------------------------------------------------------------------------------------

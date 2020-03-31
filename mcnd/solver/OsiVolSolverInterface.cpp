@@ -39,7 +39,7 @@ OsiVolSolverInterface::getEmptyWarmStart () const{
 CoinWarmStart* 
 OsiVolSolverInterface::getWarmStart() const{
     //std::cout<<"getWarmStart() "<<getNumRows()<<std::endl;
-    return new WarmStartDual(getNumRows(), dual, &cover_manager->covers);
+    return new WarmStartDual(getNumRows(), dual, &cover_manager->covers, &localc_manager->locals);
     
 } 
 
@@ -65,7 +65,7 @@ void
 OsiVolSolverInterface::markHotStart(){
     //std::cout<<"markHotStart() "<<getNumRows()<<std::endl;
     if(HotStart_) delete HotStart_;
-    HotStart_ = new WarmStartDual(getNumRows(), dual, &cover_manager->covers); 
+    HotStart_ = new WarmStartDual(getNumRows(), dual, &cover_manager->covers, &localc_manager->locals); 
     //std::cout<<"markHotStart() now "<<std::endl;
     HotStartSet = true;
 }
@@ -115,8 +115,13 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
         ++indexFirst;
         boundList += 2;
     }
+}
 
-    nz_arcs.clear();
+//---------------------------------------------------------------------------
+
+void 
+OsiVolSolverInterface::map_topology(){
+	nz_arcs.clear();
     szopnd=0;
     szunfxd=0;
     for(int arc=data->narcs;arc--;){
@@ -145,18 +150,19 @@ OsiVolSolverInterface::setColSetBounds(const int* indexFirst,
     sznz = nz_arcs.size();
     cover_manager->set_arc_map(arc_map);
 	localc_manager->set_arc_map(arc_map);
-
 }
 
 //---------------------------------------------------------------------------
 
 void
 OsiVolSolverInterface::map_duals(){
-
     fsize= csize = 0;
     bool flag=false;
     const Arc* item; const Demand* itemd;
     CoinFillN(actv, numrows_, -1);
+    
+    map_topology();
+    
     for(int k=0; k<ndemands; ++k ){
         for(int i=0; i<nnodes; ++i ){
             flag = false;
@@ -187,7 +193,8 @@ OsiVolSolverInterface::map_duals(){
     }
 
     int ret = cover_manager->reset_and_map_collection(fsize, VItopo, dual, actv, csize);
-    
+    int ret2 = localc_manager->reset_and_map_collection(fsize, VItopo, dual, actv, csize);
+	//std::cout<<"fsize: "<<fsize<<" "<<csize<<std::endl;
     /*if(ret>num_purgbl && in_strong_branch){
     	HotStartSet =true;	
     }else*/
@@ -231,10 +238,13 @@ OsiVolSolverInterface::set_start(){
     //std::cout<<"OsiVolSolverInterface::set_start "<<std::endl;
     int idx, sz;
     int fidx = ndemands*nnodes;
-    volprob_.dsol = 0.0;
-    volprob_.dual_lb = 0.0; volprob_.dual_ub = 0.0;
+   
     VItt = VIub=-1e31;
-    CoinFillN(rc_, getNumCols(), 0.0);
+    
+    CoinFillN(volprob_.dual_ub.v, getNumRows(), 0.0);
+    CoinFillN(volprob_.dual_lb.v, getNumRows(), 0.0);
+    CoinFillN(volprob_.dsol.v, getNumRows(), 0.0);
+    CoinFillN(rc_, narcs, 0.0);
 
     for(int i=fidx; i--;){
         //std::cout<<old_index[i]<<" "<<Iu[i]<<" value: ";
@@ -252,7 +262,7 @@ OsiVolSolverInterface::set_start(){
         //std::cout<<"vi "<<vi->id_vi<<": "<<idx<<std::endl;
         if(idx>=0){
             volprob_.dual_ub[idx] = 1.0e31;
-        	//std::cout<<"vi: "<<vi->serial_nmbr<<" id "<<vi->id_vi<<" idx: "<<idx<<" : "<<volprob_.dsol[idx]<<std::endl;
+        	//std::cout<<"vi serial: "<<vi->serial_nmbr<<" id "<<vi->id_vi<<" idx: "<<idx<<" : "<<volprob_.dsol[idx]<<std::endl;
         }
         vi = vi->next;
     }
@@ -367,7 +377,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     
     if(numrows_>=maxNumrows_) return 0;
 
-    if(iter>0 && iter%intvlVI==0 ){
+    if( /*(mode == 1) &&*/ iter>0 && iter%intvlVI==0){
         translate_primal(xstar);
         int num_new_sets=ss_manager->cutset_generation_main( yhit, VItopo, false);
         VIub=-1e31;
@@ -396,8 +406,26 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
 //-----------------------------------------------------------------------
 
 int
-OsiVolSolverInterface::removeVI( int & actvSSz,VOL_dvector& pstarv, VOL_dvector& dstaru,  VOL_dvector& dualu){
-    //cover_manager->covers.removeCover(lim_to_remv, actv, actvSSz, pstarv.v, dstaru.v, dualu.v);
+OsiVolSolverInterface::removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector& dstaru,  VOL_dvector& dualu){
+	
+	/*std::cout<<"try remv"<<std::endl;
+	Cover * c = cover_manager->covers.end ;
+	for(int i =cover_manager->covers.sizeOfCollection; i--; ){
+		if(actv[c->id_vi]>=0)std::cout<<"vi "<<c->id_vi<<" serial: "<<c->serial_nmbr<<" d* "<<dstaru[actv[c->id_vi]]<<" d "<<dualu[actv[c->id_vi]]<<" h "<<pstarv[actv[c->id_vi]]<<std::endl;
+		else std::cout<<"vi "<<c->id_vi<<" serial: "<<c->serial_nmbr<<" d* "<<0<<" d "<<0<<" h "<<0<<std::endl;
+
+		c = c->prev;
+	}*/
+    cover_manager->covers.desactvCover(lim_to_remv, actv, actvSSz, cover_manager->num_actv, pstarv.v, dstaru.v, dualu.v);
+    localc_manager->locals.desactvLocalc(lim_to_remv, actv, actvSSz, localc_manager->num_actv, pstarv.v, dstaru.v, dualu.v);
+
+    /*std::cout<<"after "<<std::endl;
+    c = cover_manager->covers.end ;
+	for(int i =cover_manager->covers.sizeOfCollection; i--; ){
+		if(actv[c->id_vi]>=0)std::cout<<"vi "<<c->id_vi<<" serial: "<<c->serial_nmbr<<" d* "<<dstaru[actv[c->id_vi]]<<" d "<<dualu[actv[c->id_vi]]<<" h "<<pstarv[actv[c->id_vi]]<<std::endl;
+		else std::cout<<"vi "<<c->id_vi<<" serial: "<<c->serial_nmbr<<" d* "<<0<<" d "<<0<<" h "<<0<<std::endl;
+		c = c->prev;
+	}*/
     return 0;
 }
 
@@ -432,6 +460,7 @@ OsiVolSolverInterface::compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int 
     }
     double b = B0;
     cover_manager->compute_cover_rc( dual.v,  actv,  actvSSz, addrc, b);
+    localc_manager->compute_cover_rc( dual.v,  actv,  actvSSz, addrc, B0);
     return 0;
 }
 
@@ -454,6 +483,8 @@ OsiVolSolverInterface::compute_sg(const VOL_dvector& x, int actvSSz, VOL_dvector
         }
     }
     cover_manager->compute_cover_sg( x.v, actv,  actvSSz, v.v);
+    localc_manager->compute_cover_sg( x.v, actv,  actvSSz, v.v);
+
     return 0;
 }
 
@@ -598,9 +629,8 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
 int
 OsiVolSolverInterface::heuristics(const VOL_problem& p,
                                   const VOL_dvector& x, double& heur_val){ return 0;}
+                                  
 
-//---------------------------------------------------------------------------
-//  auxiliary methods
 //---------------------------------------------------------------------------
 
 double
@@ -614,17 +644,21 @@ OsiVolSolverInterface::arc_dg_imp(int a, const double * xy, const double * h, in
     }
     
     dg += cover_manager->arc_dg_imp(a, xy, h, actv,  actvSSz);
+	dg += localc_manager->arc_dg_imp(a, xy, h, actv,  actvSSz);
     //if(dg>0) std::cout<<"arc: "<<arc<<" dg: "<<dg<<std::endl;
     return dg;
 }
 
-//-----------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//  auxiliary methods
+//---------------------------------------------------------------------------
+
 
 int
 OsiVolSolverInterface::mark_topo( VOL_dvector& x, double lcost){
     
     //std::cout<<"Lt: "<<lcost<<std::endl;
-    if(lcost<=VIub) return 0;
+    if(lcost<=VIub /*|| mode > 1*/ || mode==0) return 0;
     int arc;
     VIub =lcost;
     for(int a=szunfxd; a--; ){
@@ -648,8 +682,10 @@ OsiVolSolverInterface::translate_primal( const VOL_dvector& xhist){
 //-----------------------------------------------------------------------
 
 void 
-OsiVolSolverInterface::add_external_vi(const std::deque<Pair2>& c){
-	int ret = cover_manager->add_external_cover(c, maxNumrows_);
+OsiVolSolverInterface::add_external_cover(const std::deque<Pair2>& c){
+    if(numrows_>=maxNumrows_) return ;
+
+	int ret = cover_manager->add_external_cover(c, numrows_, maxNumrows_);
 	if(ret){
 	
 		cover_manager->add_cover_vi(1, actv, volprob_.active_size, volprob_.viol.v, 
@@ -659,6 +695,25 @@ OsiVolSolverInterface::add_external_vi(const std::deque<Pair2>& c){
 	}
 	
 }
+
+//-----------------------------------------------------------------------
+
+int 
+OsiVolSolverInterface::add_external_localc( const int * y){
+    if(numrows_>=maxNumrows_) return 0;
+
+	int ret = localc_manager->localc1_generation_main(volprob_.value, upper_bound, solution, 
+														y, rc_, numrows_, maxNumrows_);
+	if(ret){
+		//std::cout<<"add local: "<<ret<<std::endl;
+		localc_manager->add_local_vi(ret, actv, volprob_.active_size, volprob_.viol.v, 
+								volprob_.dsol.v, volprob_.dual_lb.v,  volprob_.dual_ub.v );   
+		localc_manager->reposition_locals(ret);	
+		numrows_ += ret;
+	}
+	return ret;
+}
+
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
@@ -841,14 +896,9 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
 
 void 
 OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){ 
-	std::cout<<"deleteRows "<<numrows_<<" del "<<cover_manager->purgbl.size()<<" "<<cover_manager->num_actv<<" "<<cover_manager->covers.sizeOfCollection<<std::endl;
+	std::cout<<"deleteRows "<<numrows_<<std::endl;
 	numrows_ -= num;
-	int idx;
-	int fidx = nnodes*ndemands;
-	double dvalue, vvalue;
-	
-	//translate_dualws();
-	Cover* vi;
+ 	Cover* vi;
 	while(!cover_manager->purgbl.empty()){
 		vi = cover_manager->purgbl.back();
 		//std::cout<<"out "<<vi->serial_nmbr<<std::endl;
@@ -856,28 +906,65 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 		cover_manager->purgbl.pop_back();
 	}
 	
-	vi = cover_manager->covers.end;
+	LocalCut* vilc;
+	while(!localc_manager->purgbl.empty()){
+		vilc = localc_manager->purgbl.back();
+		//std::cout<<"out "<<vi->serial_nmbr<<std::endl;
+		localc_manager->locals.remove_nodel(vilc);
+		localc_manager->purgbl.pop_back();
+	}
+	rebuild_collections();
+	volprob_.active_size = fsize+localc_manager->num_actv + cover_manager->num_actv ;
+	//abort();
+}
+
+
+//-----------------------------------------------------------------------------
+
+void 
+OsiVolSolverInterface::rebuild_collections(){
+	int fidx = nnodes*ndemands;
+
+	Cover* vi = cover_manager->covers.end;
 	int sz = cover_manager->covers.sizeOfCollection;
-	std::vector<Trio1> collect(sz);
-	for(;sz--;){
-		collect[sz].fst = actv[vi->id_vi];
-		collect[sz].snd = dual[vi->id_vi];
-		collect[sz].trd = lhs_[vi->id_vi];
+	int sz2 = localc_manager->locals.sizeOfCollection;
+	std::vector<Trio1> collect(sz+sz2);
+	for(int i=sz;i--;){
+		collect[i].fst = actv[vi->id_vi];
+		collect[i].snd = dual[vi->id_vi];
+		collect[i].trd = lhs_[vi->id_vi];
 		vi = vi->prev;
 	}
-	sz = cover_manager->covers.sizeOfCollection;
+	LocalCut* vilc = localc_manager->locals.end;
+ 	for(int i=sz+sz2-1;i>=sz;--i){
+		collect[i].fst = actv[vilc->id_vi];
+		collect[i].snd = dual[vilc->id_vi];
+		collect[i].trd = lhs_[vilc->id_vi];
+		vilc = vilc->prev;
+	}
+	
 	vi = cover_manager->covers.end;
-	for(;sz--;){
-		//std::cout<<" new indice: "<<sz+fidx<<" id: "<<vi->id_vi<<" srnb: "<<vi->serial_nmbr<<std::endl;		 
-		actv[vi->id_vi] = -1;
-		vi->id_vi = sz+fidx;
-		actv[vi->id_vi] = collect[sz].fst;
-		dual[vi->id_vi] = collect[sz].snd;
-		lhs_[vi->id_vi] = collect[sz].trd;	 
+	for(int i=sz;i--;){
+		//std::cout<<" new indice: "<<i+fidx<<" id: "<<vi->id_vi<<" srnb: "<<vi->serial_nmbr<<std::endl;	
+		if(vi->id_vi>=numrows_)	 actv[vi->id_vi] = -1;
+		vi->id_vi = i+fidx;
+		actv[vi->id_vi] = collect[i].fst;
+		dual[vi->id_vi] = collect[i].snd;
+		lhs_[vi->id_vi] = collect[i].trd;	 
 		vi = vi->prev;
+	}
+ 	vilc = localc_manager->locals.end;
+	for(int i=sz+sz2-1;i>=sz;--i){
+		//std::cout<<" new indicelc: "<<i+fidx<<" id: "<<vilc->id_vi<<" srnb: "<<vilc->serial_nmbr<<std::endl;		
+		if(vilc->id_vi>=numrows_) actv[vilc->id_vi] = -1;
+		vilc->id_vi = i+fidx;
+		actv[vilc->id_vi] = collect[i].fst;
+		dual[vilc->id_vi] = collect[i].snd;
+		lhs_[vilc->id_vi] = collect[i].trd;	
+		vilc = vilc->prev;
 	}
 	collect.clear();
-	//std::cout<<"ok"<<std::endl;
+	localc_manager->num_actv =  localc_manager->locals.sizeOfCollection;
 	cover_manager->num_actv =  cover_manager->covers.sizeOfCollection;
 	/*vi = cover_manager->covers.end;
 	sz = cover_manager->covers.sizeOfCollection;
@@ -886,6 +973,7 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 		//std::cout<<"sol "<<fidx+sz<<" "<<vi->id_vi<<" "<<dual[fidx+sz]<<std::endl;
 		vi = vi->prev;
 	}*/
+	
 }
 
 //-----------------------------------------------------------------------------

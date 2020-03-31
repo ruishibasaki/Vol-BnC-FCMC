@@ -6,7 +6,6 @@
 #include "BCP_tm_user.hpp"
 #include "BCP_parameters.hpp"
 
-#include "MCND_tm_param.hpp"
 
 #include "MCND_data.hpp"
 #include "MCND_solution.hpp"

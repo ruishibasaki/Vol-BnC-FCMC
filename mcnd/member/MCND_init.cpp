@@ -40,7 +40,8 @@ MCND_packer::unpack_user_data(BCP_buffer& buf){
 void 
 MCND_packer::pack_cut_algo(const BCP_cut_algo* cut, BCP_buffer& buf){
 	//std::cout<<"pack_cut_algo:"<<std::endl;
-	const CoverCut * c = dynamic_cast<const CoverCut *>(cut);
+	const MCND_Cut * c = dynamic_cast<const MCND_Cut *>(cut);
+	buf.pack(c->type);
 	c->pack(buf);
 }
 
@@ -49,9 +50,22 @@ MCND_packer::pack_cut_algo(const BCP_cut_algo* cut, BCP_buffer& buf){
 BCP_cut_algo* 
 MCND_packer::unpack_cut_algo(BCP_buffer& buf){
 	//std::cout<<"unpack_cut_algo:"<<std::endl;
-	CoverCut* cut= new CoverCut();
-	cut->unpack(buf);
-	return cut;
+	int type;
+	buf.unpack(type);
+	switch(type){
+		case 1:{
+			CoverCut* cut= new CoverCut();
+			cut->unpack(buf);
+			return cut;
+		}
+		case 2:{
+			LocalCCut* cut= new LocalCCut();
+			cut->unpack(buf);
+			return cut;
+		}
+	}
+	
+	return 0;
 }
 
 //#############################################################################

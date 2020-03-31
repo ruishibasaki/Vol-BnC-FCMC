@@ -415,7 +415,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     double best_ub = parm.ubinit;      // upper bound
     int retval = 0;
     double step=0;
-    original_sz = active_size;
+    int old_sz = active_size;
 
     VOL_dvector rc(psize); // reduced costs
     VOL_dual dual(dsize); // dual vector
@@ -440,6 +440,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     if (retval < 0)   return -1;
     retval = hooks.compute_sg(primal.x, active_size, primal.v);
     if (retval < 0)  return -1;
+    
     
     std::cout<<"first vole iter: "<<dual.lcost<<std::endl;
     
@@ -491,14 +492,15 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         if (retval < 0)  break;
         retval = hooks.resolve_subproblem(dual.u, rc, dual.lcost, primal.x, primal.value);
         if (retval < 0)  break;
-
-       
         retval = hooks.addVI(iter_,dual.lcost, pstar.x, primal.x, dual.u, dual_lb, dual_ub, rc, pstar.v, active_size );
         if (retval < 0)  break;
-       
         retval = hooks.compute_sg(primal.x, active_size, primal.v);
         if (retval < 0)  break;
         
+        if(old_sz<active_size){
+        	std::fill(dlast.u.v+old_sz, dlast.u.v+active_size, 0.0);
+        	old_sz = active_size;
+        } 
         //primal.find_max_viol(dual_lb, dual_ub); // this may be left out for speed
         //dual.compute_xrc(pstar.x, primal.x, rc); // compute xrc
         if (dual.lcost > dstar.lcost) {
@@ -511,13 +513,15 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
 
         // compute inner product between the new subgradient and the
         // last direction. This to decide among green, yellow, red
+
         const double ascent = dual.ascent(primal.v, dlast.u,active_size);
+
         // green, yellow, red
         swing.cond(dlast, dual.lcost, ascent, iter_);
+
         //std::cout<<iter_<<" swing: "<<swing.lastgreeniter<<" , "<<swing.lastyellowiter<<" , "<<swing.lastrediter<<std::endl;;
         // change lambda if needed
         lambda_ *= swing.lfactor(parm, lambda_, iter_);
-        
 
         if (iter_ % parm.alphaint == 0) { // change alpha if needed
             const double fact = alpha_factor.factor(parm, dstar.lcost, alpha_);
@@ -526,9 +530,10 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
             }
             alpha_ *= fact;
         }
-        
+
         // convex combination with new primal vector
         pstar.cc(power_heur(primal, pstar, dual), primal,active_size);
+
         //pstar.find_max_viol(dual_lb, dual_ub, active_size); // find maximum violation of pstar
         if (swing.rd)
             dual.copy(dstar, active_size);

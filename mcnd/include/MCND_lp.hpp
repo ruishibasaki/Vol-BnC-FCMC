@@ -45,7 +45,9 @@ enum LP_Mode{
 	/** strong branching phase.*/
    LP_StrongBranch = 128,
   /** Make less iterations.*/
-   LP_ReducedRun = 256
+   LP_ReducedRun = 256,
+   /** Make less iterations.*/
+   LP_tighterBounds = 512
 };
 
 
@@ -71,12 +73,15 @@ public:
     MCND_solution best_sol;
 
     std::vector<double> y;
+    int* yfix;
+
     std::vector<Pair> ninsp;
     std::vector<PairF> psdcost;
 	
 	int num_new_vi;
 	int num_nodes;
-    std::deque<const Cover *> track;
+    std::deque<const MCND_CutUnit *> track;
+ 
     BCP_vec<Pair2> to_logical_fix;
 
     std::map<int, int> mapd;
@@ -260,7 +265,7 @@ public:
     //--------------------------------------------------------------------------
     
     void update_branch_data(MCND_node_branch_data * ndata);
-    void keep_track(const Cover* vi);
+    void keep_track(const MCND_CutUnit* vi);
     void rearrange_bd_vec(int old_sz, int added, BCP_vec< double >& bd_vars );
     
     //--------------------------------------------------------------------------

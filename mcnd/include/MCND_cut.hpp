@@ -9,32 +9,38 @@
 #define MCND_cut_h
 
 #include "BCP_cut.hpp"
-#include "BCP_buffer.hpp"
 
-#include "covercollection.hpp"
+class CutManager{
+protected:
+	static int ttgend;
+	CutManager(){ }
+	virtual ~CutManager(){};
+};
 
 
-class CoverCut : public BCP_cut_algo{
-
-	Cover* cover;
-
+class MCND_Cut : public BCP_cut_algo{
 public:
+	int type;
+	MCND_Cut(): BCP_cut_algo(0, 1e40) {type =0; }
+	virtual ~MCND_Cut(){};
 	
-	inline CoverCut(Cover* c): BCP_cut_algo(0, 1e40), cover(c){}
-	inline CoverCut(): BCP_cut_algo(0, 1e40),cover(0){}
-	inline ~CoverCut(){}
+	virtual void pack(BCP_buffer& buf) const =0;
+	virtual void unpack(BCP_buffer& buf) =0;
+	
+	virtual bool check_viol(const BCP_vec<BCP_var*>& vars)=0;
+	virtual double check_viol(const double* vars)=0;
+	virtual bool check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs)=0;
+	virtual bool purgbl()=0;
+	virtual void mark_unpurgbl()=0;
+	virtual int id_vi()=0;
+	virtual int serial_nmbr()=0;
 
-	
-	inline void pack(BCP_buffer& buf) const{ buf.pack(cover); }
-	inline void unpack(BCP_buffer& buf){ buf.unpack(cover);}
-	
-	inline Cover* get_cover(){ return cover;}
-	inline void set_cover(Cover* c){ cover = c;}
-	
-	bool check_viol(const BCP_vec<BCP_var*>& vars);
-	double check_viol(const double* vars);
-	bool check_logical_fix(const BCP_vec<BCP_var*>& vars, double* yarcs);
+};
 
+class MCND_CutUnit{
+public:
+	 
+	virtual ~MCND_CutUnit(){};
 };
 
 #endif /* MCND_cut_h */

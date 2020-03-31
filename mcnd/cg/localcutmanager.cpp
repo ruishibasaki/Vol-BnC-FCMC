@@ -20,7 +20,7 @@ LocalCutManager::initialize(const Data * d, int lim) {
     fixbl_arcs.resize(data->narcs,-1);
 
     lim_to_remv = lim;
-    num_actv = gend = ttgend= 0;
+    num_actv = gend = 0;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -28,7 +28,6 @@ LocalCutManager::initialize(const Data * d, int lim) {
 int
 LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize){
     int cont;
-    int idxf = data->nnodes*data->ndemands;
     int sz = locals.sizeOfCollection;
     LocalCut* vi = locals.begin;
     num_actv =0; cont=0;
@@ -52,6 +51,8 @@ LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double 
         	vi = locals.move_to_end(vi);
         }
     }
+    if(sz)locals.begin->prev = locals.end->next = 0;
+
     return cont;
 }
 
@@ -73,7 +74,7 @@ LocalCutManager::clean_collection(){
 //-------------------------------------------------------------------------------------------
 
 int
-LocalCutManager::localc_generation_main(double lb, double ub, const double * ystar, const double * y, const double * rc, int curr_id, int max){
+LocalCutManager::localc1_generation_main(double lb, double ub, const double * ystar, const int * y, const double * rc, int curr_id, int max){
     int added=0;
     int id_arc, arc;
     double rc_val;
@@ -85,9 +86,8 @@ LocalCutManager::localc_generation_main(double lb, double ub, const double * yst
 	std::vector<int>Tm;
 	
     for(int a=data->narcs;a--;){
-    	id_arc = arc_map[a];
-    	if(id_arc<0) continue;
-    	rc_val=rc[id_arc];
+     	if(y[a]>=0) continue;
+    	rc_val=rc[a];
     	if(rc_val>0)
     		rc_p.push_back(Pair2(a, rc_val));
     	else if(rc_val<0) rc_m.push_back(Pair2(a, -rc_val));
@@ -95,16 +95,16 @@ LocalCutManager::localc_generation_main(double lb, double ub, const double * yst
     
     rc_p.sort(compPair2());//decreasing
     rc_m.sort(compPair2());//decreasing
-	std::cout<<"positive"<<std::endl;
+	//std::cout<<"positive"<<std::endl;
 	rc_ttp = check_fixable(rc_p, Tp, lb, ub ,0);
 	form_t(rc_p, Tp, lb, ub, rc_ttp);
-	added += make_localcut( Tp, ystar, y, curr_id+added, 0);
+	added += make_localcut( Tp, ystar, curr_id, 0);
 	if(added+curr_id>=max)return added;
 	
-	std::cout<<"negative"<<std::endl;
+	//std::cout<<"negative"<<std::endl;
 	rc_ttm = check_fixable(rc_m, Tm, lb, ub ,1);
 	form_t(rc_m, Tm, lb, ub, rc_ttm);
-	added += make_localcut( Tm, ystar, y, curr_id, 1);
+	added += make_localcut( Tm, ystar, curr_id+added, 1);
 
  	return added;
 }
@@ -112,43 +112,37 @@ LocalCutManager::localc_generation_main(double lb, double ub, const double * yst
 //-------------------------------------------------------------------------------------------
 
 int 
-LocalCutManager::make_localcut(std::vector<int>& T, const double * ystar, const double * y, int curr_id, int oneor0){
+LocalCutManager::make_localcut(std::vector<int>& T, const double * ystar, int curr_id, int oneor0){
 	double rhs;
-	double sum=0;
-	double suml=0;
+ 	double suml=0;
 	int id_arc;
 	LocalCut *loc=0;
-	std::cout<<" make localcut: ";
+	if(T.size()<=1){T.clear(); return 0;}
+	//std::cout<<" make localcut: ";
 	for(int i=T.size();i--;){
 		id_arc = arc_map[T[i]];
-		sum += y[id_arc];
-		suml += ystar[id_arc];
-		std::cout<<T[i]<<" ";
+ 		suml += ystar[id_arc];
+		//std::cout<<T[i]<<" ";
 	}
-	std::cout<<std::endl;
+	//std::cout<<std::endl;
 	if(oneor0==0){
-		std::cout<<"sum: "<<sum<<" suml: "<<suml<<" rhs: "<<1<<std::endl;
-		if(sum > 1 && suml>1){
-			loc = locals.createNewLocalCut(T, curr_id, ttgend, 2, 1.0);
-			
-		}
+		rhs=1;
+		loc = locals.createNewLocalCut(T, curr_id, ttgend, -1, rhs);
 	}else{
-		std::cout<<"sum: "<<sum<<" suml: "<<suml<<" rhs: "<<(T.size()-1)<<std::endl;
 		rhs = (T.size()-1);
-		if(sum < rhs && suml<rhs){
-			loc = locals.createNewLocalCut(T, curr_id, ttgend, 1, rhs);
-		}
+		loc = locals.createNewLocalCut(T, curr_id, ttgend, 1, rhs);
 	}
 	
+	T.clear();
     if(loc!=0){
         int added = locals.addLocalCut(loc);
         if(added){
-        	loc->hs = suml;
+        	loc->hs = loc->sense*(rhs - suml);
         	++ttgend;
         	++gend;
         	++num_actv;
         	return 1;
-        }else delete loc;
+        }
     }
     return 0;
 }
@@ -165,7 +159,7 @@ LocalCutManager::form_t(std::list<Pair2>& rc_, std::vector<int>& T, double lb, d
 		rc_val = rc_.front().snd;
 		rc_.pop_front();
  		rc_tt+=rc_val;
- 		std::cout<<"arc "<<arc<<" rc: "<<rc_val<<" sum: "<<lb+rc_tt<<" ub: "<<ub<<std::endl;
+ 		//std::cout<<"arc "<<arc<<" rc: "<<rc_val<<" sum: "<<lb+rc_tt<<" ub: "<<ub<<std::endl;
 		if(lb+rc_tt>=ub){
 			T.push_back(arc);
 			rc_tt=rc_val;
@@ -199,3 +193,150 @@ LocalCutManager::check_fixable(std::list<Pair2>& rc_, std::vector<int>& T, doubl
 	return 0;
 }
  
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+//  auxiliary methods
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+
+
+void
+LocalCutManager::reposition_locals(int added){	
+	if(locals.sizeOfCollection == num_actv) return;
+	
+	int num_adv = num_actv - added;
+	int sz = locals.sizeOfCollection;
+	LocalCut * last_actv = locals.begin ;
+	locals.advance(last_actv, num_adv-1);
+	LocalCut * trgt = locals.end ;
+	
+	if(num_adv == 0){ 
+		for(int i = added; i-- ; ){
+			locals.begin = trgt;
+			locals.end = trgt->prev;
+			locals.end->next = 0;
+			trgt->prev = 0;
+			trgt->next = last_actv;
+			last_actv->prev = trgt;
+			last_actv = trgt;
+			trgt = locals.end ;
+		}
+		return;
+	}
+
+	for(int i = added; i--  ; ){
+		locals.end = trgt->prev;
+		locals.end->next = 0;
+		trgt->next = last_actv->next;
+		last_actv->next->prev = trgt;
+		last_actv->next = trgt;
+		trgt->prev = last_actv;
+		trgt = locals.end ;
+	}
+	
+}
+
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+//  Volume Integration methods
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+
+
+void
+LocalCutManager::add_local_vi(int added, int * actvS, int & actvSSz, double * h, double * dual, double * dual_lb, double * dual_ub ){
+    //std::cout<<"add_local_vi: "<<actvSSz<<std::endl;
+    int idx;
+    LocalCut * vi = locals.end;
+    for(int cont = added; cont--;){
+        idx = actvSSz+cont; //if(actvS[vi->id_vi]>=0){ std::cout<<actvS[vi->id_vi]<<" already taken !!!!!!! for: "<<vi->id_vi<<std::endl;abort();}
+        //std::cout<<"add vi: "<< vi->id_vi<<" idx: "<<idx<<std::endl;
+        actvS[vi->id_vi]=idx;
+        dual[idx] =0;
+        dual_lb[idx] = 0;
+        dual_ub[idx] = 1e31;
+        h[idx] = vi->hs;
+        //vi->print();
+        vi = vi->prev;
+    }
+    actvSSz += added;
+}
+
+//-------------------------------------------------------------------------------
+
+int
+LocalCutManager::compute_cover_sg( const double * x, const int * actvS, int actvSSz,  double * v){
+    //std::cout<<"compute_flowpack_sg"<<std::endl;
+    int index, id_arc;
+    int sz = num_actv;
+    LocalCut *vi = locals.begin;
+    for(int n=0;n<sz;++n){
+        index = actvS[vi->id_vi];
+        v[index] = vi->get_total_rhs();
+        for(int a=vi->size;a--;){
+            id_arc = arc_map[vi->vars[a]];
+            if(id_arc<0) continue;
+            v[index] -=  x[id_arc];
+        }
+		
+		v[index] *= vi->sense;
+        if(v[index]<=0){
+            ++vi->n_nviol;
+            if(vi->n_nviol>=lim_to_remv && vi->n_zerom>0) v[index]=0;
+        }else vi->n_nviol=0;   
+        vi = vi->next;
+    }    
+    return 0;
+}
+
+//-------------------------------------------------------------------------------
+
+int
+LocalCutManager::compute_cover_rc(const double * dual, const int* actvS, int actvSSz, double * rc, double & B0){
+
+    int index, id_arc;
+    int sz = num_actv;
+    LocalCut *vi = locals.begin;
+    for(;sz--;){   
+        index = actvS[vi->id_vi];
+        if(dual[index]==0){
+            ++vi->n_zerom;
+            vi = vi->next;
+            continue;        
+        }else vi->n_zerom = 0; 
+
+        B0 +=   vi->sense*dual[index]*vi->get_total_rhs();
+        for(int a=vi->size;a--;){
+            id_arc = arc_map[vi->vars[a]];
+            if(id_arc<0) continue;
+            rc[id_arc]-= vi->sense*dual[index];   
+        }   
+        vi = vi->next;
+    }
+    return 0;
+}
+
+//-------------------------------------------------------------------------------
+
+double
+LocalCutManager::arc_dg_imp(int arc, const double * xy, const double * h, const int * actvS, int actvSSz){
+    int index;
+    int sz = num_actv;
+    LocalCut *vi = locals.begin;
+    double gam;
+    double dg=0;
+    for(;sz--;){
+        index = actvS[vi->id_vi];
+        gam = locals.LocalCut_hasArc(vi, arc);
+        dg += -vi->sense*gam*h[index];
+        vi = vi->next;
+    }
+    return dg;
+}
+
+
+
+
+
+
+

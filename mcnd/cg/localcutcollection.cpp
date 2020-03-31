@@ -70,6 +70,7 @@ LocalCutCollection::collected(LocalCut * tryC){
     int vi2sz=0;
     bool equal;
     LocalCut* C = begin;
+    //std::cout<<"coll: "<<sizeOfCollection<<std::endl;
     for(int i=0;i<sizeOfCollection;++i){
         vi1sz = tryC->get_total_sz();
         vi2sz = C->get_total_sz();            
@@ -82,7 +83,7 @@ LocalCutCollection::collected(LocalCut * tryC){
                 }
             }
             
-            if(equal){ return 2; }
+            if(equal){  return 2; }
         }
         C = C->next;
     }
@@ -99,12 +100,14 @@ LocalCutCollection::collected(LocalCut * tryC){
 int 
 LocalCutCollection::addLocalCut(LocalCut * tryC){
     int arc, ret;
+            
+
     ret = collected(tryC);
-    if(ret==2){++discarted; delete tryC;return 0;}
+    if(ret==2){++discarted; delete tryC; return 0;}
     else if(ret==0){
-        //insert_end(tryC);
-        std::cout<<"local add: "; tryC->print();
-        //return 1;
+        //std::cout<<"local add: "; tryC->print();
+        insert_end(tryC);
+        return 1;
     } 
     return 0;
 }
@@ -114,6 +117,7 @@ LocalCutCollection::addLocalCut(LocalCut * tryC){
 void 
 LocalCutCollection::insert_end(LocalCut * tryC){
 	++sizeOfCollection;
+	//std::cout<<"ok"<<std::endl;
 	if(empty){
 		end = begin = tryC;
 		empty=false;
@@ -193,65 +197,85 @@ LocalCutCollection::remove_nodel(LocalCut * trgt){
 	return ret;
 }
 
-//----------------------------------------------------------------------------------
-
-
-int
-LocalCutCollection::removeLocalCut(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu){
-    int idx_end, idx_out, id_end;
-    LocalCut * ret=0;
-    
-    //std::cout<<"remove check "<<std::endl;
-    //for(int h=2000;h<actvSSz;h++)std::cout<<"d: "<<h<<" pv: "<<pstarv[actvS[h]]<<" d*: "<<dstaru[actvS[h]]<<" d: "<<dualu[actvS[h]]<<std::endl;
-    for(LocalCut *vi = begin; vi != 0;){
-        idx_out = actvS[vi->id_vi];
-        //std::cout<<"vi->id_vi: "<<vi->id_vi<<" "<<vi<<" "<<end<<" "<<vi->n_noviol<<" "<<idx_out<<std::endl;
-        if(vi->n_nviol >= lim /*&& dualu[idx_out]<=0 */&& dstaru[idx_out]<=0){
-            //std::cout<<"remove vi: "<<vi->id_vi<<" "<<idx_out<<std::endl;;
-            id_end = swap_toend_destruct(vi, ret, true);
-            if( id_end <0 ){
-                actvS[actvSSz-1]=-1;
-                dstaru[actvSSz-1] = 0;
-                dualu[actvSSz-1] = 0;
-                pstarv[actvSSz-1] = 0;
-                //std::cout<<" id_end <0, idx: "<<idx_out<<" new end: "<<end->id_vi<<" sz: "<<sizeOfCollection<<" id_end: "<<id_end<<" now: "<<end->id_vi<<std::endl;
-                
-                --actvSSz;
-                return 0;
-            }
-            
-            idx_end = actvS[id_end];
-            actvS[id_end]=-1;
-            pstarv[idx_out] = pstarv[idx_end];
-            dstaru[idx_out] = dstaru[idx_end];
-            dualu[idx_out] = dualu[idx_end];
-            dstaru[idx_end] = 0;
-            dualu[idx_end] = 0;
-            pstarv[idx_end] = 0;
-            --actvSSz;
-            //std::cout<<" size: "<<actvSSz<<std::endl;
-            //std::cout<<" idx: "<<idx_out<<" new end: "<<end->id_vi<<" sz: "<<sizeOfCollection<<" idx_end: "<<idx_end<<" id_end: "<<id_end<<" now: "<<ret->id_vi<<std::endl;
-            
-            vi = ret;
-        }else if( vi == end ){ vi=0; //std::cout<<"end"<<std::endl;
-        }else vi = vi->next;
-    }
-    /*RFCI * t = begin;
-     std::cout<<"idseq: ";
-     for(int sz = sizeOfCollection;sz--;){
-     std::cout<<t->id_vi<<" ";
-     t = t->next;
-     }
-     std::cout<<std::endl;*/
-    //std::cout<<"ok"<<std::endl;
-    //for(int h=2000;h<actvSSz;h++)std::cout<<"d: "<<h<<" pv: "<<pstarv[actvS[h]]<<" d*: "<<dstaru[actvS[h]]<<" d: "<<dualu[actvS[h]]<<std::endl;
-    return 0;
-}
-
 //------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------
 //   modifying methods
 //------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------
+
+int
+LocalCutCollection::desactvLocalc(int lim, int * actvS, int & actvSSz, int& num_actv, double * pstarv, double * dstaru, double * dualu){
+    int idx_end, idx_out;
+    int curr_num = num_actv;
+    LocalCut * ret=0;
+    
+    //std::cout<<"remove check "<<std::endl;
+   	LocalCut *vi = begin;
+   	LocalCut * last_actv;
+    for(int i=curr_num;i--;){
+        idx_out = actvS[vi->id_vi];
+        //std::cout<<"try vi: "<<vi->serial_nmbr<<std::endl;
+        if((vi->n_nviol >= lim /*&& dualu[idx_out]<=0 */&& dstaru[idx_out]<=0)|| vi->prgbl){
+            //std::cout<<"remove vi: "<<vi->id_vi<<" "<<" srial: "<<vi->serial_nmbr<<" id: "
+            //<<idx_out<<" purgbl: "<<vi->prgbl<<" nviol: "<<vi->n_nviol<<" d* "<<dstaru[idx_out]<<std::endl;;
+            
+            last_actv = begin ;
+			advance(last_actv, num_actv-1);
+			//std::cout<<"last actv: "<<last_actv->id_vi<<" serial: "<<last_actv->serial_nmbr<<std::endl;
+			idx_end = actvS[last_actv->id_vi];
+            if(swap(vi,last_actv)){
+            	pstarv[idx_out] = pstarv[idx_end];
+				dstaru[idx_out] = dstaru[idx_end];
+				dualu[idx_out] = dualu[idx_end];
+				dstaru[idx_end] = 0;
+				dualu[idx_end] = 0;
+				pstarv[idx_end] = 0;
+				actvS[last_actv->id_vi] = idx_out;
+            }
+            actvS[vi->id_vi] = -1;
+            --actvSSz;
+            --num_actv;
+            
+            vi = last_actv;
+        }else vi = vi->next;
+    }
+   
+    return 0;
+}
+
+//----------------------------------------------------------------------------------
+
+bool
+LocalCutCollection::swap(LocalCut * c1, LocalCut * c2){
+	LocalCut* aux;
+	if(c1==c2) return false;
+	if(c1 == begin) begin =c2;
+	if(c2 == end) end = c1;
+
+	if(c1->prev){c1->prev->next = c2;	}
+	if(c2->next){c2->next->prev = c1; 	}
+	
+	if(c1->next == c2){
+		c1->next=c2->next;
+		c2->next=c1;
+		c2->prev=c1->prev;
+		c1->prev=c2;
+		return true;
+	}
+	
+	if(c1->next){c1->next->prev = c2;}
+	if(c2->prev){c2->prev->next = c1;}
+	
+	aux = c1->next;
+	c1->next = c2->next;
+	c2->next = aux;
+	
+	aux = c1->prev;
+	c1->prev = c2->prev;
+	c2->prev = aux;
+ 	return true;
+}
+
 //------------------------------------------------------------------------------------
 
 LocalCut*
@@ -402,11 +426,10 @@ LocalCutCollection::map_collection(std::map<int, int>& mapd){
 bool 
 LocalCut::check_updt_Viol(const double *y) {
 	double sum=0;
-    double comp= get_rhs();
     rhs_dimsh=0;
     for(int a=0;a<size;++a){
         sum+= y[vars[a]];
-        if(sum>=comp){return false;}
+        if(sense*(rhs - sum)<=0){return false;}
     }
     rhs_dimsh = sum;
     return true;
@@ -418,12 +441,11 @@ LocalCut::check_updt_Viol(const double *y) {
 double 
 LocalCut::viol(const double *y)const {
 	double sum=0;
-    double comp= get_rhs();
-     for(int a=0;a<size;++a){
+      for(int a=0;a<size;++a){
         sum+= y[vars[a]];
-        if(sum>=comp){return 0;}
+        if(sense*(rhs - sum)<=0){return 0;}
     }
-    return comp-sum;
+    return sense*rhs-sum;
 }
 
 //----------------------------------------------------------------------------------

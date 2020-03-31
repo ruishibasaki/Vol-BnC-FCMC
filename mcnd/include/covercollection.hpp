@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include "Structures.hpp"
 #include "UtilsMethods.hpp"
+#include "MCND_cut.hpp"
+#include "BCP_buffer.hpp"
 #include <map>
 
 class CoverVI;
@@ -49,7 +51,7 @@ public:
     void replace(Cover * out, Cover * in);
     void pop_back_nodel();
     Cover * remove_nodel(Cover * trgt);
-    int desactvCover(int lim, int * actvS, int & actvSSz, double * pstarv, double * dstaru, double * dualu, int num_actv);
+    int desactvCover(int lim, int * actvS, int & actvSSz, int& num_actv, double * pstarv, double * dstaru, double * dualu);
 
     //--------------------------------------
     //  VI methods
@@ -73,6 +75,7 @@ public:
     int swap_toend_destruct(Cover * out, Cover *& ret, bool destruct);
     Cover* swap_to_end(Cover * trgt);
     Cover* move_to_end(Cover * trgt);
+    bool swap(Cover * c1, Cover * c2);
 
 };
 
@@ -108,7 +111,7 @@ public:
 //=================================================================================================
 
 
-class Cover{
+class Cover: public MCND_CutUnit{
 public:
     Cover* next;
     Cover* prev;
@@ -118,6 +121,7 @@ public:
     int n_zerom;
     int n_nviol;
     bool prgbl;
+    bool toadd;
     
     int size;
     int maxsize;
@@ -165,6 +169,7 @@ public:
         rhs_dimsh = 0.0;
         hs=0;
         prgbl=false;
+        toadd=true;
 		serial_nmbr = serial_nmbr_;
 		maxsize=0;
     }
@@ -174,5 +179,40 @@ public:
         if(hasLftd) delete Lftd;
     }
 };
+
+
+//=================================================================================================
+//=================================================================================================
+//=================================================================================================
+
+//MCND_cut.cpp
+class CoverCut : public MCND_Cut{
+
+	Cover* cover;
+	
+public:
+	
+	inline CoverCut(Cover* c): cover(c){type =1;}
+	inline CoverCut():cover(0){type =1;}
+	inline ~CoverCut(){}
+
+	
+	inline void pack(BCP_buffer& buf) const{ buf.pack(cover); }
+	inline void unpack(BCP_buffer& buf){ buf.unpack(cover);}
+	
+	inline Cover* get_cover(){ return cover;}
+	inline void set_cover(Cover* c){ cover = c;}
+	
+	bool check_viol(const BCP_vec<BCP_var*>& vars);
+	double check_viol(const double* vars);
+	bool check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs);
+	bool purgbl(){return cover->prgbl;}
+	void mark_unpurgbl(){cover->prgbl=false;}
+	int id_vi(){return cover->id_vi;}
+	int serial_nmbr(){return cover->serial_nmbr;}
+
+};
+
+
 
 #endif /* covervi_hpp */
