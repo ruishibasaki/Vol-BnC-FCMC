@@ -71,7 +71,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     
     ++num_nodes;
     lp_mode = LP_Normal;
-    std::cout<<"initialize_new_search_tree_node "<<num_nodes<<" "<<lp_mode <<std::endl;
+    //std::cout<<"initialize_new_search_tree_node "<<num_nodes<<" "<<lp_mode <<std::endl;
     
     has_sol = getLpProblemPointer()->has_ub();
     MCND_node_branch_data* nodedata = dynamic_cast<MCND_node_branch_data*>( get_user_data());
@@ -165,7 +165,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     	else par.maxsgriters = 500;
     }else par.maxsgriters = 250;
      
-    if(current_level()>0){  AppVolData.intvlVI = 200; vollp->mode=2;}
+    if(current_level()>0){  AppVolData.intvlVI = 200; /*vollp->mode=2;*/}
 	else{ vollp->mode=1;}
 
     if(in_strong_branching){ vollp->min_lower_bound = LBi;  vollp->mode=0;}
@@ -228,7 +228,6 @@ MCND_lp::generate_cuts_in_lp(const BCP_lp_result& lpres,
 		for(int i=sz;i--;){
 			if(vi->toadd){ 
 				keep_track(vi);
-				//std::cout<<"generate "<<vi->id_vi<<" "<<vi->serial_nmbr<<std::endl;
 				new_cuts.push_back(new CoverCut(vi)); 
 				vi->toadd=false;
 				++newly_added;
@@ -243,6 +242,7 @@ MCND_lp::generate_cuts_in_lp(const BCP_lp_result& lpres,
 		for(int i=sz;i--;){
 			if(lcvi->toadd){ 
 				keep_track(lcvi);
+				std::cout<<track[track.size()-1]<<std::endl;
 				//std::cout<<"generate lc "<<lcvi->id_vi<<" "<<lcvi->serial_nmbr<<std::endl;
 				new_cuts.push_back(new LocalCCut(lcvi)); 
 				lcvi->toadd=false;
@@ -576,13 +576,12 @@ MCND_lp::getOsiVolBabSolver(){
 MCND_lp::~MCND_lp(){
 	y.clear(); 
 	ninsp.clear(); 
-    std::deque<const Cover *> track;
-    mapd.clear();
+	psdcost.clear();
+	mapd.clear();
     for(int i=track.size();i--;){
     	delete track[i];
     }
     track.clear();
-     
     delete [] yfix;
 }
 

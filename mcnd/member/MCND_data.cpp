@@ -96,7 +96,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 if(comm_sat==1){
                 	id = narcs+k*narcs+arc_unique;
                 	double dk = data->d_k[k].quantity;
-                	std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
+                	//std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
                 	if(vars[id]->ub() < dk){ std::cout<<"aqui3"<<std::endl; return false;}
                 	set_bd(id, dk, dk,  changed_pos, new_bd);
                 	if(vars[arc_unique]->lb() < 0.5){
@@ -120,7 +120,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 if(comm_sat==1){
                 	int id = narcs+k*narcs+arc_unique;
                 	double dk = data->d_k[k].quantity;
-                	std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
+                	//std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
                 	if(vars[id]->ub() < dk){ std::cout<<"aqui4"<<std::endl; return false;}
                 	set_bd(id, dk, dk,  changed_pos, new_bd);
                 	if(vars[arc_unique]->lb() < 0.5){

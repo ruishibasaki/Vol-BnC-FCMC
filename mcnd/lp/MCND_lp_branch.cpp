@@ -31,7 +31,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     /*if(current_level() == 2){
         return BCP_DoNotBranch_Fathomed;
 	}*/
-	
+	lp_mode &= ~LP_LogicalFixed;
 	if(lp_mode & LP_ForceNodeAbort){
 		std::cout<<"node abort"<<std::endl;
 		//lp_mode = LP_Normal;
@@ -49,6 +49,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	mapd.clear();
     cover_manager.covers.map_collection(mapd);
 	localc_manager.locals.map_collection(mapd);
+	
 	
     std::deque<Pair2> candidates;
 	BCP_vec<double> vbd(4, 0.0);
@@ -100,7 +101,6 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	candidates.clear();
 	
 	
-
 	std::cout<<"do branch "<<ncands<<" force: "<<force_branch<<std::endl;
     if(ncands){
      	lp_mode |= LP_StrongBranch;
@@ -203,6 +203,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			}
 		}
 	}
+	if(changed_pos.size()>0) lp_mode |= LP_LogicalFixed;
 	if(changed_to0.size()>0){
 		lp_mode |= LP_TestConnectivity;
 		if(!verify_feasibility( changed_to0, changed_to0.size()))
@@ -224,7 +225,7 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
     const BCP_lp_result & child0  = newobj->lpres(0);
     const BCP_lp_result & child1  = newobj->lpres(1);
 
-    int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
+    int sz = getOsiVolBabSolver()->getNumRows();
     double diff0 = (child0.objval() - LBi);
     double diff1 = (child1.objval() - LBi);
    	double score = fmin(diff0, diff1);
@@ -296,14 +297,13 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     MCND_node_branch_data * cdata;
     //stock  for further investigation WarmStartDual(getNumRows(), dual, actv);
      
-	//int sz = data.ndemands*data.nnodes+cover_manager.covers.sizeOfCollection;
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[0]);
     if(!(lp_mode & LP_LogicalFixed) && y[cdata->branch_var]==0) cdata->reduced_run =true;
-    cdata->hs = new WarmStartDual(cdata->dual_size, child0.pi(), mapd); //std::cout<<cdata->dual_size<<" "<<sz<<std::endl;
+    cdata->hs = new WarmStartDual(cdata->dual_size, child0.pi(), mapd); //std::cout<<"dualsz: "<<cdata->dual_size<<std::endl;
     
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
     if(lp_mode & LP_TestConnectivity) cdata->test_conn=true;
-    cdata->hs = new WarmStartDual(cdata->dual_size, child1.pi(), mapd);//std::cout<<cdata->dual_size<<" "<<sz<<std::endl;
+    cdata->hs = new WarmStartDual(cdata->dual_size, child1.pi(), mapd);//std::cout<<"dualsz: "<<cdata->dual_size<<std::endl;
     //lp_mode = LP_Normal;
 }
 

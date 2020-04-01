@@ -78,6 +78,7 @@ WarmStartDual::get_mapped(int key) const{ // the key is the serial number of the
 	}
 	std::map<int,int>::const_iterator it = mapd.find(key);
 	if(it == mapd.end()) return 0;
+	//std::cout<<key<<" "<<it->second<<std::endl;
 	return dual_[it->second];
 }
 

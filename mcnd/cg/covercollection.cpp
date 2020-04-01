@@ -63,11 +63,7 @@ CoverCollection::createNewCover(const std::deque<Pair2>& c,  int id_vi, int seri
 
 
 CoverCollection::~CoverCollection(){
-    for(int i=0;i<sizeOfCollection;++i){
-        Cover* next = begin->next;
-        delete begin;
-        begin = next;
-    }
+     
     if(map) delete [] map;
 }
 

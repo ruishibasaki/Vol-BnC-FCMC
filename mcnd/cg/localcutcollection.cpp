@@ -49,11 +49,7 @@ LocalCutCollection::createNewLocalCut(const std::vector<int>& c, int id_vi, int 
 //----------------------------------------------------------------------------------
 
 LocalCutCollection::~LocalCutCollection(){
-    for(int i=0;i<sizeOfCollection;++i){
-        LocalCut* next = begin->next;
-        delete begin;
-        begin = next;
-    }
+     
     if(map) delete [] map;
 }
 

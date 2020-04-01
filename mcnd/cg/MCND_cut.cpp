@@ -99,8 +99,8 @@ LocalCCut::check_viol(const BCP_vec<BCP_var*>& vars){
 				sum+= 1;
 			else if(vars[localc->vars[a]]->ub() < 0.5)
 				sumzro+=1;
-			if(sum >= rhs || sumzro>=(sz-1)){ std::cout<<"LocalCCutout id: "<<localc->id_vi<<" srial: "<<localc->serial_nmbr
-								<<" : "<<rhs<<" - "<<sum<<", "<<sumzro<<"/"<<(sz-1)<<std::endl;return false;}
+			if(sum >= rhs || sumzro>=(sz)){ std::cout<<"LocalCCutout id: "<<localc->id_vi<<" srial: "<<localc->serial_nmbr
+								<<" : "<<rhs<<" - "<<sum<<", "<<sumzro<<"/"<<(sz)<<std::endl;return false;}
 		}
 		localc->rhs_dimsh = sum;
     }

@@ -225,9 +225,19 @@ OsiVolSolverInterface::translate_hotstart(){
 		idx = actv[vi->id_vi];
 		if(idx>=0){
 			volprob_.dsol[idx] = HotStart_->get_mapped(vi->serial_nmbr);
-			//std::cout<<idx<<" wsvi id "<<vi->id_vi<<" : "<<volprob_.dsol[idx]<<std::endl;
+			//std::cout<<" wsvi id "<<idx<<" serial "<<vi->serial_nmbr<<" : "<<volprob_.dsol[idx]<<std::endl;
 		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
 		vi = vi->next;
+	}
+	sz = localc_manager->locals.sizeOfCollection;
+	LocalCut* vilc = localc_manager->locals.begin;
+	for(int i=sz; i--;){
+		idx = actv[vilc->id_vi];
+		if(idx>=0){
+			volprob_.dsol[idx] = HotStart_->get_mapped(vilc->serial_nmbr);
+			//std::cout<<" wsvi serial "<<idx<<" serial "<<vilc->serial_nmbr<<" : "<<volprob_.dsol[idx]<<std::endl;
+		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
+		vilc = vilc->next;
 	}
 }
 
@@ -259,10 +269,17 @@ OsiVolSolverInterface::set_start(){
     Cover* vi = cover_manager->covers.begin;
     for(int i=sz; i--;){
         idx = actv[vi->id_vi];
-        //std::cout<<"vi "<<vi->id_vi<<": "<<idx<<std::endl;
         if(idx>=0){
             volprob_.dual_ub[idx] = 1.0e31;
-        	//std::cout<<"vi serial: "<<vi->serial_nmbr<<" id "<<vi->id_vi<<" idx: "<<idx<<" : "<<volprob_.dsol[idx]<<std::endl;
+        }
+        vi = vi->next;
+    }
+    sz = localc_manager->num_actv;
+    LocalCut* vilc = localc_manager->locals.begin;
+    for(int i=sz; i--;){
+        idx = actv[vilc->id_vi];
+        if(idx>=0){
+            volprob_.dual_ub[idx] = 1.0e31;
         }
         vi = vi->next;
     }
@@ -325,7 +342,7 @@ OsiVolSolverInterface::resolve(){
     // Set the dual starting point
     retval = volprob_.solve(*this, true);
     
-    std::cout<<std::setprecision(10)<<"result: "<<volprob_.value<<" retval: "<<retval<<" iters: "<<volprob_.iter()<<std::endl;
+    std::cout<<std::setprecision(10)<<"result: "<<volprob_.value<<" numrows: "<<numrows_<<" iters: "<<volprob_.iter()<<std::endl;
     if(volprob_.value< min_lower_bound && in_strong_branch){
      	volprob_.value = min_lower_bound;
     }
@@ -773,13 +790,28 @@ OsiVolSolverInterface::translate_dualsol(){
             dual[vi->id_vi] =0;
             lhs_[vi->id_vi] =0;
         }
-		//std::cout<<"sol "<<vi->id_vi<<" "<<vi->serial_nmbr<<" "<<dual[vi->id_vi]<<std::endl;
+		//std::cout<<"sol "<<vi->serial_nmbr<<" "<<dual[vi->id_vi]<<std::endl;
 		vi = vi->prev;
 		//std::cout<<"vi next: "<<vi<<std::endl;
 
 	}
-	//std::cout<<"ok"<<std::endl;
+	sz = localc_manager->locals.sizeOfCollection;
+    LocalCut* vilc = localc_manager->locals.end;    
+	for(;sz--;){
+		//std::cout<<"ok "<<sz<<" "<<vi->id_vi<<std::endl;
+		idx = actv[vilc->id_vi];
+		if(idx>=0){
+            dual[vilc->id_vi] = volprob_.dsol[idx];
+            lhs_[vilc->id_vi] = volprob_.viol[idx];
+        }else{
+            dual[vilc->id_vi] =0;
+            lhs_[vilc->id_vi] =0;
+        }
+		//std::cout<<"sol "<<vilc->serial_nmbr<<" "<<dual[vilc->id_vi]<<std::endl;
+		vilc = vilc->prev;
+		//std::cout<<"vi next: "<<vi<<std::endl;
 
+	}
 }
 
 //-----------------------------------------------------------------------
@@ -800,7 +832,7 @@ OsiVolSolverInterface::translate_dualws(){
     int fidx = ndemands*nnodes;
     int sz = cover_manager->covers.sizeOfCollection;
     Cover* vi = cover_manager->covers.end;    
-	for(int i=fidx+sz; i-->fidx;){
+	for(; sz--;){
 		idx = actv[vi->id_vi];
 		if(idx>=0){
             dual[vi->id_vi] = HotStart_->get_mapped(vi->serial_nmbr); 
@@ -808,6 +840,17 @@ OsiVolSolverInterface::translate_dualws(){
             dual[vi->id_vi] =0;
         }
 		vi = vi->prev;
+	}
+	sz = localc_manager->locals.sizeOfCollection;
+    LocalCut* vilc = localc_manager->locals.end;    
+	for(; sz--;){
+		idx = actv[vilc->id_vi];
+		if(idx>=0){
+            dual[vilc->id_vi] = HotStart_->get_mapped(vilc->serial_nmbr); 
+        }else{
+            dual[vilc->id_vi] = 0;
+        }
+		vilc = vilc->prev;
 	}
 
 }
@@ -967,11 +1010,16 @@ OsiVolSolverInterface::rebuild_collections(){
 	localc_manager->num_actv =  localc_manager->locals.sizeOfCollection;
 	cover_manager->num_actv =  cover_manager->covers.sizeOfCollection;
 	/*vi = cover_manager->covers.end;
-	sz = cover_manager->covers.sizeOfCollection;
-	for(;sz--;){
+ 	for(;sz--;){
 		std::cout<<"vi serial: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<" sol: "<<dual[vi->id_vi]<<std::endl;
 		//std::cout<<"sol "<<fidx+sz<<" "<<vi->id_vi<<" "<<dual[fidx+sz]<<std::endl;
 		vi = vi->prev;
+	}
+	vilc = localc_manager->locals.end;
+	for(;sz2--;){
+		std::cout<<"vi serial: "<<vilc->serial_nmbr<<" id: "<<vilc->id_vi<<" sol: "<<dual[vilc->id_vi]<<std::endl;
+		//std::cout<<"sol "<<fidx+sz<<" "<<vi->id_vi<<" "<<dual[fidx+sz]<<std::endl;
+		vilc = vilc->prev;
 	}*/
 	
 }

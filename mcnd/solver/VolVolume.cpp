@@ -339,7 +339,7 @@ VOL_problem::set_default_parm()
     parm.gap_rel_precision = 0.001;
     parm.granularity = 0.0;
     parm.minimum_rel_ascent = 0.0001;
-    parm.ascent_first_check = 500;
+    parm.ascent_first_check = 100;
     parm.ascent_check_invl = 100;
     parm.maxsgriters = 2000;
     parm.printflag = 3;
@@ -468,7 +468,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     VOL_alpha_factor alpha_factor;
     
     //double * lcost_sequence = new double[parm.ascent_check_invl];
-    
+    int iter_no_improv=0;
     const int ascent_first_check = VolMax(parm.ascent_first_check,
                                           parm.ascent_check_invl);
     
@@ -509,7 +509,8 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
             max_viol = primal.viol;
             dstar.copy(dual, active_size);
             //std::cout<<"L*: "<<dstar.lcost<<std::endl;
-        }
+            iter_no_improv=0;
+        }else ++iter_no_improv;
 
         // compute inner product between the new subgradient and the
         // last direction. This to decide among green, yellow, red
@@ -553,7 +554,9 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
             if (ub < best_ub)
                 best_ub = ub;
         }
-
+		
+		if(iter_ > ascent_first_check && 
+			iter_no_improv>=parm.ascent_check_invl) break;
         // test terminating criteria
         const bool primal_feas = (primal.viol < parm.primal_abs_precision);
         //const double gap = VolAbs(pstar.value - dstar.lcost);
