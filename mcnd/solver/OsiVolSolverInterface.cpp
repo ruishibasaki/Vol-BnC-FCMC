@@ -198,11 +198,11 @@ OsiVolSolverInterface::map_duals(){
     /*if(ret>num_purgbl && in_strong_branch){
     	HotStartSet =true;	
     }else*/
-     if(HotStart_ !=0 && in_strong_branch){
+    /*if(HotStart_ !=0 ){
     	HotStartSet =true;	
     }else if(!in_strong_branch){
     	num_purgbl=ret;
-    }
+    }*/
     
     //std::cout<<"OsiVolSolverInterface::map_duals "<<in_strong_branch<<" "<<ret<<" "<<HotStartSet<<std::endl;
 }
@@ -324,6 +324,9 @@ void
 OsiVolSolverInterface::resolve(){
     std::cout<<"mode: "<<mode<<std::endl;
 	if(mode==-1) return;
+	else if(mode ==3){
+		markHotStart();
+	}
     int i;
     
     map_duals();
@@ -342,11 +345,14 @@ OsiVolSolverInterface::resolve(){
     // Set the dual starting point
     retval = volprob_.solve(*this, true);
     
-    std::cout<<std::setprecision(10)<<"result: "<<volprob_.value<<" numrows: "<<numrows_<<" iters: "<<volprob_.iter()<<std::endl;
+    std::cout<<std::setprecision(10)<<"result: "<<volprob_.value<<" numrows: "<<numrows_<<" iters: "<<volprob_.iter()<<"/"<<volprob_.parm.maxsgriters<<std::endl;
     if(volprob_.value< min_lower_bound && in_strong_branch){
      	volprob_.value = min_lower_bound;
     }
     translate_sol();
+    if(mode ==3){
+		unmarkHotStart();
+	}
     //std::cout<<"ok"<<std::endl;
 
     
@@ -475,9 +481,9 @@ OsiVolSolverInterface::compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int 
         B0 += data->d_k[k].quantity * ( dual[actv[k*nnodes + data->d_k[k].D-1]] - dual[actv[k*nnodes + data->d_k[k].O-1]]);
         
     }
+    localc_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
     double b = B0;
     cover_manager->compute_cover_rc( dual.v,  actv,  actvSSz, addrc, b);
-    localc_manager->compute_cover_rc( dual.v,  actv,  actvSSz, addrc, B0);
     return 0;
 }
 

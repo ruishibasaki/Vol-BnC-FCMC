@@ -167,7 +167,9 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
      
     if(current_level()>0){  AppVolData.intvlVI = 200; /*vollp->mode=2;*/}
 	else{ vollp->mode=1;}
-
+	
+	/*if(lp_mode & LP_LogicalFixed){ vollp->mode=3; par.maxsgriters = 100;}
+    else*/
     if(in_strong_branching){ vollp->min_lower_bound = LBi;  vollp->mode=0;}
     else if(changeType==1 || lp_mode & LP_ForceNodeAbort ){ vollp->mode=-1; std::cout<<"changeType "<<changeType<<" lpmode: "<<(lp_mode & LP_ForceNodeAbort)<<std::endl; }
     else if((lp_mode & LP_CutAddedFromHeuristic) ){vollp->mode=-1; std::cout<<"LP_CutAddedFromHeuristic"<<std::endl;}

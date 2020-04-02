@@ -298,7 +298,7 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     //stock  for further investigation WarmStartDual(getNumRows(), dual, actv);
      
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[0]);
-    if(!(lp_mode & LP_LogicalFixed) && y[cdata->branch_var]==0) cdata->reduced_run =true;
+    //if(!(lp_mode & LP_LogicalFixed) && y[cdata->branch_var]==0) cdata->reduced_run =true;
     cdata->hs = new WarmStartDual(cdata->dual_size, child0.pi(), mapd); //std::cout<<"dualsz: "<<cdata->dual_size<<std::endl;
     
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
