@@ -70,7 +70,7 @@ LocalCutCollection::collected(LocalCut * tryC){
     for(int i=0;i<sizeOfCollection;++i){
         vi1sz = tryC->get_total_sz();
         vi2sz = C->get_total_sz();            
-        if( vi1sz == vi2sz ){
+        if( vi1sz == vi2sz && tryC->sense == C->sense){
             equal = true;
             for(int id=0;id<sizeOfIdSeq;++id){
                 if(tryC->id_seq[id]!=C->id_seq[id]){
@@ -441,7 +441,7 @@ LocalCut::viol(const double *y)const {
         sum+= y[vars[a]];
         if(sense*(rhs - sum)<=0){return 0;}
     }
-    return sense*rhs-sum;
+    return sense*(rhs-sum);
 }
 
 //----------------------------------------------------------------------------------
