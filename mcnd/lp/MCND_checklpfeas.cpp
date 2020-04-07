@@ -137,17 +137,17 @@ int LPFeasChecker::solve(){
 	cplex.solve();
 
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-        std::cout<<"infeasible"<<std::endl;
-		return -1;
-	}else if(cplex.getStatus() == IloAlgorithm::InfeasibleOrUnbounded){		 
-        std::cout<<"InfeasibleOrUnbounded"<<std::endl;
+        //std::cout<<"infeasible"<<std::endl;
 		return -2;
+	}else if(cplex.getStatus() == IloAlgorithm::InfeasibleOrUnbounded){		 
+       // std::cout<<"InfeasibleOrUnbounded"<<std::endl;
+		return -3;
 		
 	}else if(cplex.getStatus() == IloAlgorithm::Optimal){
 		 //std::cout<<"optimal "<<cplex.getObjValue()<<std::endl;
 		return 0;
 	}
-	else return -3;
+	else return -4;
 }
 
 //---------------------------------------------------------------------------
@@ -178,9 +178,10 @@ LPFeasChecker::getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double& 
 			solvalue+=data->arcs[a].f;
 			if(vars[a]->lb()<0.5 &&  vars[a]->ub()>0.5) ++ret;
 		}//else if(vars[a]->lb()>=0.5){//std::cout<<"LPFeasChecker::getSolution FATHOM"<<std::endl; ret = -1;
+		//else std::cout<<"solclosed: "<<a<<std::endl;
 	}
 	
- 	std::cout<<"feasibiliy integer sol value: "<<solvalue<<std::endl;
+ 	//std::cout<<"feasibiliy integer sol value: "<<solvalue<<std::endl;
 	return ret;
 }
 

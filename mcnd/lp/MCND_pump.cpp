@@ -193,10 +193,10 @@ Pump::solve(const BCP_vec<BCP_var*>& vars,  double * xy, double & val){
 	
 	
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl;
+		//std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl;
 		 return -1;
 	}else if(cplex.getStatus() == IloAlgorithm::Unbounded){
-			std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Unbounded"<<std::endl;
+			//std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Unbounded"<<std::endl;
 		return -2;
 	}
 	
@@ -207,11 +207,11 @@ Pump::solve(const BCP_vec<BCP_var*>& vars,  double * xy, double & val){
 	cplex.getValues(y_,y);
 	while(cut(vars, y_,x_)){
 		cplex.solve();
-		std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
+		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
 		cplex.getValues(y_,y);
 		cplex.getValues(x_,x);
 	}
-	std::cout<<"final pump "<<cplex.getObjValue()<<std::endl;
+	//std::cout<<"final pump "<<cplex.getObjValue()<<std::endl;
 
 	val = getSolution(  xy,  x_, y_ );
 	
@@ -252,7 +252,7 @@ Pump::getSolution(  double * xy, const IloNumArray & x_, const IloNumArray & y_ 
 	}
 	
 	clear();
-	std::cout<<"sol value: "<<solvalue<<std::endl;
+	//std::cout<<"sol value: "<<solvalue<<std::endl;
 	return solvalue;
 }
 

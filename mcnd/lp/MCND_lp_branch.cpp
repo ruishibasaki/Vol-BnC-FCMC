@@ -24,7 +24,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 				   BCP_vec<BCP_lp_branching_object*>& cands,
 				   bool force_branch){
     
-    std::cout<<"select_branching_candidates "<<lp_mode<<std::endl;
+    //std::cout<<"select_branching_candidates "<<lp_mode<<std::endl;
 
     //return BCP_DoNotBranch_Fathomed;
 
@@ -33,7 +33,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	}*/
 	lp_mode &= ~LP_LogicalFixed;
 	if(lp_mode & LP_ForceNodeAbort){
-		std::cout<<"node abort"<<std::endl;
+		//std::cout<<"node abort"<<std::endl;
 		//lp_mode = LP_Normal;
         return BCP_DoNotBranch_Fathomed;
 	}
@@ -56,17 +56,20 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     BCP_vec<int> vpos(1, 0);
     double psc0, psc1;
     const double * psol = lpres.x();
-    int max_cand = 4 ;
+    const double * rcsol = lpres.dj();
+
+    int max_cand = 5 ;
     if(candidates.empty()){
 		for (int a=data.narcs; a--;) {
+			//if(psol[a]==0) continue;
 			if(vars[a]->lb()==0 && vars[a]->ub()==1){
-				if(min(ninsp[a].fst, ninsp[a].snd) >= data.narcs*0.1){
+				/*/if(min(ninsp[a].fst, ninsp[a].snd) >= data.narcs*0.1){
 					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
 					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
-				}else{
-					psc0 = psol[a];
-					psc1 = (1.0-psol[a]);
-				} 
+				}else{*/
+					psc0 =  psol[a];
+					psc1 =  (1.0-psol[a]);
+				//} 
 				/*if(has_sol){
 					psc0 = abs(best_sol.xy[a] - psol[a]);
 					psc1 = abs(best_sol.xy[a] - psol[a]);
@@ -83,8 +86,8 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd
-		/*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
+		//std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd
+		///*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
         candidates.pop_front();		
 		vpos[0] = arc;
 		vbd[0] = 0.0;
@@ -101,12 +104,12 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	candidates.clear();
 	
 	
-	std::cout<<"do branch "<<ncands<<" force: "<<force_branch<<std::endl;
+	//std::cout<<"do branch "<<ncands<<" force: "<<force_branch<<std::endl;
     if(ncands){
      	lp_mode |= LP_StrongBranch;
      	return BCP_DoBranch;
     }else{
-    	std::cout<<"NO CAND"<<std::endl;
+    	//std::cout<<"NO CAND"<<std::endl;
     	//lp_mode = LP_Normal;
     	return BCP_DoNotBranch_Fathomed;
 	}
@@ -125,7 +128,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		   
 	if(lp_mode & LP_ForceNodeAbort) return;
 
-	std::cout<<"logical_fixing "<<vars.size()<<std::endl;
+	//std::cout<<"logical_fixing "<<vars.size()<<std::endl;
     //return;
     const double* psol = lpres.x();
     const double* dsol = lpres.pi();
@@ -139,14 +142,14 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		if(vars[a]->lb()==0.0 && vars[a]->ub()==1.0){
 			//std::cout<<"penalty test: "<<a<<" "<<gij<<" lbs: "<<lb<<" "<<LBi<<std::endl;
 			if(gij>0 && (lb+gij)>=upper_bound()){
-				std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
+				//std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0; 
 				
 			}else if(gij<0 && (lb-gij)>=upper_bound()){
-				std::cout<<a<<" WILL FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
+				//std::cout<<a<<" WILL FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
@@ -215,7 +218,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			MCND_Cut * cut = dynamic_cast<MCND_Cut*>(cuts[i]);
 			if(cut->purgbl()) continue;
 			if(!cut->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
-				std::cout<<"insatisfeasible: "<<std::endl; cut->print();
+				//std::cout<<"insatisfeasible: "<<std::endl; cut->print();
 				var_changed_pos.clear();
 				var_new_bd.clear();
 				lp_mode |= LP_ForceNodeAbort;
@@ -234,7 +237,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			//std::cout<<"gloc_updt "<<gloc->serial_nmbr<<" "<<gloc->purgbl<<std::endl;
 			if(gloc->purgbl) continue;
 			if(!gloc->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
-				std::cout<<"insatisfeasible: "<<std::endl; gloc->print();
+				//std::cout<<"insatisfeasible: "<<std::endl; gloc->print();
 				var_changed_pos.clear();
 				var_new_bd.clear();
 				lp_mode |= LP_ForceNodeAbort;
@@ -253,7 +256,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			if(!flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, conn_arcfix, yfix)){
 				var_changed_pos.clear();
 				var_new_bd.clear();
-				std::cout<<"fathom node flwconnect.check_connectivity"<<std::endl;
+				//std::cout<<"fathom node flwconnect.check_connectivity"<<std::endl;
 				lp_mode |= LP_ForceNodeAbort;
 				return false;
 			}	
@@ -272,7 +275,7 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
 {
 
 	int var_new = newobj->candidate()->forced_var_pos->front();
-    std::cout<<"compare_branching_candidates"<<std::endl;
+    //std::cout<<"compare_branching_candidates"<<std::endl;
     
     const BCP_lp_result & child0  = newobj->lpres(0);
     const BCP_lp_result & child1  = newobj->lpres(1);
@@ -284,7 +287,7 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
     newobj->user_data()[0] = new MCND_node_branch_data(sz, score , var_new, 0, LBi, true);
     newobj->user_data()[1] = new MCND_node_branch_data(sz, score , var_new, 1, LBi, false);
     
-    std::cout<<" comparing ("<<var_new<<") y: "<<y[var_new]<<" score: "<<score<<" mode: "<<lp_mode<<std::endl;
+    //std::cout<<" comparing ("<<var_new<<") y: "<<y[var_new]<<" score: "<<score<<" mode: "<<lp_mode<<std::endl;
      int infeas=0;
      if((child0.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
 		(child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
@@ -299,7 +302,7 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
 	 }
 	 
 	if(infeas==2){
-		std::cout<<"OPOR"<<std::endl; //abort();
+		//std::cout<<"OPOR"<<std::endl; //abort();
 		to_logical_fix.clear();
 		lp_mode |= LP_ForceNodeAbort ;
 		return BCP_NewPresolvedIsBetter_BranchOnIt;
@@ -313,15 +316,11 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
     double score_old = old_data->score;
     
 
-    if(lp_mode & LP_DiveToFeasibility){
-		if(y[var_new] > y[var_old]){
-          	return BCP_NewPresolvedIsBetter;
-      	}else return BCP_OldPresolvedIsBetter;
-  	}else{
-		if(score > score_old){
-		  return BCP_NewPresolvedIsBetter;
-		}else return BCP_OldPresolvedIsBetter;
-    }
+     
+	if(score > score_old){
+	  return BCP_NewPresolvedIsBetter;
+	}else return BCP_OldPresolvedIsBetter;
+    
    
 }
 
@@ -375,10 +374,10 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	if(lp_mode & LP_ForceNodeAbort){
 		childs_action[0] = BCP_FathomChild;
 		childs_action[1] = BCP_FathomChild;
-		std::cout<<"cancel branching "<<std::endl;
+		//std::cout<<"cancel branching "<<std::endl;
 		return;
 	}
-	std::cout<<"branching variable: "<<var_branch<<std::endl;
+	//std::cout<<"branching variable: "<<var_branch<<std::endl;
 	
 	if(to_logical_fix.size()) lp_mode |= LP_LogicalFixed;
 	strong_branch_var_logicfix(best->candidate());
@@ -406,9 +405,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		++ninsp[var_branch].fst;
 		if((ybar_branch)>1e-8) psdcost[var_branch].fst+=diff0/ybar_branch;
 		else psdcost[var_branch].fst+=diff0*1e8;
-		if(lp_mode & LP_DiveToFeasibility){
-			childs_action[0] = BCP_KeepChild;
-		}else childs_action[0] = BCP_ReturnChild;
+		childs_action[0] = BCP_ReturnChild;
 	}
 	
 	double ybar_branch_ = (1.0- ybar_branch);
@@ -425,8 +422,8 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		else psdcost[var_branch].snd+=diff1*1e8;
 		childs_action[1] = BCP_ReturnChild;
 	}
-	std::cout<<" 0-side childs_action "<<childs_action[0]<<std::endl;
-	std::cout<<" 1-side childs_action "<<childs_action[1]<<std::endl;
+	//std::cout<<" 0-side childs_action "<<childs_action[0]<<std::endl;
+	//std::cout<<" 1-side childs_action "<<childs_action[1]<<std::endl;
 	
 }
 
@@ -488,7 +485,7 @@ MCND_lp::strong_branch_var_logicfix(BCP_lp_branching_object* candidate){
 	while(!to_logical_fix.empty()){
 		p = &to_logical_fix.back();
 		if(p->fst != cand){
-			std::cout<<"MORE FIX: "<<p->fst<<" "<<p->snd<<std::endl;
+			//std::cout<<"MORE FIX: "<<p->fst<<" "<<p->snd<<std::endl;
 			extra_vars->push_back(p->fst);
 			++added;
 			for(int i=4;i--;)bd_extra_vars->push_back(p->snd);

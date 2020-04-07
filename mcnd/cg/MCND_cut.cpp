@@ -45,7 +45,7 @@ CoverCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_c
 		for(;ntofx--;){
 			arc = tofix[ntofx];
 			fixd[arc]=1;
-			std::cout<<"fix "<<arc<<" to 1"<<std::endl;
+			//std::cout<<"fix "<<arc<<" to 1"<<std::endl;
  			var_changed_pos.push_back(arc);
 			var_new_bd.push_back(1.0);
 			var_new_bd.push_back(1.0);
@@ -153,7 +153,7 @@ LocalCCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_
 			for(;ntofx--;){
 				arc = tofix[ntofx];
 				fixd[arc] = 1;
-				std::cout<<"fix "<<arc<<" to 1"<<std::endl;
+				//std::cout<<"fix "<<arc<<" to 1"<<std::endl;
 				var_changed_pos.push_back(arc);
 				var_new_bd.push_back(1.0);
 				var_new_bd.push_back(1.0);
@@ -167,7 +167,7 @@ LocalCCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_
 				arc = tofix[ntofx];
 				fixd[arc] = 0;
 				zrofx=true;
-				std::cout<<"fix "<<arc<<" to 0"<<std::endl;
+				//std::cout<<"fix "<<arc<<" to 0"<<std::endl;
 				var_changed_pos.push_back(arc);
 				var_new_bd.push_back(0.0);
 				var_new_bd.push_back(0.0);
@@ -191,8 +191,8 @@ LocalCCut::check_viol(const BCP_vec<BCP_var*>& vars){
 			//std::cout<<"c: "<<cover->at(a)<<" lb: "<<vars[cover->at(a)]->lb()<<std::endl;
 			if(vars[localc->vars[a]]->lb() > 0.5)
 				sum+= 1;
-			if((rhs-sum) <= 0){ std::cout<<"LocalCCutout id: "<<localc->id_vi<<" srial: "<<localc->serial_nmbr
-								<<" : "<<rhs<<" - "<<sum<<std::endl;return false;}
+			if((rhs-sum) <= 0){ /*std::cout<<"LocalCCutout id: "<<localc->id_vi<<" srial: "<<localc->serial_nmbr
+								<<" : "<<rhs<<" - "<<sum<<std::endl;*/return false;}
 		}
 		localc->rhs_dimsh = sum;
     }else{
@@ -203,8 +203,8 @@ LocalCCut::check_viol(const BCP_vec<BCP_var*>& vars){
 				sum+= 1;
 			else if(vars[localc->vars[a]]->ub() < 0.5)
 				sumzro+=1;
-			if(sum >= rhs || sumzro>=(sz)){ std::cout<<"LocalCCutout id: "<<localc->id_vi<<" srial: "<<localc->serial_nmbr
-								<<" : "<<rhs<<" - "<<sum<<", "<<sumzro<<"/"<<(sz)<<std::endl;return false;}
+			if(sum >= rhs || sumzro>=(sz)){ /*std::cout<<"LocalCCutout id: "<<localc->id_vi<<" srial: "<<localc->serial_nmbr
+								<<" : "<<rhs<<" - "<<sum<<", "<<sumzro<<"/"<<(sz)<<std::endl;*/return false;}
 		}
 		localc->rhs_dimsh = sum;
     }
@@ -246,9 +246,9 @@ LocalCCut::check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs){
 					 yarcs[arc] = 2;
 				}
 			}
-			std::cout<<"serial: "<<localc->serial_nmbr<<" "; localc->print();
+			//std::cout<<"serial: "<<localc->serial_nmbr<<" "; localc->print();
 			return true;
-		}else if(sum < rhs){std::cout<<"check_logical_fix::PRUNE: "<<sum<<" < "<<rhs<<" "; localc->print(); return false;}
+		}else if(sum < rhs){/*std::cout<<"check_logical_fix::PRUNE: "<<sum<<" < "<<rhs<<" "; localc->print();*/ return false;}
 	}else{
 		if(rhs==0){
 			for(int a=0;a<sz;++a){
@@ -257,9 +257,9 @@ LocalCCut::check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs){
 					 yarcs[arc] = 3;
 				}
 			}
-			std::cout<<"serial: "<<localc->serial_nmbr<<" "; localc->print();
+			//std::cout<<"serial: "<<localc->serial_nmbr<<" "; localc->print();
 			return true;
-		}else if(rhs < 0){std::cout<<"check_logical_fix::PRUNE: "<<sum<<" < "<<rhs<<" "; localc->print(); return false;}
+		}else if(rhs < 0){/*std::cout<<"check_logical_fix::PRUNE: "<<sum<<" < "<<rhs<<" "; localc->print();*/ return false;}
 	}
 	return true;
 }

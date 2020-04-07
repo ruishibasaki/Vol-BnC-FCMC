@@ -31,7 +31,7 @@ enum LP_Mode{
    /** Branch is driven by a Unfeasible pump problem.*/
    LP_Normal = 0,
    /** Branch is driven by a Feasible pump problem.*/
-   LP_DiveToFeasibility = 2,
+   LP_Infeasibility = 2,
    /** Extra Iteration due to cut addition.*/
    LP_HeuristicRunned = 4,
    /** Extra Iteration due to cut addition.*/

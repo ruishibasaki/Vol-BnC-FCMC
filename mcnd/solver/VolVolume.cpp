@@ -442,7 +442,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     if (retval < 0)  return -1;
     
     
-    std::cout<<"first vole iter: "<<dual.lcost<<std::endl;
+    //std::cout<<"first vole iter: "<<dual.lcost<<std::endl;
     
     // set target for the lagrangian value
     double target = readjust_target(-DBL_MAX/2, dual.lcost);
@@ -581,7 +581,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
 		
 		//B&C pruning test
 		if ( dstar.lcost - parm.dual_limit > 1){
-            printf(" B&C prune \n");
+            //printf(" B&C prune \n");
             break;
         }
         // test for non-improvement

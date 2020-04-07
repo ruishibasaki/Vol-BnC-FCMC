@@ -26,7 +26,7 @@ MCND_tm::pack_module_data(BCP_buffer& buf, BCP_process_t ptype)
 
   switch (ptype) {
     case BCP_ProcessType_LP:
-    std::cout<<"try to pack data to lp "<<data.ndemands<<" "<<data.narcs<<" "<<data.nnodes<<std::endl;
+    //std::cout<<"try to pack data to lp "<<data.ndemands<<" "<<data.narcs<<" "<<data.nnodes<<std::endl;
           data.pack(buf);
           buf.pack(getTmProblemPointer()->has_ub());
           init_sol.pack(buf);
@@ -42,7 +42,7 @@ BCP_solution*
 MCND_tm::unpack_feasible_solution(BCP_buffer& buf)
 {
 	
-	std::cout<<"unpack feas solu"<<std::endl;
+	//std::cout<<"unpack feas solu"<<std::endl;
    MCND_solution* new_sol = new MCND_solution;
    new_sol->unpack(buf);
    //if (new_sol->objective_value() > best_soln.objective_value())
@@ -117,7 +117,7 @@ MCND_tm::init_new_phase(int phase,
 		 BCP_column_generation& colgen,
 		 CoinSearchTreeBase*& candidates){
 	
-	std::cout<<"init phase "<<phase<<std::endl;
+	//std::cout<<"init phase "<<phase<<std::endl;
 	/*if(phase){
 		colgen = BCP_DoNotGenerateColumns_Fathom;
 		candidates = new CoinSearchTree<CoinSearchTreeCompareBreadth>;
@@ -143,7 +143,7 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 	//if(!new_solution){
 		CoinSearchTreeBase * tree = candidates.getTree();
 		CoinSearchTreeBase *t = new CoinSearchTree<CoinSearchTreeCompareBest>;
-		std::cout<<"change candidate heap size:"<<tree->size()<<std::endl;
+		//std::cout<<"change candidate heap size:"<<tree->size()<<std::endl;
         MCND_node_branch_data * user_data;
 		BCP_tm_node * n;
 		CoinTreeNode ** add = new CoinTreeNode*;
@@ -161,7 +161,7 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 		}
 		candidates.setTree(t);
 		delete add;
-		std::cout<<"final size "<<t->size()<<std::endl;
+		//std::cout<<"final size "<<t->size()<<std::endl;
 	//}
 	
 	//BCP_tm_user::change_candidate_heap(candidates,new_solution);
@@ -201,7 +201,7 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
 	
 	double ub = upper_bound();
 	if(Best_LB > ub) Best_LB = ub;
-	std::cout<<"The global lower bound: "<<Best_LB<<" / "<<lower_bound()<<std::endl;
+	//std::cout<<"The global lower bound: "<<Best_LB<<" / "<<lower_bound()<<std::endl;
     std::ofstream file("fileout", std::ios::app);
     file<<std::setprecision(10)<<instance<<" lb: "<<Best_LB<<" ub: "<<ub<<" gap: "<<(ub-Best_LB)/ub*100<<" nodes: "<<getTmProblemPointer()->search_tree.processed()
     <<" t: "<<double( clock() - t_start ) / double( CLOCKS_PER_SEC )<<std::endl;
@@ -219,7 +219,7 @@ MCND_tm::display_node_information(BCP_tree& search_tree,
 	if(Best_LB<lower_bound())
 		Best_LB=lower_bound();
 	
-	std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
+	//std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
 				   
 }
 

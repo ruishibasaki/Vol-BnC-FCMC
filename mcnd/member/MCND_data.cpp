@@ -90,6 +90,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     	if(yfxd[arc]==-1){
                     		set_bd(arc, 0.0, 0.0,  changed_pos, new_bd);
                     		conn_arcfix=true;
+                    		yfxd[arc]=0;
 							std::cout<<"close the entire arc "<<arc+1<<". "<<vars[arc]->lb()<<" "<<vars[arc]->ub()<<std::endl;
                     	}	
                     }
@@ -102,10 +103,11 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	//std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
                 	if(vars[id]->ub() < dk){ std::cout<<"FlowConnect conflict3"<<std::endl; return false;}
                 	set_bd(id, dk, dk,  changed_pos, new_bd);
-                	if(vars[arc_unique]->lb() < 0.5 && yfxd[arc]==-1){
+                	if(vars[arc_unique]->lb() < 0.5 && yfxd[arc_unique]==-1){
                 		set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
                     	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
                     	conn_arcfix=true;
+                    	yfxd[arc_unique]=1;
                     	std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
                 	} 
                 }else if(comm_sat==0){
@@ -127,10 +129,11 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	//std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
                 	if(vars[id]->ub() < dk){ std::cout<<"FlowConnect conflict5"<<std::endl; return false;}
                 	set_bd(id, dk, dk,  changed_pos, new_bd);
-                	if(vars[arc_unique]->lb() < 0.5 && yfxd[arc]==-1){
+                	if(vars[arc_unique]->lb() < 0.5 && yfxd[arc_unique]==-1){
                 		set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
                     	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
                     	conn_arcfix=true;
+                    	yfxd[arc_unique]=1;
                     	std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
                 	} 
                 }else if(comm_sat==0){
