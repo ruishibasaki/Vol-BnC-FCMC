@@ -26,6 +26,7 @@ public:
     double min_lb;
 	int pos_neg;
 	int branch_var;
+	int parent;
  	bool test_conn;
  	bool reduced_run;
 	

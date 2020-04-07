@@ -38,9 +38,9 @@ public:
 	void create_model(const BCP_vec<BCP_var*>& vars);
 	
 	//--------------------------
-	int solve(const BCP_vec<BCP_var*>& vars, double * yl, double * xy, double & val );
+	int solve(const BCP_vec<BCP_var*>& vars,   double * xy, double & val );
 	int cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArray & x_);
-	double getSolution(double * yl, double * xy, const IloNumArray & x_, const IloNumArray & y_ );
+	double getSolution(  double * xy, const IloNumArray & x_, const IloNumArray & y_ );
 
 	
 	void clear();

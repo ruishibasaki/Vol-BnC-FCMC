@@ -154,7 +154,7 @@ public:
     //--------------------------------------
 
     double viol(const double *y)const;
-    bool check_updt_Viol(const double *y);
+    bool check_updt_Viol(const double *y, bool & infeas);
 
     //implemetn map
     inline Cover(int M, int sz, int id_vi_, int serial_nmbr_):size(sz), Lftd(0), next(0), prev(0){
@@ -206,10 +206,16 @@ public:
 	bool check_viol(const BCP_vec<BCP_var*>& vars);
 	double check_viol(const double* vars);
 	bool check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs);
+	bool check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_changed_pos,
+                                BCP_vec<double>& var_new_bd, bool & viol, bool & zrofx, int* fixd);
 	bool purgbl(){return cover->prgbl;}
 	void mark_unpurgbl(){cover->prgbl=false;}
+	void mark_purgbl(){cover->prgbl=true; }
+
 	int id_vi(){return cover->id_vi;}
 	int serial_nmbr(){return cover->serial_nmbr;}
+ 	void print(){cover->print();}
+
 
 };
 

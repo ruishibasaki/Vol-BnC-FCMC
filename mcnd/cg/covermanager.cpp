@@ -27,17 +27,24 @@ CoverManager::initialize(const Data * d, int lim) {
 //-------------------------------------------------------------------------------------------
 
 int
-CoverManager::reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize){
+CoverManager::reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize, bool recheck_collct){
     int cont;
     int sz = covers.sizeOfCollection;
     Cover* vi = covers.begin;
     num_actv =0; cont=0;
     //std::cout<<"sz: "<<sz<<std::endl;
+    bool put=true;
+    bool infeas;
     for(int i=0;i<sz;++i){
         vi->n_zerom =0;
         vi->n_nviol = 0;
+        put=true;
+        infeas=false;
+        if(recheck_collct) put = vi->check_updt_Viol(topo, infeas);
+        if(infeas) return -1;
         //std::cout<<"in: id_vi "<<vi->id_vi<<std::endl;
-        if(vi->check_updt_Viol(topo) && !vi->prgbl){
+        
+        if(put && !vi->prgbl){
             actvS[vi->id_vi] = fsize+csize;
             //std::cout<<"in: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<std::endl;
             //vi->print();
@@ -96,7 +103,7 @@ CoverManager::cover_generation_main(const double * ystar, const double * y,const
     return added;
 }
 
-//------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
 
 int
 CoverManager::cover_generation(int ss_size, const int * SS_arcs, double uss, double dss, const double * ystar, const double * y, int curr_id){

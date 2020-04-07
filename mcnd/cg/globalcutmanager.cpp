@@ -1,11 +1,11 @@
 //
-//  localcutmanager.cpp
+//  globalcutmanager.cpp
 //  
 //
 //  Created by Rui Shibasaki on 26/03/2020.
 //
 
-#include "localcutmanager.hpp"
+#include "globalcutmanager.hpp"
 
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
@@ -14,24 +14,22 @@
 //-------------------------------------------------------------------------------------------
 
 void
-LocalCutManager::initialize(const Data * d, int lim) {
+GlobalCutManager::initialize(const Data * d, int lim) {
     data=d;
-    locals.initialize(data->narcs);
-    fixbl_arcs.resize(data->narcs,-1);
-
+    globals.initialize(data->narcs);
+ 
     lim_to_remv = lim;
-    num_actv = gend = 0;
+    num_actv  = 0;
 }
 
 //-------------------------------------------------------------------------------------------
 
 int
-LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize, bool recheck_collct){
+GlobalCutManager::reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize, bool recheck_collct){
     int cont;
-    int sz = locals.sizeOfCollection;
-    LocalCut* vi = locals.begin;
+    int sz = globals.sizeOfCollection;
+    GlobalCut* vi = globals.begin;
     num_actv =0; cont=0;
-    fixbl_arcs.assign(data->narcs,-1);
     bool put=true;
     bool infeas;
     for(int i=0;i<sz;++i){
@@ -41,13 +39,11 @@ LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double 
         infeas=false;
 
         if(recheck_collct) put = vi->check_updt_Viol(topo, infeas);
-        if(infeas) return -1;
+    	if(infeas) return -1;
 
-        //std::cout<<"in: id_vi "<<vi->id_vi<<std::endl;
-        
-        if(put && !vi->prgbl){
+        if(put && !vi->purgbl){
             actvS[vi->id_vi] = fsize+csize;
-            //std::cout<<"in: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<std::endl;
+            //std::cout<<"in: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<" "<<recheck_collct<<std::endl;
             //vi->print();
             ++csize;
             ++num_actv;
@@ -56,10 +52,10 @@ LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double 
         	//std::cout<<"out: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<std::endl;
         	//vi->print();
         	++cont;
-        	vi = locals.move_to_end(vi);
+        	vi = globals.move_to_end(vi);
         }
     }
-    if(sz)locals.begin->prev = locals.end->next = 0;
+    if(sz)globals.begin->prev = globals.end->next = 0;
 
     return cont;
 }
@@ -67,12 +63,11 @@ LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double 
 //-------------------------------------------------------------------------------------------
 
 void
-LocalCutManager::clean_collection(){
-	locals.begin = locals.end = 0;
-	locals.sizeOfCollection = locals.discarted = 0;
-	locals.empty = true;
-	fixbl_arcs.assign(data->narcs,-1);
-	 num_actv = gend = 0;
+GlobalCutManager::clean_collection(){
+	globals.begin = globals.end = 0;
+	globals.sizeOfCollection = 0;
+	globals.empty = true;
+ 	 num_actv = 0;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -82,167 +77,124 @@ LocalCutManager::clean_collection(){
 //-------------------------------------------------------------------------------------------
 
 int
-LocalCutManager::localc1_generation_main(double lb, double ub, const double * ystar, const int * y, const double * rc, int curr_id, int max){
+GlobalCutManager::globalc_generation_main( const double * ystar, const double * ycoef, int cont0, int curr_id, int type){
+    int opnd=0;
+    int size;
+    int * vars_;
+    double* coef_;
+    double rhs;
+	if(type==1){
+ 		vars_ = new int[data->narcs];
+		coef_ = new double[data->narcs];
+		for(int a=data->narcs;a--;){
+			 vars_[a]=a;
+			 if(ycoef[a]==1){ coef_[a] = -1; ++opnd;}
+			 else coef_[a] = 1;
+		}
+ 		rhs = 1-opnd;
+ 		size = data->narcs;
+	}else{
+ 		vars_ = new int[cont0];
+		coef_ = new double[cont0];
+		for(int a=cont0;a--;){
+			 vars_[a]=ycoef[a];
+			 coef_[a]=1.0;
+ 		}
+		rhs = 1;
+		size = cont0;
+	}
     int added=0;
-    int id_arc, arc;
-    double rc_val;
-    double rc_ttp=0;
-    double rc_ttm=0;
-	std::list<Pair2> rc_p;
-	std::list<Pair2> rc_m;
-	std::vector<int>Tp;
-	std::vector<int>Tm;
-	
-    for(int a=data->narcs;a--;){
-     	if(y[a]>=0) continue;
-    	rc_val=rc[a];
-    	if(rc_val>0)
-    		rc_p.push_back(Pair2(a, rc_val));
-    	else if(rc_val<0) rc_m.push_back(Pair2(a, -rc_val));
-    }
-    
-    rc_p.sort(compPair2());//decreasing
-    rc_m.sort(compPair2());//decreasing
-	//std::cout<<"positive"<<std::endl;
-	rc_ttp = check_fixable(rc_p, Tp, lb, ub ,0);
-	form_t(rc_p, Tp, lb, ub, rc_ttp);
-	added += make_localcut( Tp, ystar, curr_id, 0);
-	if(added+curr_id>=max)return added;
-	
-	//std::cout<<"negative"<<std::endl;
-	rc_ttm = check_fixable(rc_m, Tm, lb, ub ,1);
-	form_t(rc_m, Tm, lb, ub, rc_ttm);
-	added += make_localcut( Tm, ystar, curr_id+added, 1);
-
+	added += make_globalcut( ystar, size, vars_, coef_, rhs, curr_id, type);	
+ 
  	return added;
 }
  
 //-------------------------------------------------------------------------------------------
 
 int 
-LocalCutManager::make_localcut(std::vector<int>& T, const double * ystar, int curr_id, int oneor0){
-	double rhs;
- 	double suml=0;
+GlobalCutManager::make_globalcut(const double * ystar, int sz,  int* vars_,  double * coef_, double rhs, int curr_id, int type){
+  	double suml=0;
 	int id_arc;
-	LocalCut *loc=0;
-	if(T.size()<=1){T.clear(); return 0;}
-	//std::cout<<" make localcut: ";
-	for(int i=T.size();i--;){
-		id_arc = arc_map[T[i]];
- 		suml += ystar[id_arc];
-		//std::cout<<T[i]<<" ";
-	}
+	GlobalCut *gloc=0;
+ 	for(int i=sz;i--;){
+  		suml += coef_[i]*ystar[vars_[i]];
+ 	}
 	//std::cout<<std::endl;
-	if(oneor0==0){
-		rhs=1;
-		loc = locals.createNewLocalCut(T, curr_id, ttgend, -1, rhs);
-	}else{
-		rhs = (T.size()-1);
-		loc = locals.createNewLocalCut(T, curr_id, ttgend, 1, rhs);
-	}
-	
-	T.clear();
-    if(loc!=0){
-        int added = locals.addLocalCut(loc);
-        if(added){
-        	loc->hs = loc->sense*(rhs - suml);
+ 	gloc = globals.createNewGlobalCut(sz, vars_, coef_, curr_id, ttgend, 1, rhs, type);
+ 
+    if(gloc!=0){
+        int added = globals.addGlobalCut(gloc);
+         if(added){
+        	gloc->hs = gloc->sense*(rhs - suml);
+        	gloc->print();
+        	std::cout<<"GlobalCutManager::make_globalcut add global: "<<std::endl;
         	++ttgend;
-        	++gend;
-        	++num_actv;
         	return 1;
         }
     }
     return 0;
 }
 
-//-------------------------------------------------------------------------------------------
-
-void
-LocalCutManager::form_t(std::list<Pair2>& rc_, std::vector<int>& T, double lb, double ub, double rc_tt){
-	int arc;
-	double rc_val;
-
-	while(!rc_.empty()){
-		arc = rc_.front().fst;
-		rc_val = rc_.front().snd;
-		rc_.pop_front();
- 		rc_tt+=rc_val;
- 		//std::cout<<"arc "<<arc<<" rc: "<<rc_val<<" sum: "<<lb+rc_tt<<" ub: "<<ub<<std::endl;
-		if(lb+rc_tt>=ub){
-			T.push_back(arc);
-			rc_tt=rc_val;
-		}else break;
-	}
-	rc_.clear();
-}
-
-//-------------------------------------------------------------------------------------------
-
-int
-LocalCutManager::check_fixable(std::list<Pair2>& rc_, std::vector<int>& T, double lb, double ub, int oneor0){
- 	int arc, fixto;
-	double rc_val;
-		
-	if(oneor0==0){fixto=0;}
-	else{ fixto=1;}
-	
-	while(!rc_.empty()){
-		arc = rc_.front().fst;
-		rc_val = rc_.front().snd;
-		rc_.pop_front();
- 		if(lb+rc_val>=ub){
- 			//std::cout<<"fixable "<<arc<<" to "<<fixto<<std::endl;
-			fixbl_arcs[arc]= fixto;
-		}else{
-		 	T.push_back(arc); 
-		 	return rc_val;
-		 }
- 	}
-	return 0;
-}
- 
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
 //  auxiliary methods
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
 
-
 void
-LocalCutManager::reposition_locals(int added){	
-	if(locals.sizeOfCollection == num_actv) return;
+GlobalCutManager::reposition_globals(int added){	
+	if(globals.sizeOfCollection == num_actv) return;
 	
 	int num_adv = num_actv - added;
-	int sz = locals.sizeOfCollection;
-	LocalCut * last_actv = locals.begin ;
-	locals.advance(last_actv, num_adv-1);
-	LocalCut * trgt = locals.end ;
+	int sz = globals.sizeOfCollection;
+	GlobalCut * last_actv = globals.begin ;
+	globals.advance(last_actv, num_adv-1);
+	GlobalCut * trgt = globals.end ;
 	
 	if(num_adv == 0){ 
 		for(int i = added; i-- ; ){
-			locals.begin = trgt;
-			locals.end = trgt->prev;
-			locals.end->next = 0;
+			globals.begin = trgt;
+			globals.end = trgt->prev;
+			globals.end->next = 0;
 			trgt->prev = 0;
 			trgt->next = last_actv;
 			last_actv->prev = trgt;
 			last_actv = trgt;
-			trgt = locals.end ;
+			trgt = globals.end ;
 		}
 		return;
 	}
 
 	for(int i = added; i--  ; ){
-		locals.end = trgt->prev;
-		locals.end->next = 0;
+		globals.end = trgt->prev;
+		globals.end->next = 0;
 		trgt->next = last_actv->next;
 		last_actv->next->prev = trgt;
 		last_actv->next = trgt;
 		trgt->prev = last_actv;
-		trgt = locals.end ;
+		trgt = globals.end ;
 	}
 	
 }
+
+//-------------------------------------------------------------------------------------------
+
+void 
+GlobalCutManager::collect_globals(const BCP_vec<BCP_var*>& vbd, int & currnum){
+	int sz = globals.track.size();
+  	std::deque<GlobalCut *>& trackgloc = globals.track;
+  	GlobalCut *gloc;
+  	for(int i=sz; i--;){
+  		gloc = trackgloc[i];
+  		gloc->purgbl=false;
+  		if(gloc->check_viol(vbd)){
+  			//std::cout<<"GlobalCutManager::collect_globals:: gloc "<<gloc->serial_nmbr<<std::endl;
+  			gloc->id_vi = currnum++;
+  			globals.insert_end(gloc);
+  		}
+	}
+}
+
 
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
@@ -252,10 +204,10 @@ LocalCutManager::reposition_locals(int added){
 
 
 void
-LocalCutManager::add_local_vi(int added, int * actvS, int & actvSSz, double * h, double * dual, double * dual_lb, double * dual_ub ){
+GlobalCutManager::add_global_vi(int added, int * actvS, int & actvSSz, double * h, double * dual, double * dual_lb, double * dual_ub ){
     //std::cout<<"add_local_vi: "<<actvSSz<<std::endl;
     int idx;
-    LocalCut * vi = locals.end;
+    GlobalCut * vi = globals.end;
     for(int cont = added; cont--;){
         idx = actvSSz+cont; //if(actvS[vi->id_vi]>=0){ std::cout<<actvS[vi->id_vi]<<" already taken !!!!!!! for: "<<vi->id_vi<<std::endl;abort();}
         //std::cout<<"add vi: "<< vi->id_vi<<" idx: "<<idx<<std::endl;
@@ -273,18 +225,18 @@ LocalCutManager::add_local_vi(int added, int * actvS, int & actvSSz, double * h,
 //-------------------------------------------------------------------------------
 
 int
-LocalCutManager::compute_cover_sg( const double * x, const int * actvS, int actvSSz,  double * v){
+GlobalCutManager::compute_cover_sg( const double * x, const int * actvS, int actvSSz,  double * v){
     //std::cout<<"compute_flowpack_sg"<<std::endl;
     int index, id_arc;
     int sz = num_actv;
-    LocalCut *vi = locals.begin;
+    GlobalCut *vi = globals.begin;
     for(int n=0;n<sz;++n){
         index = actvS[vi->id_vi];
         v[index] = vi->get_total_rhs();
         for(int a=vi->size;a--;){
             id_arc = arc_map[vi->vars[a]];
             if(id_arc<0) continue;
-            v[index] -=  x[id_arc];
+            v[index] -=  vi->coef[a]*x[id_arc];
         }
 		
 		v[index] *= vi->sense;
@@ -300,11 +252,11 @@ LocalCutManager::compute_cover_sg( const double * x, const int * actvS, int actv
 //-------------------------------------------------------------------------------
 
 int
-LocalCutManager::compute_cover_rc(const double * dual, const int* actvS, int actvSSz, double * rc, double & B0){
+GlobalCutManager::compute_cover_rc(const double * dual, const int* actvS, int actvSSz, double * rc, double & B0){
 
     int index, id_arc;
     int sz = num_actv;
-    LocalCut *vi = locals.begin;
+    GlobalCut *vi = globals.begin;
     for(;sz--;){   
         index = actvS[vi->id_vi];
         if(dual[index]==0){
@@ -317,7 +269,7 @@ LocalCutManager::compute_cover_rc(const double * dual, const int* actvS, int act
         for(int a=vi->size;a--;){
             id_arc = arc_map[vi->vars[a]];
             if(id_arc<0) continue;
-            rc[id_arc]-= vi->sense*dual[index];   
+            rc[id_arc]-= vi->sense*vi->coef[a]*dual[index];   
         }   
         vi = vi->next;
     }
@@ -327,20 +279,46 @@ LocalCutManager::compute_cover_rc(const double * dual, const int* actvS, int act
 //-------------------------------------------------------------------------------
 
 double
-LocalCutManager::arc_dg_imp(int arc, const double * xy, const double * h, const int * actvS, int actvSSz){
+GlobalCutManager::arc_dg_imp(int arc, const double * xy, const double * h, const int * actvS, int actvSSz){
     int index;
     int sz = num_actv;
-    LocalCut *vi = locals.begin;
+    GlobalCut *vi = globals.begin;
     double gam;
     double dg=0;
     for(;sz--;){
         index = actvS[vi->id_vi];
-        gam = locals.LocalCut_hasArc(vi, arc);
+        gam = globals.GlobalCut_hasArc(vi, arc);
         dg += -vi->sense*gam*h[index];
         vi = vi->next;
     }
     return dg;
 }
+
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+//  manager methods
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+
+void 
+GlobalCutManager::collect_global(double* collb, double* colub, int & curr_numrows){
+	const GlobalCut* vi=0;
+	for(int i=globals.track.size();i--;){
+		vi = globals.track[i];
+		
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

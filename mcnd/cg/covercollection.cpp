@@ -542,21 +542,30 @@ CoverCollection::map_collection(std::map<int, int>& mapd){
 //====================================================================================
 
 bool 
-Cover::check_updt_Viol(const double *y) {
+Cover::check_updt_Viol(const double *y, bool & infeas){
 	double sum=0;
-    double comp= get_rhs();
+    double rhs_= get_rhs();
     int sz = get_total_sz();
+    int arc;
+     
     rhs_dimsh=0;
     for(int a=0;a<sz;++a){
-        sum+= gamma_at(a)*y[at(a)];
-        if(sum>=comp){return false;}
+     	arc = at(a);
+		if(y[arc] ==1){
+        	rhs_dimsh+= gamma_at(a);
+		}else if(y[arc]==-1){
+			sum+= gamma_at(a);
+ 		}
     }
-    rhs_dimsh = sum;
+	rhs_ -= rhs_dimsh;
+ 	infeas=false;
+	if(sum<rhs_){ infeas= true; return false;} //abort;
+	if(rhs_ <= 0){return false;}
+	 
     return true;
 }
 
 //----------------------------------------------------------------------------------
-
 
 double 
 Cover::viol(const double *y)const {

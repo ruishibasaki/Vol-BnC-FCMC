@@ -185,7 +185,7 @@ Pump::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArr
 
 
 int 
-Pump::solve(const BCP_vec<BCP_var*>& vars, double * yl, double * xy, double & val){
+Pump::solve(const BCP_vec<BCP_var*>& vars,  double * xy, double & val){
 	
 	create_model(vars);
 	//cplex.exportModel("t.lp");
@@ -213,7 +213,7 @@ Pump::solve(const BCP_vec<BCP_var*>& vars, double * yl, double * xy, double & va
 	}
 	std::cout<<"final pump "<<cplex.getObjValue()<<std::endl;
 
-	val = getSolution( yl, xy,  x_, y_ );
+	val = getSolution(  xy,  x_, y_ );
 	
 	x_.end(); 
 	y_.end();
@@ -224,7 +224,7 @@ Pump::solve(const BCP_vec<BCP_var*>& vars, double * yl, double * xy, double & va
 //-------------------------------------------------------------------------------------------
 
 double 
-Pump::getSolution(double * yl, double * xy, const IloNumArray & x_, const IloNumArray & y_ ){
+Pump::getSolution(  double * xy, const IloNumArray & x_, const IloNumArray & y_ ){
 	
 	int arc;
 	double flow;
@@ -241,16 +241,14 @@ Pump::getSolution(double * yl, double * xy, const IloNumArray & x_, const IloNum
 		}
 		if(a<szunfix){
 			val = y_[a];
-			yl[arc] = val;
 			if(val>1e-10){
 				xy[arc] = 1.0;
-				solvalue+=data->arcs[arc].f;
+ 				solvalue+=data->arcs[arc].f;
 			}
 		}else if(flow>1e-10){
-			yl[arc] = 1.0;
-			xy[arc] = 1.0;
+ 			xy[arc] = 1.0;
 			solvalue+=data->arcs[arc].f;
-		}
+		} 
 	}
 	
 	clear();

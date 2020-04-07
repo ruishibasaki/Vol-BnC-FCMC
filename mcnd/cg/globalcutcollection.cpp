@@ -1,15 +1,15 @@
 //
-//  localcutcollection.cpp
+//  globalcutcollection.cpp
 //  
 //
 //  Created by Rui Shibasaki on 26/03/2020.
 //
 
-#include "localcutcollection.hpp"
+#include "globalcutcollection.hpp"
 
 
 void
-LocalCutCollection::initialize(int M){
+GlobalCutCollection::initialize(int M){
     sizeOfMap = M;
     int sizeOfInt=8*sizeof(unsigned int);
     sizeOfIdSeq = (M/sizeOfInt)+1;
@@ -24,32 +24,44 @@ LocalCutCollection::initialize(int M){
         
     }
 
-    discarted=0;
-    end = begin =0;
+     end = begin =0;
 }
 
 //----------------------------------------------------------------------------------
 
-LocalCut *
-LocalCutCollection::createNewLocalCut(const std::vector<int>& c, int id_vi, int serial_num_, int sense_, double rhs_){
+GlobalCut *
+GlobalCutCollection::createNewGlobalCut(int sz,  int* vars_,  double * coef_, int id_vi, int serial_num_, int sense_, double rhs_, int type_){
     int arc;
-    int csize =(int) c.size();
-    LocalCut * newC = new LocalCut(sizeOfIdSeq, csize,  id_vi, serial_num_, sense_);
-    
-    for(int n=csize;n--;){
-        arc = c[n];
-        newC->addArc(map[arc].fst, map[arc].snd);
-        newC->vars[n]=arc;
-        //std::cout<<"c: "<<arc<<std::endl;
-    }
+     GlobalCut * newC = new GlobalCut(sizeOfIdSeq, sz,  id_vi, serial_num_, sense_, type_);
+    newC->vars = vars_; 
+    newC->coef = coef_;
     newC->rhs = rhs_;
+    
+    if(type_==1){
+    	for(int n=sz;n--;){
+			arc = vars_[n];
+			if(coef_[n]==-1)newC->addArc(map[arc].fst, map[arc].snd);
+ 			 
+		}
+    }else{
+		for(int n=sz;n--;){
+			arc = vars_[n];
+			newC->addArc(map[arc].fst, map[arc].snd);
+			 
+		}
+    }
+    vars_=0;
+    coef_=0;
     return newC;
 }
 
 //----------------------------------------------------------------------------------
 
-LocalCutCollection::~LocalCutCollection(){
-     
+GlobalCutCollection::~GlobalCutCollection(){
+     for(int i=track.size();i--;){
+     	delete track[i];
+     }
+     track.clear();
     if(map) delete [] map;
 }
 
@@ -60,17 +72,18 @@ LocalCutCollection::~LocalCutCollection(){
 //------------------------------------------------------------------------------------
 
 int
-LocalCutCollection::collected(LocalCut * tryC){
+GlobalCutCollection::collected(GlobalCut * tryC){
     int ret=0;
     int vi1sz=0;
     int vi2sz=0;
     bool equal;
-    LocalCut* C = begin;
+    const GlobalCut* C;
     //std::cout<<"coll: "<<sizeOfCollection<<std::endl;
-    for(int i=0;i<sizeOfCollection;++i){
+    for(int i=track.size();i--;){
+    	C = track[i];
         vi1sz = tryC->get_total_sz();
         vi2sz = C->get_total_sz();            
-        if( vi1sz == vi2sz && tryC->sense == C->sense){
+        if( vi1sz == vi2sz && tryC->sense == C->sense && tryC->type == C->type){
             equal = true;
             for(int id=0;id<sizeOfIdSeq;++id){
                 if(tryC->id_seq[id]!=C->id_seq[id]){
@@ -81,7 +94,6 @@ LocalCutCollection::collected(LocalCut * tryC){
             
             if(equal){  return 2; }
         }
-        C = C->next;
     }
     return 0;
 }
@@ -94,24 +106,25 @@ LocalCutCollection::collected(LocalCut * tryC){
 //------------------------------------------------------------------------------------
 
 int 
-LocalCutCollection::addLocalCut(LocalCut * tryC){
+GlobalCutCollection::addGlobalCut(GlobalCut * tryC){
     int arc, ret;
             
 
     ret = collected(tryC);
-    if(ret==2){++discarted; delete tryC; return 0;}
+    if(ret==2){ delete tryC; return 0;}
     else if(ret==0){
         //std::cout<<"local add: "; tryC->print();
-        insert_end(tryC);
+        track.push_back(tryC);
         return 1;
     } 
+    delete tryC; 
     return 0;
 }
 
 //----------------------------------------------------------------------------------
 
 void 
-LocalCutCollection::insert_end(LocalCut * tryC){
+GlobalCutCollection::insert_end(GlobalCut * tryC){
 	++sizeOfCollection;
 	//std::cout<<"ok"<<std::endl;
 	if(empty){
@@ -127,7 +140,7 @@ LocalCutCollection::insert_end(LocalCut * tryC){
 //----------------------------------------------------------------------------------
 
 void 
-LocalCutCollection::insert_front(LocalCut * tryC){
+GlobalCutCollection::insert_front(GlobalCut * tryC){
 	++sizeOfCollection;
 	if(empty){
 		end = begin = tryC;
@@ -142,7 +155,7 @@ LocalCutCollection::insert_front(LocalCut * tryC){
 //----------------------------------------------------------------------------------
 
 void
-LocalCutCollection::replace(LocalCut * out, LocalCut * in){
+GlobalCutCollection::replace(GlobalCut * out, GlobalCut * in){
     in->next = out->next;
     in->prev = out->prev;
     in->id_vi = out->id_vi;
@@ -159,7 +172,7 @@ LocalCutCollection::replace(LocalCut * out, LocalCut * in){
 //----------------------------------------------------------------------------------
 
 void 
-LocalCutCollection::pop_back_nodel(){
+GlobalCutCollection::pop_back_nodel(){
 	if(sizeOfCollection==1){
 		begin = 0;
 		empty = true;
@@ -172,8 +185,8 @@ LocalCutCollection::pop_back_nodel(){
 
 //----------------------------------------------------------------------------------
 
-LocalCut * 
-LocalCutCollection::remove_nodel(LocalCut * trgt){
+GlobalCut * 
+GlobalCutCollection::remove_nodel(GlobalCut * trgt){
 	if(trgt == end){
 		pop_back_nodel();
 		return 0;
@@ -185,7 +198,7 @@ LocalCutCollection::remove_nodel(LocalCut * trgt){
 		if(begin) begin->prev =0;
 		return 0;
 	}
-	LocalCut * ret  = trgt->next;
+	GlobalCut * ret  = trgt->next;
 	if(trgt->next)trgt->next->prev = trgt->prev;
 	if(trgt->prev)trgt->prev->next = trgt->next;
 	trgt->next =0;
@@ -200,20 +213,20 @@ LocalCutCollection::remove_nodel(LocalCut * trgt){
 //------------------------------------------------------------------------------------
 
 int
-LocalCutCollection::desactvLocalc(int lim, int * actvS, int & actvSSz, int& num_actv, double * pstarv, double * dstaru, double * dualu){
+GlobalCutCollection::desactvGlobalc(int lim, int * actvS, int & actvSSz, int& num_actv, double * pstarv, double * dstaru, double * dualu){
     int idx_end, idx_out;
     int curr_num = num_actv;
-    LocalCut * ret=0;
+    GlobalCut * ret=0;
     
     //std::cout<<"remove check "<<std::endl;
-   	LocalCut *vi = begin;
-   	LocalCut * last_actv;
+   	GlobalCut *vi = begin;
+   	GlobalCut * last_actv;
     for(int i=curr_num;i--;){
         idx_out = actvS[vi->id_vi];
         //std::cout<<"try vi: "<<vi->serial_nmbr<<std::endl;
         if((vi->n_nviol >= lim /*&& dualu[idx_out]<=0 */&& dstaru[idx_out]<=0)){
             //std::cout<<"remove vi: "<<vi->id_vi<<" "<<" srial: "<<vi->serial_nmbr<<" id: "
-            //<<idx_out<<" nviol: "<<vi->n_nviol<<" d* "<<dstaru[idx_out]<<std::endl;;
+            //<<idx_out<<" purgbl: "<<vi->prgbl<<" nviol: "<<vi->n_nviol<<" d* "<<dstaru[idx_out]<<std::endl;;
             
             last_actv = begin ;
 			advance(last_actv, num_actv-1);
@@ -242,8 +255,8 @@ LocalCutCollection::desactvLocalc(int lim, int * actvS, int & actvSSz, int& num_
 //----------------------------------------------------------------------------------
 
 bool
-LocalCutCollection::swap(LocalCut * c1, LocalCut * c2){
-	LocalCut* aux;
+GlobalCutCollection::swap(GlobalCut * c1, GlobalCut * c2){
+	GlobalCut* aux;
 	if(c1==c2) return false;
 	if(c1 == begin) begin =c2;
 	if(c2 == end) end = c1;
@@ -274,9 +287,9 @@ LocalCutCollection::swap(LocalCut * c1, LocalCut * c2){
 
 //------------------------------------------------------------------------------------
 
-LocalCut*
-LocalCutCollection::move_to_end(LocalCut * trgt){
-	LocalCut * ret;
+GlobalCut*
+GlobalCutCollection::move_to_end(GlobalCut * trgt){
+	GlobalCut * ret;
     if(trgt == end ){
         return 0;
     }else if(trgt == begin){
@@ -296,10 +309,10 @@ LocalCutCollection::move_to_end(LocalCut * trgt){
 
 //------------------------------------------------------------------------------------
 
-LocalCut*
-LocalCutCollection::swap_to_end(LocalCut * trgt){
+GlobalCut*
+GlobalCutCollection::swap_to_end(GlobalCut * trgt){
     if(trgt == end){return 0; }
-    LocalCut * aux; LocalCut * ret;
+    GlobalCut * aux; GlobalCut * ret;
     int id_aux;
     
     id_aux= end->id_vi;
@@ -323,8 +336,8 @@ LocalCutCollection::swap_to_end(LocalCut * trgt){
 //----------------------------------------------------------------------------------
 
 int
-LocalCutCollection::swap_toend_destruct(LocalCut * out, LocalCut *& ret, bool destruct){
-    LocalCut* new_end=0;
+GlobalCutCollection::swap_toend_destruct(GlobalCut * out, GlobalCut *& ret, bool destruct){
+    GlobalCut* new_end=0;
     int id;
     //std::cout<<"out: "<<out->id_vi<<" end: "<<end->id_vi<<std::endl;
     if(sizeOfCollection == 1){
@@ -342,8 +355,7 @@ LocalCutCollection::swap_toend_destruct(LocalCut * out, LocalCut *& ret, bool de
         //std::cout<<" out_in_end: "<<end->id_vi<<" ret: "<<ret->id_vi<<" last_end_id: "<<id<<std::endl;
     }
     --sizeOfCollection;
-    ++discarted;
-    
+     
     if(destruct) delete end;
     end = new_end;
     return id;
@@ -355,10 +367,10 @@ LocalCutCollection::swap_toend_destruct(LocalCut * out, LocalCut *& ret, bool de
 //----------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------
 
-LocalCut*
-LocalCutCollection::operator[](int n){
-    if(n>=sizeOfCollection){std::cout<<"PROBLEM::LocalCutCollection::operator[]   n>=sizeOfCollection "<<std::endl; return 0;}
-    LocalCut* C = begin;
+GlobalCut*
+GlobalCutCollection::operator[](int n){
+    if(n>=sizeOfCollection){std::cout<<"PROBLEM::GlobalCutCollection::operator[]   n>=sizeOfCollection "<<std::endl; return 0;}
+    GlobalCut* C = begin;
     for(int i=1;i<=n;++i)
         C = C->next;
     return C;
@@ -367,7 +379,7 @@ LocalCutCollection::operator[](int n){
 //----------------------------------------------------------------------------------
 
 void
-LocalCutCollection::advance(LocalCut*& C, int n){
+GlobalCutCollection::advance(GlobalCut*& C, int n){
     if(n>sizeOfCollection) return;
     C = begin;
     for(int i=1;i<=n;++i)
@@ -377,10 +389,10 @@ LocalCutCollection::advance(LocalCut*& C, int n){
 //----------------------------------------------------------------------------------
 
 void
-LocalCutCollection::print(){
-    LocalCut* c = begin;
+GlobalCutCollection::print(){
+    GlobalCut* c = begin;
     for(int i=0;i<sizeOfCollection;++i){
-        std::cout<<"LocalCut "<<i<<" "<<std::endl;
+        std::cout<<"GlobalCut "<<i<<" "<<std::endl;
         for(int id=0;id<sizeOfIdSeq;++id){
             std::cout<<c->id_seq[id]<<" ";
         }
@@ -396,17 +408,26 @@ LocalCutCollection::print(){
 //----------------------------------------------------------------------------------
 
 double
-LocalCutCollection::LocalCut_hasArc(const LocalCut * localCut, int arc){
-    if(!localCut->hasArc(map[arc].fst, map[arc].snd)) return 0;
-    return 1.0;
+GlobalCutCollection::GlobalCut_hasArc(const GlobalCut * globalCut, int arc){
+    if(!globalCut->hasArc(map[arc].fst, map[arc].snd)) return 0;
+    
+    if(globalCut->type==1){
+    	return globalCut->coef[arc];
+    }else{
+    	for(int n=globalCut->size;n--;)
+    		if(globalCut->vars[n]==arc) return globalCut->coef[n];
+    }
+    
+    
+    return 0.0;
 }
 
 //----------------------------------------------------------------------------------
 
 void 
-LocalCutCollection::map_collection(std::map<int, int>& mapd){
+GlobalCutCollection::map_collection(std::map<int, int>& mapd){
 	int sz = sizeOfCollection;
-	LocalCut *vi = begin;
+	GlobalCut *vi = begin;
 	for(;sz--;){
 		mapd.insert(std::pair<int,int>(vi->serial_nmbr,vi->id_vi));
 		vi = vi->next;
@@ -415,54 +436,113 @@ LocalCutCollection::map_collection(std::map<int, int>& mapd){
 
 //====================================================================================
 //====================================================================================
-// Class LocalCut methods
+// Class GlobalCut methods
 //====================================================================================
 //====================================================================================
 
 bool 
-LocalCut::check_updt_Viol(const double *y, bool & infeas) {
-	int arc;
-	int sumzro=0;
-	double sum=0; 
-	double rhs_ = rhs;
+GlobalCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vbd, BCP_vec<int>& var_changed_pos,
+                                BCP_vec<double>& var_new_bd, bool & viol, bool & zrofx, int* fixd){
+ 	double dimsh=0;
+    int sz = size;
+    int arc;
+    int ntofx=0;
+	int tofix;
+    
+    viol=true;
     rhs_dimsh=0;
-    for(int a=0;a<size;++a){
-    	arc = vars[a];
-    	if( y[arc]==1){
-        	rhs_dimsh+= 1.0;
-		}else if( y[arc]==-1){
-			sum+= 1.0;
-		}else sumzro+=1;
+    
+    for(int a=0;a<sz;++a){
+     	arc = vars[a];
+		if(vbd[arc]->lb() > 0.5 || fixd[arc]==1){
+        	dimsh+= coef[a];
+        	if(coef[a]==1){
+        		viol= false;
+        	}
+		}else if(vbd[arc]->ub() > 0.5 && fixd[arc]==-1){
+ 			tofix=a;
+			++ntofx;
+		}else if(coef[a]==-1){
+        	viol= false;
+        }
     }
-	rhs_ -= rhs_dimsh;
-	infeas=false;
-	if(sense==1){
-		if(sum<rhs_){ infeas=true; return false;}  
-		if(rhs_ <= 0){ return false;}
-    }else{
- 		if(rhs_ < 0){infeas=true; return false;}
- 		if(sumzro>=(size-1)){return false;}
+ 	rhs_dimsh = dimsh;
+  	if(viol && ntofx==0){ return false;} //abort;
+	if(viol && ntofx==1){
+		viol= false;
+		if(coef[ntofx]==1){
+ 			arc =vars[tofix]; 
+			fixd[arc]=1;
+			std::cout<<"fix "<<arc<<" to 1"<<std::endl;
+ 			var_changed_pos.push_back(arc);
+			var_new_bd.push_back(1.0);
+			var_new_bd.push_back(1.0);
+		}else if(coef[ntofx]==-1){
+			arc =vars[tofix]; 
+			fixd[arc]=0;
+			std::cout<<"fix "<<arc<<" to 0"<<std::endl;
+			zrofx=true;
+ 			var_changed_pos.push_back(arc);
+			var_new_bd.push_back(0.0);
+			var_new_bd.push_back(0.0);
+		}
+	}
+	return true;
+}
+
+//----------------------------------------------------------------------------------
+
+bool 
+GlobalCut::check_updt_Viol(const double *y, bool & infeas)  {
+	double dimsh=0;
+    int sz = size;
+    int arc;
+    int ntofx=0;
+ 	
+    double viol=true;
+    rhs_dimsh=0;
+    
+    for(int a=0;a<sz;++a){
+     	arc = vars[a];
+     	//std::cout<<arc<<" "<<y[arc]<<std::endl;
+		if(y[arc]==1){
+        	dimsh+= coef[a];
+        	if(coef[a]==1){
+        		viol= false;
+        	}
+		}else if(y[arc]==-1){
+ 			++ntofx;
+		}else if(coef[a]==-1){
+        	viol= false;
+        }
+    }
+ 	rhs_dimsh = dimsh;
+	if(!viol) return false;
+ 	if(viol && ntofx==0){std::cout<<"GlobalCut::check_updt_Viol:: infeas"<<std::endl; infeas= true; return false;} //abort;
+	return true;
+}
+
+//----------------------------------------------------------------------------------
+
+bool 
+GlobalCut::check_viol(const BCP_vec<BCP_var*>& vbd) {
+ 	int arc=0;
+    for(int a=0;a<size;++a){
+      	arc = vars[a];
+      	if(vbd[arc]->lb()>0.5 && coef[a]==1)
+      		 return false;
+        if(vbd[arc]->ub()<0.5 && coef[a]==-1)
+        	return false;
     }
     return true;
 }
 
 //----------------------------------------------------------------------------------
-
-
-double 
-LocalCut::viol(const double *y)const {
-	double sum=0;
-      for(int a=0;a<size;++a){
-        sum+= y[vars[a]];
-        if(sense*(rhs - sum)<=0){return 0;}
-    }
-    return sense*(rhs-sum);
-}
-
+//----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
 
 int
-LocalCut::at(int pos) const{
+GlobalCut::at(int pos) const{
     if(pos >= get_total_sz()) return -1;
      return vars[pos];
 }
@@ -470,16 +550,16 @@ LocalCut::at(int pos) const{
 //----------------------------------------------------------------------------------
 
 double
-LocalCut::gamma_at(int pos) const{
+GlobalCut::gamma_at(int pos) const{
     if(pos >= size) return -1;
-    return 1.0;
+    return coef[pos];
 }
 
 //----------------------------------------------------------------------------------
 
 
 void
-LocalCut::get_total_sz_rhs(int & sz, double &rhs) const{
+GlobalCut::get_total_sz_rhs(int & sz, double &rhs) const{
     sz = size;
     rhs = rhs- rhs_dimsh;
 }
@@ -487,46 +567,52 @@ LocalCut::get_total_sz_rhs(int & sz, double &rhs) const{
 //----------------------------------------------------------------------------------
 
 double
-LocalCut::get_total_rhs() const{ return  rhs - rhs_dimsh;}
+GlobalCut::get_total_rhs() const{ return  rhs - rhs_dimsh;}
 
 //----------------------------------------------------------------------------------
 
 double
-LocalCut::get_rhs() const{  return rhs; }
+GlobalCut::get_rhs() const{  return rhs; }
 
 //----------------------------------------------------------------------------------
 
 int
-LocalCut::get_total_sz()const{    return size;}
+GlobalCut::get_total_sz()const{    return size;}
 
 //----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 
-void LocalCut::addArc(int iset, int arc){
+void 
+GlobalCut::addArc(int iset, int arc){
     setBit(id_seq,iset,arc);
 }
 
 //----------------------------------------------------------------------------------
 
 
-void LocalCut::removeArc(int iset, int arc){
+void 
+GlobalCut::removeArc(int iset, int arc){
     clearBit(id_seq,iset,arc);
 }
 
 //----------------------------------------------------------------------------------
 
-bool LocalCut::hasArc(int iset, int arc) const{
+bool 
+GlobalCut::hasArc(int iset, int arc) const{
     if(testBit(id_seq,iset,arc)) return true;
     else return false;
 }
 
 //----------------------------------------------------------------------------------
 
-void LocalCut::print(){
+void 
+GlobalCut::print(){
     double rhs_ = rhs;
-    std::cout<<"T"<<sense<<": ";
+    std::cout<<"G"<<type<<": ";
     for(int i=size;i--;)
-        std::cout<<"("<<vars[i]<<", mtl: 1) ";
+        std::cout<<"("<<vars[i]<<", mtl: "<<coef[i]<<") ";
     
-    std::cout<<" rhs: "<<rhs_<<std::endl;
+    std::cout<<" rhs: "<<rhs_<<" nmbr: "<<serial_nmbr<<std::endl;
 }
 

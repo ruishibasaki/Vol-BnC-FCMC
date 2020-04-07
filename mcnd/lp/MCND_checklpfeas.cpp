@@ -87,7 +87,8 @@ LPFeasChecker::solve_opt(const BCP_vec<BCP_var*>& vars, const double * topo) {
     
     if(topo){
     	for(int a=0;a<narcs;++a){
-			if(topo[a]<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
+    		if(vars[a]->ub()<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
+			}else if(vars[a]->lb()<=0.5 && topo[a]<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
 			}else{ ub = IloInfinity;}
 		
 			for(int k=0;k<ndemands;++k){

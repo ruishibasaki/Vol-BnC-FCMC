@@ -9,6 +9,7 @@
 #include "covermanager.hpp"
 #include "cutsetmanager.hpp"
 #include "localcutmanager.hpp"
+#include "globalcutmanager.hpp"
 
 #include "Structures.hpp"
 #include "OsiAuxInfo.hpp"
@@ -24,9 +25,10 @@ public:
     CoverManager * cover_manager;
     CutSetManager * ss_manager;
     LocalCutManager* localc_manager;
+    GlobalCutManager* globalc_manager;
     int maxNumVI, intvlVI;
     
-    inline OsiVolAuxInfo():data(0), cover_manager(0), ss_manager(0), localc_manager(0){
+    inline OsiVolAuxInfo():data(0), cover_manager(0), ss_manager(0), localc_manager(0), globalc_manager(0){
         maxNumVI =1000;
         intvlVI =50;
         appData_ = this;

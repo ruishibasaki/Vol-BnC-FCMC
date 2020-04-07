@@ -20,7 +20,9 @@ suffix_cg = \
 	cutsetcollection \
 	lift\
 	localcutmanager\
-	localcutcollection
+	localcutcollection\
+	globalcutmanager\
+	globalcutcollection
 
 suffix_tm = \
 	MCND_tm

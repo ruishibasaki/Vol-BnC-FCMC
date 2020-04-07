@@ -13,6 +13,48 @@
 
 int CutManager::ttgend = 0;
 
+bool 
+CoverCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_changed_pos,
+                                BCP_vec<double>& var_new_bd, bool & viol,bool & zrofx, int* fixd){
+	double sum=0;
+	double dimsh=0;
+    double rhs= cover->get_rhs();
+    int sz = cover->get_total_sz();
+    int arc;
+    int ntofx=0;
+    std::vector<int> tofix(sz);
+    
+    viol=true;
+    cover->rhs_dimsh=0;
+    
+    for(int a=0;a<sz;++a){
+     	arc = cover->at(a);
+		if(vars[arc]->lb() > 0.5 || fixd[arc]==1){
+        	dimsh+= cover->gamma_at(a);
+		}else if(vars[arc]->ub() > 0.5 && fixd[arc]==-1){
+			sum+= cover->gamma_at(a);
+			tofix[ntofx++]=arc;
+		}
+    }
+	rhs -= dimsh;
+	cover->rhs_dimsh = dimsh;
+	if(sum<rhs){ tofix.clear();return false;} //abort;
+	if(rhs <= 0){viol= false;}
+	else if(sum==rhs){
+		viol= false;
+		for(;ntofx--;){
+			arc = tofix[ntofx];
+			fixd[arc]=1;
+			std::cout<<"fix "<<arc<<" to 1"<<std::endl;
+ 			var_changed_pos.push_back(arc);
+			var_new_bd.push_back(1.0);
+			var_new_bd.push_back(1.0);
+		}
+	}
+	return true;
+}
+
+//-------------------------------------------------------------------------------------------
 
 bool
 CoverCut::check_viol(const BCP_vec<BCP_var*>& vars){
@@ -75,6 +117,68 @@ CoverCut::check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs){
 // LocalCCut methods
 //======================================================================
 //======================================================================
+
+bool
+LocalCCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_changed_pos,
+                                BCP_vec<double>& var_new_bd, bool & viol, bool & zrofx, int* fixd){
+	double sum=0;
+	double dimsh=0;
+    double rhs= localc->rhs;
+    int sz = localc->size;
+	int sumzro =0;
+    int ntofx=0;
+    int arc;
+    std::vector<int> tofix(sz);
+
+	viol=true;
+    localc->rhs_dimsh=0;
+
+    for(int a=0;a<sz;++a){
+    	//std::cout<<"c: "<<cover->at(a)<<" lb: "<<vars[cover->at(a)]->lb()<<std::endl;
+    	arc = localc->vars[a];
+    	if(vars[arc]->lb() > 0.5 || fixd[arc]==1){
+        	dimsh+= 1.0;
+		}else if(vars[arc]->ub() > 0.5 && fixd[arc]==-1){
+			sum+= 1.0;
+			tofix[ntofx++] = arc;
+		}else sumzro+=1;
+    }
+	rhs -= dimsh;
+	localc->rhs_dimsh = dimsh;
+    if(localc->sense==1){
+		if(sum<rhs){ tofix.clear();return false;} //abort;
+		if(rhs <= 0){viol= false;}
+		else if(sum==rhs){
+			viol= false;
+			for(;ntofx--;){
+				arc = tofix[ntofx];
+				fixd[arc] = 1;
+				std::cout<<"fix "<<arc<<" to 1"<<std::endl;
+				var_changed_pos.push_back(arc);
+				var_new_bd.push_back(1.0);
+				var_new_bd.push_back(1.0);
+			}
+		}
+    }else{
+ 		if(rhs < 0){tofix.clear();return false;}
+ 		if(rhs==0){
+ 			viol= false;
+ 			for(;ntofx--;){
+				arc = tofix[ntofx];
+				fixd[arc] = 0;
+				zrofx=true;
+				std::cout<<"fix "<<arc<<" to 0"<<std::endl;
+				var_changed_pos.push_back(arc);
+				var_new_bd.push_back(0.0);
+				var_new_bd.push_back(0.0);
+			}
+ 		}else if(sumzro>=(sz-1)){viol= false;}
+    }
+    tofix.clear();
+    return true;
+}
+
+//-------------------------------------------------------------------------------------------
 
 bool
 LocalCCut::check_viol(const BCP_vec<BCP_var*>& vars){

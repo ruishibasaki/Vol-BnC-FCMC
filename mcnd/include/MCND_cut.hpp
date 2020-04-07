@@ -30,9 +30,13 @@ public:
 	virtual bool check_viol(const BCP_vec<BCP_var*>& vars)=0;
 	virtual double check_viol(const double* vars)=0;
 	virtual bool check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs)=0;
+	virtual bool check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_changed_pos,
+                                BCP_vec<double>& var_new_bd, bool & viol, bool & zrofx, int* fixd)=0;
 	virtual bool purgbl()=0;
 	virtual void mark_unpurgbl()=0;
+	virtual void mark_purgbl()=0;
 	virtual int id_vi()=0;
+	virtual void print()=0;
 	virtual int serial_nmbr()=0;
 
 };

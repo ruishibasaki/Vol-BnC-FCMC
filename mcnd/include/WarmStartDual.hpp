@@ -12,6 +12,7 @@
 #include "CoinWarmStartDual.hpp"
 #include "covercollection.hpp"
 #include "localcutcollection.hpp"
+#include "globalcutcollection.hpp"
 
 #include "BCP_buffer.hpp"
 
@@ -24,7 +25,7 @@ public:
     
     //---------------------
     inline WarmStartDual(): dual_(0){};
-    WarmStartDual(int size, const double* dual, const CoverCollection* covers, const LocalCutCollection* locals);
+    WarmStartDual(int size, const double* dual, const CoverCollection* covers, const LocalCutCollection* locals, const GlobalCutCollection* globals);
     WarmStartDual(int size, const double* dual, const std::map<int, int>& map_ );
     WarmStartDual(int size, const double* dual);
     WarmStartDual(const WarmStartDual* wsd);

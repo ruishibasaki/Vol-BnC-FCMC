@@ -9,7 +9,7 @@
 #include "WarmStartDual.hpp"
 
 
-WarmStartDual::WarmStartDual(int size, const double* dual, const CoverCollection* covers, const LocalCutCollection* locals):CoinWarmStartDual(size, dual){
+WarmStartDual::WarmStartDual(int size, const double* dual, const CoverCollection* covers, const LocalCutCollection* locals, const GlobalCutCollection* globals):CoinWarmStartDual(size, dual){
         int sz = covers->sizeOfCollection;
         Cover *vi = covers->begin;
         for(;sz--;){
@@ -21,6 +21,12 @@ WarmStartDual::WarmStartDual(int size, const double* dual, const CoverCollection
         for(;sz--;){
         	mapd.insert(std::pair<int,int>(vilc->serial_nmbr,vilc->id_vi));
         	vilc = vilc->next;
+        }
+        sz = globals->sizeOfCollection;
+        GlobalCut *vigc = globals->begin;
+        for(;sz--;){
+        	mapd.insert(std::pair<int,int>(vigc->serial_nmbr,vigc->id_vi));
+        	vigc = vigc->next;
         }
         dual_ = CoinWarmStartDual::dual();
 }

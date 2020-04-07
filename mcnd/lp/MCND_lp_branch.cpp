@@ -39,7 +39,6 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	}
 	
     
-	
     if(local_cut_pool.size()>0 ){
     	return BCP_DoNotBranch;
 	}else if((lp_mode & LP_CutAddedFromHeuristic)){
@@ -49,7 +48,8 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	mapd.clear();
     cover_manager.covers.map_collection(mapd);
 	localc_manager.locals.map_collection(mapd);
-	
+	globalc_manager.globals.map_collection(mapd);
+
 	
     std::deque<Pair2> candidates;
 	BCP_vec<double> vbd(4, 0.0);
@@ -132,21 +132,19 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
     const double * rcsol = lpres.dj();
     double lb = lpres.objval();
     double gij, ckij;
-    
+     
     std::fill(yfix,yfix+data.narcs, -1);
-    BCP_vec<int> changed_to0;
-    changed_to0.reserve(data.narcs);
-	for (int a=data.narcs; a--;){
+ 	for (int a=data.narcs; a--;){
 		gij = rcsol[a];
 		if(vars[a]->lb()==0.0 && vars[a]->ub()==1.0){
 			//std::cout<<"penalty test: "<<a<<" "<<gij<<" lbs: "<<lb<<" "<<LBi<<std::endl;
 			if(gij>0 && (lb+gij)>=upper_bound()){
 				std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
-				changed_to0.unchecked_push_back(a);
-				new_bd.push_back(0.0);
+ 				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0; 
+				
 			}else if(gij<0 && (lb-gij)>=upper_bound()){
 				std::cout<<a<<" WILL FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
@@ -157,31 +155,12 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
 	}
-	const int cutnum = cuts.size();
-	for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
-		MCND_Cut * cut = dynamic_cast<MCND_Cut*>(cuts[i]);
-		if(!cut->check_logical_fix( vars, yfix)){
-			lp_mode |= LP_ForceNodeAbort;
-			return;
-		}
-	}
+	
+	cut_varfix_and_updt( vars, cuts, changed_pos, new_bd);
+
 	for(int a=data.narcs; a--;){
-		if(yfix[a]==0){ continue;
-		}else if(yfix[a]==2){
-			std::cout<<a<<" WILL FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
-			yfix[a] = 1;
-			changed_pos.push_back(a);
-			new_bd.push_back(1.0);
-			new_bd.push_back(1.0);
-		}else if(yfix[a]==3){
-			std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
-			yfix[a] = 0;
-			changed_pos.push_back(a);
-			new_bd.push_back(0.0);
-			new_bd.push_back(0.0);
-			continue;
-		}
 		gij = rcsol[a];
+		if(yfix[a]==0){ if(vars[a]->ub()==1.0)lp_mode |= LP_TestConnectivity; continue;}
 		Arc * item  =  &data.arcs[a];
 		double tt=0;
 		for (int k=data.ndemands; k--;){
@@ -199,18 +178,91 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 					changed_pos.push_back(id);
 					new_bd.push_back(0.0);
 					new_bd.push_back(bd);
+					lp_mode |= LP_TestConnectivity;
 				}
 			}
 		}
 	}
 	if(changed_pos.size()>0) lp_mode |= LP_LogicalFixed;
-	if(changed_to0.size()>0){
-		lp_mode |= LP_TestConnectivity;
-		if(!verify_feasibility( changed_to0, changed_to0.size()))
+	if(lp_mode & LP_TestConnectivity){
+		lp_mode &= ~LP_TestConnectivity;
+		if(!verify_feasibility( changed_pos, new_bd, changed_pos.size())){
 			lp_mode |= LP_ForceNodeAbort;
-		changed_to0.clear();
-	}
+		}
+ 	}
+
 }
+
+//-------------------------------------------------------------------------------------------
+
+bool 
+MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars, 
+							const BCP_vec<BCP_cut*>& cuts,
+							BCP_vec<int>& var_changed_pos,
+                            BCP_vec<double>& var_new_bd){
+                                    
+	int contfixed=-1;
+	bool viol;
+	bool zrofx;
+	bool conn_arcfix;
+	const int cutnum = cuts.size();
+	GlobalCut * gloc;
+	while(contfixed < int(var_changed_pos.size())){
+     	contfixed = int(var_changed_pos.size());
+    	zrofx=false;
+    	conn_arcfix=false;
+    	for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
+			MCND_Cut * cut = dynamic_cast<MCND_Cut*>(cuts[i]);
+			if(cut->purgbl()) continue;
+			if(!cut->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
+				std::cout<<"insatisfeasible: "<<std::endl; cut->print();
+				var_changed_pos.clear();
+				var_new_bd.clear();
+				lp_mode |= LP_ForceNodeAbort;
+				return false;
+			}
+			if(!viol){ cut->mark_purgbl(); }//std::cout<<"no viol: "<<std::endl; cut->print();}
+			//else cut->mark_unpurgbl();
+			if(contfixed < int(var_changed_pos.size())){
+				contfixed = int(var_changed_pos.size());
+				i = getLpProblemPointer()->core->cutnum();
+			}
+		}
+		
+		gloc = globalc_manager.globals.begin;
+		for(int i = globalc_manager.globals.sizeOfCollection; i--;){
+			//std::cout<<"gloc_updt "<<gloc->serial_nmbr<<" "<<gloc->purgbl<<std::endl;
+			if(gloc->purgbl) continue;
+			if(!gloc->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
+				std::cout<<"insatisfeasible: "<<std::endl; gloc->print();
+				var_changed_pos.clear();
+				var_new_bd.clear();
+				lp_mode |= LP_ForceNodeAbort;
+				return false;
+			}
+			if(!viol){ gloc->purgbl=true; }//std::cout<<"no viol: "<<std::endl; cut->print();}
+			//else cut->mark_unpurgbl();
+			if(contfixed < int(var_changed_pos.size())){
+				contfixed = int(var_changed_pos.size());
+				i = globalc_manager.globals.sizeOfCollection;
+				gloc = globalc_manager.globals.begin;
+			}else gloc = gloc->next;
+		}
+		
+		if(zrofx){
+			if(!flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, conn_arcfix, yfix)){
+				var_changed_pos.clear();
+				var_new_bd.clear();
+				std::cout<<"fathom node flwconnect.check_connectivity"<<std::endl;
+				lp_mode |= LP_ForceNodeAbort;
+				return false;
+			}	
+		} 
+		if(!conn_arcfix) break;
+    }
+    return true;
+}
+
 
 //-------------------------------------------------------------------------------------------
 
@@ -239,9 +291,11 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
      	to_logical_fix.push_back(Pair2(var_new,1.0));
      	++infeas;
      }
-     if((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
+     if((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
+     	(child1.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
      	to_logical_fix.push_back(Pair2(var_new,0.0));
-     	++infeas;
+     	lp_mode |= LP_TestConnectivity;
+      	++infeas;
 	 }
 	 
 	if(infeas==2){
@@ -300,10 +354,13 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[0]);
     //if(!(lp_mode & LP_LogicalFixed) && y[cdata->branch_var]==0) cdata->reduced_run =true;
     cdata->hs = new WarmStartDual(cdata->dual_size, child0.pi(), mapd); //std::cout<<"dualsz: "<<cdata->dual_size<<std::endl;
+    cdata->parent = current_index();
     
     cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
     if(lp_mode & LP_TestConnectivity) cdata->test_conn=true;
     cdata->hs = new WarmStartDual(cdata->dual_size, child1.pi(), mapd);//std::cout<<"dualsz: "<<cdata->dual_size<<std::endl;
+    cdata->parent = current_index();
+
     //lp_mode = LP_Normal;
 }
 
@@ -338,7 +395,6 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		(child1.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf);
 		
 	int ret = verify_children_feasibility( best->candidate(),  feas0, feas1 );
-	if(ret>=2) lp_mode |= LP_TestConnectivity;
 	
 	double ybar_branch = child0.x()[var_branch];
     double diff0 = (child0.objval() - LBi);
@@ -378,13 +434,13 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 //========================================================================================
 
 bool 
-MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, int nvars){
+MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, const BCP_vec<double> & chngd_bd, int nvars){
 	OsiVolSolverInterface* lpsolver = getOsiVolBabSolver();
 	
-	for(;nvars--;){
-		lpsolver->setColUpper(vars_chngd[nvars], 0.0);
+	for(int n=nvars;n--;){
+		lpsolver->setColUpper(vars_chngd[n], chngd_bd[n*2+1]);
 	} 
-	
+
 	const double * collb = lpsolver->getColLower();
     const double * colub = lpsolver->getColUpper();
     
@@ -399,24 +455,20 @@ MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, int nvars){
 int 
 MCND_lp::verify_children_feasibility(BCP_lp_branching_object * candidate, bool& feas0, bool& feas1 ){
 	int ret = 0;
+	const BCP_vec< int >& vars = *candidate->forced_var_pos;
+	const BCP_vec< double >& vars_bd = *candidate->forced_var_bd;
 	if(feas0){
 		candidate->apply_child_bd(getOsiVolBabSolver(), 0);
 		//std::cout<<"testfeas 0"<<std::endl;
-		feas0 = verify_feasibility(*(candidate->forced_var_pos),0);
+		feas0 = verify_feasibility(vars,vars_bd,0);
 		ret +=1;
 	}
 	if(!feas1) return ret;
-	const BCP_vec< int >& vars = *candidate->forced_var_pos;
-	const BCP_vec< double >& vars_bd = *candidate->forced_var_bd;
-	int sz_implied = vars.size();
-	for(;sz_implied--;){
-		//std::cout<<"testfeas 1 "<<vars[sz_implied]<<" "<<vars_bd[sz_implied*4+3]<<" "<<vars.size()<<" "<<vars_bd.size()<<std::endl;
-		if(vars[sz_implied]<data.narcs && vars_bd[sz_implied*4+3]<0.5){
-			candidate->apply_child_bd(getOsiVolBabSolver(), 1);
-			feas1 = verify_feasibility(*(candidate->forced_var_pos),0);
-			ret +=2;
-			break;
-		}
+	
+	if(lp_mode & LP_TestConnectivity){
+ 		candidate->apply_child_bd(getOsiVolBabSolver(), 1);
+		feas1 = verify_feasibility(vars,vars_bd,0);
+		ret +=2;
 	}	
 	return ret;
 }

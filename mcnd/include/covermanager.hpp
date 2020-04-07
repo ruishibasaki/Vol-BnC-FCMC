@@ -34,7 +34,7 @@ public:
     inline CoverManager(): data(0), arc_map(0){ num_actv = lim_to_remv =0;}
     inline void set_arc_map(const int * map){ arc_map = map;}
     void initialize(const Data * d, int lim);
-    int reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize);
+    int reset_and_map_collection(int fsize, const double* topo, double * dual, int * actvS, int & csize, bool recheck_collct);
     void clean_collection();
     //-------------------------------------------------------------------------------------------
     //  main methods

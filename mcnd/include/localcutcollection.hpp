@@ -91,8 +91,8 @@ public:
     int serial_nmbr;
     int n_zerom;
     int n_nviol;
-    bool prgbl;
     bool toadd;
+    bool prgbl;
     
     int size;
     int *vars;
@@ -122,7 +122,7 @@ public:
     //--------------------------------------
 
     double viol(const double *y)const;
-    bool check_updt_Viol(const double *y);
+    bool check_updt_Viol(const double *y, bool & infeas);
 
     //implemetn map
     inline LocalCut(int M, int sz, int id_vi_, int serial_nmbr_, int sense_):size(sz), next(0), prev(0){
@@ -172,10 +172,15 @@ public:
 	bool check_viol(const BCP_vec<BCP_var*>& vars);
 	double check_viol(const double* vars);
 	bool check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs);
+	bool check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_changed_pos,
+                                BCP_vec<double>& var_new_bd, bool & viol, bool & zrofx, int* fixd);
 	bool purgbl(){return localc->prgbl;}
-	void mark_unpurgbl(){localc->prgbl=false;}
+	void mark_unpurgbl(){localc->prgbl=false; }
+	void mark_purgbl(){localc->prgbl=true; }
+
 	int id_vi(){return localc->id_vi;}
 	int serial_nmbr(){return localc->serial_nmbr;}
+ 	void print(){localc->print();}
 
 
 };

@@ -57,6 +57,7 @@ MCND_node_branch_data::pack(BCP_buffer& buf) const{
     buf.pack(min_lb);
     buf.pack(test_conn);
     buf.pack(reduced_run);
+    buf.pack(parent);
     //std::cout<<"packed size: "<<buf.size()<<std::endl;
     //std::cout<<branch_var<<" "<<pos_neg<<" "<<score<<" "<<score_parent<<std::endl;
 }
@@ -78,6 +79,7 @@ MCND_node_branch_data::unpack(BCP_buffer& buf){
     buf.unpack(min_lb);
     buf.unpack(test_conn);
     buf.unpack(reduced_run);
+    buf.unpack(parent);
 
     //std::cout<<branch_var<<" "<<pos_neg<<" "<<score<<" "<<score_parent<<std::endl;
     

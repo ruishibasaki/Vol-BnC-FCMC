@@ -18,8 +18,6 @@
 #include "MCND_osidata.hpp"
 #include "MCND_solution.hpp"
 
-#include "cutsetmanager.hpp"
-#include "covermanager.hpp"
 #include "CoinPackedMatrix.hpp"
 
 #include "OsiSolverInterface.hpp"
@@ -128,8 +126,8 @@ public:
     virtual const char * getRowSense() const { return 0; }
     virtual const double * getRightHandSide() const { return 0; }
     virtual const double * getRowRange() const { return 0; }
-    virtual const double * getRowLower() const {return rowlb;};
-    virtual const double * getRowUpper() const {return rowub;};
+    virtual const double * getRowLower() const {return rowlb;}
+    virtual const double * getRowUpper() const {return rowub;}
     virtual const double * getObjCoefficients() const { return 0; }
     virtual double getObjSense() const { return 1; }
     virtual bool isContinuous(int colNumber) const {return true;}
@@ -458,11 +456,13 @@ private:
     void set_start();
     void map_topology();
     void map_duals();
-    void rebuild_collections();
     
 public:
+	bool deleteGlobalRows();
+	void rebuild_collections();
     void add_external_cover(const std::deque<Pair2>& c);
     int add_external_localc( const int * y);
+    int add_external_globalc( const double * y, int type, int cont0=0);
     void direct_solve(const std::deque<int>& topo, const CoinWarmStart* warmstart);
     
     
@@ -478,6 +478,7 @@ public:
     int num_purgbl;
     bool HotStartSet;
     bool in_strong_branch;
+    bool recheck_collct;
     bool has_sol;
     
     //Volume attributes
@@ -491,10 +492,11 @@ public:
     int lim_to_remv, maxNumVI, intvlVI;
     double upper_bound;
     double min_lower_bound;
+    
     CoverManager* cover_manager;
     CutSetManager* ss_manager;
     LocalCutManager* localc_manager;
-    
+    GlobalCutManager* globalc_manager;
     //feasibility solver
     /// The volume solver
     VOL_problem volprob_;

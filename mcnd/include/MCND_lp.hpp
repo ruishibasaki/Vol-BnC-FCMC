@@ -60,7 +60,8 @@ public:
     CoverManager cover_manager;
     CutSetManager ss_manager;
     LocalCutManager localc_manager;
-    
+    GlobalCutManager globalc_manager;
+
     LPFeasChecker lpfeaschecker;
     FlowConnect flwconnect;
     Pump pump_heur;
@@ -78,17 +79,16 @@ public:
     std::vector<Pair> ninsp;
     std::vector<PairF> psdcost;
 	
-	int num_new_vi;
 	int num_nodes;
     std::deque<const MCND_CutUnit *> track;
- 
+
     BCP_vec<Pair2> to_logical_fix;
 
     std::map<int, int> mapd;
     
         
 public:
-    MCND_lp() : LBi(0), has_sol(false), track(0), aborted(false) { lp_mode = LP_Normal; num_new_vi=0; num_nodes=0;}
+    MCND_lp() : LBi(0), has_sol(false), track(0), aborted(false) { lp_mode = LP_Normal;  num_nodes=0;}
     ~MCND_lp();
     
     
@@ -263,6 +263,12 @@ public:
     virtual void pack_feasible_solution(BCP_buffer& buf, const BCP_solution* sol);
     
     //--------------------------------------------------------------------------
+
+    bool cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars, 
+							const BCP_vec<BCP_cut*>& cuts,
+							BCP_vec<int>& var_changed_pos,
+                            BCP_vec<double>& var_new_bd);
+    //--------------------------------------------------------------------------
     
     void update_branch_data(MCND_node_branch_data * ndata);
     void keep_track(const MCND_CutUnit* vi);
@@ -270,7 +276,7 @@ public:
     
     //--------------------------------------------------------------------------
     int verify_children_feasibility(BCP_lp_branching_object * candidate, bool& feas0, bool& feas1 );
-	bool verify_feasibility(const BCP_vec<int> & vars_chngd, int nvars);
+	bool verify_feasibility(const BCP_vec<int> & vars_chngd, const BCP_vec<double> & chngd_bd, int nvars);
 	void strong_branch_var_logicfix(BCP_lp_branching_object * candidate);    
 };
 
