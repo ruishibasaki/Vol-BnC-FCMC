@@ -468,7 +468,8 @@ CoverManager::set_new_mult_pos(double *rc, std::vector<Trio1>& ws, const double 
             alphsum += dual[index];
         }
         diff = sum - rc[id_arc];
-        //std::cout<<"arc: "<<arc<<" sum: "<<sum<<" dif: "<<diff<<std::endl;
+
+        //if(id_arc==65)std::cout<<"arc: "<<arc<<" rc: "<<rc[id_arc]<<" sum: "<<sum<<" dif: "<<diff<<std::endl;
         if(diff>1e-10){
             div = rc[id_arc]/double(tt);
             for(int c = 0;c<tt;c++){
@@ -491,8 +492,10 @@ CoverManager::set_new_mult_pos(double *rc, std::vector<Trio1>& ws, const double 
             item = con_arcs_wnid[arc*size+c];
             sum += ws[item.fst].snd * item.snd;
         }
-        //std::cout<<arc<<" new rc: "<<rc[arc]<<std::endl;
-        if(rc[id_arc] - sum < -1e-3  && rc[id_arc] >0)std::cout<<"PROBLEM arc "<<arc<<" : "<<rc[arc]<<" < "<<sum<<std::endl;
+        //if(id_arc==65) std::cout<<arc<<" new rc: "<<rc[id_arc]<<std::endl;
+        rc[id_arc] -= sum;
+    	if(rc[id_arc]<1e-5 && rc[id_arc]>-1e-5) rc[id_arc] = 0;
+        if(rc[id_arc]  < -1e-3  && rc[id_arc] >0)std::cout<<"PROBLEM arc "<<arc<<" : "<<rc[arc]<<" < "<<sum<<std::endl;
     }
     return 0;
 }
@@ -506,7 +509,7 @@ CoverManager::update_rc_neg(double dimsh, int nvi, const Cover * vi, std::vector
         arc = vi->at(a);
         id_arc = arc_map[arc];
 		if(id_arc < 0) continue;
-		//if(id_arc==33)std::cout<<"test "<<rc[id_arc]<<" "<<rc[id_arc] - vi->gamma_at(a)*dimsh<<" "<<vi->gamma_at(a)<<std::endl;
+		//if(id_arc==81)std::cout<<"test "<<rc[id_arc]<<" "<<rc[id_arc] - vi->gamma_at(a)*dimsh<<" "<<vi->gamma_at(a)<<std::endl;
         if(rc[id_arc]<=0 && ((rc[id_arc] - vi->gamma_at(a)*dimsh) >0))
            dimsh = rc[id_arc]/vi->gamma_at(a);
     }
@@ -515,9 +518,9 @@ CoverManager::update_rc_neg(double dimsh, int nvi, const Cover * vi, std::vector
         arc = vi->at(a);
         id_arc = arc_map[arc];
 		if(id_arc < 0) continue;
-		//if(id_arc==33)std::cout<<rc[id_arc]<<" "<<rc[id_arc] - vi->gamma_at(a)*dimsh<<" "<<vi->gamma_at(a)<<std::endl;
+		//if(id_arc==81)std::cout<<rc[id_arc]<<" "<<rc[id_arc] - vi->gamma_at(a)*dimsh<<" "<<vi->gamma_at(a)<<std::endl;
         rc[id_arc] -=  vi->gamma_at(a)*dimsh;
-        if(rc[id_arc]>-1e-10) rc[id_arc] =0;
+        if(rc[id_arc]>-1e-5 && rc[id_arc]<1e-5) rc[id_arc] =0;
         con_arcs_map[arc].snd -= ws[nvi].snd;
     }
 
@@ -564,9 +567,11 @@ CoverManager::set_new_mult_neg(double *rc, std::vector<Trio1>& ws,  double * dua
         con_arcs.pop_front();
         tt = con_arcs_map[arc].fst;
         alphsum = con_arcs_map[arc].snd;
+        
+        //std::cout<<"idarc: "<<id_arc<<" fk: "<<fk[id_arc]<<" rc: "<<rc[id_arc]<<" mult: "<<mult<<" tt: "<<tt<<" al: "<<alphsum<<std::endl;
 
-        //if(id_arc==33)std::cout<<"arc: "<<arc<<" fk: "<<fk[id_arc]<<" rc: "<<rc[id_arc]<<" mult: "<<mult<<" tt: "<<tt<<" al: "<<alphsum<<std::endl;
-        if(((mult > -1e-10 )&&(mult <1e-10 ))|| alphsum  < 1e-10 ){
+        //if(id_arc==65)std::cout<<"arc: "<<arc<<" fk: "<<fk[id_arc]<<" rc: "<<rc[id_arc]<<" mult: "<<mult<<" tt: "<<tt<<" al: "<<alphsum<<std::endl;
+        if(((mult > -1e-5 )&&(mult <1e-5))|| alphsum  < 1e-5 ){
         	continue;
     	}
 
@@ -574,17 +579,18 @@ CoverManager::set_new_mult_neg(double *rc, std::vector<Trio1>& ws,  double * dua
             item = con_arcs_wnid[arc*size+c];            
             index = ws[item.fst].fst;
             diff = mult*(dual[index]/(double)(alphsum*item.snd));
-            if(alphsum < 1e-10) std::cout<<"PROBLEMA set_new_mult_neg alphsum < 1e-10"<<std::endl;
+            if(alphsum < 1e-5) std::cout<<"PROBLEMA set_new_mult_neg alphsum < 1e-10"<<std::endl;
             if(dual[index]+diff<0){ diff = -dual[index]; }//std::cout<<"PROBLEMA set_new_mult_neg dual[index]<0 "<<dual[index]<<std::endl;}
 			
             diff = update_rc_neg(diff , item.fst, addrs[item.fst], ws, con_arcs_map, rc);
             ws[item.fst].trd = 1.0;
             dual[index] += diff;
-        	if(dual[index]<1e-10) dual[index] = 0;
+        	if(dual[index]<1e-5) dual[index] = 0;
 			
         }
-        
-        if(rc[id_arc]<1e-10 && rc[id_arc]>-1e-10) rc[id_arc] = 0;
+        //if(id_arc==65)std::cout<<"end arc: "<<arc<<" fk: "<<fk[id_arc]<<" rc: "<<rc[id_arc]<<std::endl;
+        if(rc[id_arc]<1e-5 && rc[id_arc]>-1e-5) rc[id_arc] = 0;
+        //std::cout<<"end idarc: "<<id_arc<<" fk: "<<fk[id_arc]<<" rc: "<<rc[id_arc]<<std::endl;
 
         update_con_arcs( con_arcs, fk, rc);
         
@@ -629,6 +635,7 @@ CoverManager::recompute_mult_neg(double * dual, double * rc, const double *fk,
             alph = rc[id_arc];
             if(alph>=0) continue;
             if(con_arcs_map[arc].fst==0){
+        		//std::cout<<"conarcs: "<<id_arc<<" fk: "<<fk[id_arc]<<" rc: "<<rc[id_arc]<<std::endl;
                 if(fk[id_arc]<=0) con_arcs_aux.push_back(Pair2(arc, (alph - fk[id_arc])));
                 else con_arcs.push_back(Pair2(arc, alph));
             }
@@ -793,7 +800,6 @@ CoverManager::compute_cover_rc(const double * dual, const int* actvS, int actvSS
             ++vi->n_zerom;
             vi = vi->next;
             continue;
-            
         }else vi->n_zerom = 0; 
         //std::cout<<"mu: "<<vi->mu<<std::endl;
 

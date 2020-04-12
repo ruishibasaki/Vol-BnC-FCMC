@@ -111,7 +111,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
     p.par.set_entry(BCP_tm_par::TmVerb_TrimmedNum, false);
     p.par.set_entry(BCP_tm_par::TmVerb_TimeOfImprovingSolution, false);
     p.par.set_entry(BCP_tm_par::TmVerb_PrunedNodeInfo, false);
-    p.par.set_entry(BCP_tm_par::TmVerb_FinalStatistics, false);
+    p.par.set_entry(BCP_tm_par::TmVerb_FinalStatistics, true);
     p.par.set_entry(BCP_tm_par::TmVerb_ReportDefault, false);
     
    p.par.set_entry(BCP_tm_par::Granularity, 1e-2);
@@ -124,7 +124,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    p.par.set_entry(BCP_tm_par::RemoveExploredBranches, true);
    p.par.set_entry(BCP_tm_par::MessagePassingIsSerial, true);
 
-   p.par.set_entry(BCP_tm_par::MaxRunTime, 3600.0);
+   p.par.set_entry(BCP_tm_par::MaxRunTime, 5*3600.0);
 
    tm->t_start = clock();
    return tm; 

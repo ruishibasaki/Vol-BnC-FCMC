@@ -473,14 +473,14 @@ GlobalCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vbd, BCP_vec<int>& var_c
 		if(coef[ntofx]==1){
  			arc =vars[tofix]; 
 			fixd[arc]=1;
-			//std::cout<<"fix "<<arc<<" to 1"<<std::endl;
+			//std::cout<<"fix "<<arc<<" to 1 "<<vbd[arc]->lb() <<std::endl;
  			var_changed_pos.push_back(arc);
 			var_new_bd.push_back(1.0);
 			var_new_bd.push_back(1.0);
 		}else if(coef[ntofx]==-1){
 			arc =vars[tofix]; 
 			fixd[arc]=0;
-			//std::cout<<"fix "<<arc<<" to 0"<<std::endl;
+			//std::cout<<"fix "<<arc<<" to 0 "<<vbd[arc]->ub()<<std::endl;
 			zrofx=true;
  			var_changed_pos.push_back(arc);
 			var_new_bd.push_back(0.0);

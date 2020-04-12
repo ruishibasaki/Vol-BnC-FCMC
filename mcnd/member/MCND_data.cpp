@@ -87,11 +87,11 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     else if(vars[id]->lb()>0){ std::cout<<"FlowConnect conflict1"<<std::endl; return false;}
                     if(++count_closed[arc] == ndemands){
                     	if(vars[arc]->lb()>0 || yfxd[arc]==1){ std::cout<<"FlowConnect conflict2 "<<arc<<" "<<vars[arc]->lb()<<std::endl; return false;}
-                    	if(yfxd[arc]==-1){
+                    	if(yfxd[arc]==-1 && vars[arc]->ub()>0.5){
                     		set_bd(arc, 0.0, 0.0,  changed_pos, new_bd);
                     		conn_arcfix=true;
                     		yfxd[arc]=0;
-							std::cout<<"close the entire arc "<<arc+1<<". "<<vars[arc]->lb()<<" "<<vars[arc]->ub()<<std::endl;
+							//std::cout<<"close the entire arc "<<arc+1<<". "<<vars[arc]->lb()<<" "<<vars[arc]->ub()<<std::endl;
                     	}	
                     }
                 }
@@ -102,13 +102,13 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	double dk = data->d_k[k].quantity;
                 	//std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
                 	if(vars[id]->ub() < dk){ std::cout<<"FlowConnect conflict3"<<std::endl; return false;}
-                	set_bd(id, dk, dk,  changed_pos, new_bd);
+                	else if(vars[id]->ub() > dk) set_bd(id, dk, dk,  changed_pos, new_bd);
                 	if(vars[arc_unique]->lb() < 0.5 && yfxd[arc_unique]==-1){
                 		set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
                     	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
                     	conn_arcfix=true;
                     	yfxd[arc_unique]=1;
-                    	std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
+                    	//std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
                 	} 
                 }else if(comm_sat==0){
                 	std::cout<<"FlowConnect conflict4"<<std::endl;  
@@ -134,7 +134,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
                     	conn_arcfix=true;
                     	yfxd[arc_unique]=1;
-                    	std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
+                    	//std::cout<<"open the entire arc "<<arc_unique+1<<std::endl;
                 	} 
                 }else if(comm_sat==0){
                     std::cout<<"FlowConnect conflict6"<<std::endl;  

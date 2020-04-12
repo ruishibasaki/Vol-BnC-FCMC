@@ -616,12 +616,22 @@ OsiVolSolverInterface::additional_settings(int iter, double& lcost, VOL_dvector&
         return 0;
     }
     double ret=0;
-
+	
+	
     cover_manager->recompute_mult_neg( dual.v, addrc, rc.v, x.v, actv, actvSSz);
     cover_manager->recompute_mult_pos( dual.v, h.v, addrc, x.v, actv);
-    cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
+    //cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
+    int sz = cover_manager->num_actv;
+    int index;
+    Cover *vi = cover_manager->covers.begin;
+    for(;sz--;){
+        index = actv[vi->id_vi];
+        B0 +=  dual[index]*vi->get_total_rhs();
+        vi = vi->next;
+    }
     for(int a=szunfxd; a--; ){
-        if(rc[a]<1e-8 && rc[a]>-1e-8) rc[a] = 0;
+    	rc[a] = addrc[a];
+        if(rc[a]<1e-5 && rc[a]>-1e-5) rc[a] = 0;
         if(rc[a]==0 ){
             ret = arc_dg_imp(a, x.v, h.v , actvSSz);
             if(ret>0 && xhist[a]>=0.0){

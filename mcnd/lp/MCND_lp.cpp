@@ -181,7 +181,15 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     	else par.maxsgriters = 500;
     }else par.maxsgriters = 250;
      
-    if(current_level()>0){  AppVolData.intvlVI = 200; /*vollp->mode=2;*/}
+    if(current_level()>0){ 
+		/*par.lambdainit=1.0;
+		par.alphainit=0.5;
+		par.alphamin=1e-2;
+		par.alphafactor=0.3;
+		par.alphaint=1;*/
+
+     	AppVolData.intvlVI = 200; /*vollp->mode=2;*/
+    }
 	else{ vollp->mode=1;}
 	
 	if(lp_mode & LP_LogicalFixed){
