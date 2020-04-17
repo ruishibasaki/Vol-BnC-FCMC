@@ -85,8 +85,8 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         if(nodedata->hs!=0){
             getLpProblemPointer()->lp_solver->setWarmStart(nodedata->hs);
         }
-        //std::cout<<"node comes from branch on: "<<nodedata->branch_var;
-        //std::cout<<" of "<<nodedata->pos_neg<<" side .. parent: "<<nodedata->parent<<std::endl;
+    	std::cout<<"node comes from branch on: "<<nodedata->branch_var;
+        std::cout<<" of "<<nodedata->pos_neg<<" side .. parent: "<<nodedata->parent<<std::endl;
         testconn = nodedata->test_conn ;
         if(nodedata->reduced_run)lp_mode |= LP_ReducedRun;
         //std::cout<<"reduced run? "<<nodedata->reduced_run<<std::endl;

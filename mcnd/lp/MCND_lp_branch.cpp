@@ -288,8 +288,8 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
    	double score = fmin(diff0, diff1);
     newobj->user_data()[0] = new MCND_node_branch_data(sz, score , var_new, 0, LBi, true);
     newobj->user_data()[1] = new MCND_node_branch_data(sz, score , var_new, 1, LBi, false);
-    
-    //std::cout<<" comparing ("<<var_new<<") y: "<<y[var_new]<<" score: "<<score<<" mode: "<<lp_mode<<std::endl;
+    std::cout<<"branch0 "<<child0.objval() <<" branch1 "<<child1.objval()<<std::endl;
+    std::cout<<" comparing ("<<var_new<<") y: "<<y[var_new]<<" score: "<<score<<" mode: "<<lp_mode<<std::endl;
      int infeas=0;
      if((child0.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
 		(child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){

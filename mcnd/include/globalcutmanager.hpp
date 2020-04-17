@@ -53,7 +53,8 @@ public:
     
     int compute_cover_rc(const double * dual, const int* actvS, int actvSSz, double * rc, double & B0);
     int compute_cover_sg(const double * x, const int * actvS, int actvSSz,  double * v);
-    void add_global_vi(int added, int * actvS, int & actvSSz,double * h, double * dual, double * dual_lb, double * dual_ub );
+    void add_global_vi(int added, int * actvS, int & actvSSz,  double * dualsol, double *lhsol,
+    				 double * h, double * dstar, double * dual_lb, double * dual_ub);
     double arc_dg_imp(int arc, const double * xy, const double * h, const int * actvS, int actvSSz);
     
     //-------------------------------------------------------------------------------------------

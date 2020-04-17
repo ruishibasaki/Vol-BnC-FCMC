@@ -63,7 +63,7 @@ OsiVolSolverInterface::setWarmStart(const CoinWarmStart* warmstart){
 
 void 
 OsiVolSolverInterface::markHotStart(){
-    //std::cout<<"markHotStart() "<<getNumRows()<<std::endl;
+    std::cout<<"markHotStart() "<<getNumRows()<<std::endl;
     if(HotStart_) delete HotStart_;
     HotStart_ = new WarmStartDual(getNumRows(), dual, &cover_manager->covers, &localc_manager->locals, &globalc_manager->globals); 
     //std::cout<<"markHotStart() now "<<std::endl;
@@ -234,6 +234,7 @@ OsiVolSolverInterface::translate_hotstart(){
 		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
 		vi = vi->next;
 	}
+
 	sz = localc_manager->locals.sizeOfCollection;
 	LocalCut* vilc = localc_manager->locals.begin;
 	for(int i=sz; i--;){
@@ -244,6 +245,7 @@ OsiVolSolverInterface::translate_hotstart(){
 		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
 		vilc = vilc->next;
 	}
+
 	sz = globalc_manager->globals.sizeOfCollection;
 	GlobalCut* vigc = globalc_manager->globals.begin;
 	for(int i=sz; i--;){
@@ -254,6 +256,7 @@ OsiVolSolverInterface::translate_hotstart(){
 		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
 		vigc = vigc->next;
 	}
+
 }
 
 //---------------------------------------------------------------------------
@@ -777,7 +780,7 @@ OsiVolSolverInterface::add_external_localc( const int * y){
 														y, rc_, numrows_, maxNumrows_);
 	if(ret){
 		//std::cout<<"add local: "<<ret<<std::endl;
-		localc_manager->add_local_vi(ret, actv, volprob_.active_size, volprob_.viol.v, 
+		localc_manager->add_local_vi(ret, actv, volprob_.active_size, dual, lhs_, volprob_.viol.v,
 								volprob_.dsol.v, volprob_.dual_lb.v,  volprob_.dual_ub.v );   
 		localc_manager->reposition_locals(ret);	
 		numrows_ += ret;
@@ -800,7 +803,7 @@ OsiVolSolverInterface::add_external_globalc( const double * y, int type, int con
 		GlobalCut* gloc = globalc_manager->globals.track.back();
 		globalc_manager->globals.insert_end(gloc);
 		globalc_manager->num_actv += ret;
-		globalc_manager->add_global_vi(ret, actv, volprob_.active_size, volprob_.viol.v, 
+		globalc_manager->add_global_vi(ret, actv, volprob_.active_size, dual, lhs_, volprob_.viol.v, 
 								volprob_.dsol.v, volprob_.dual_lb.v,  volprob_.dual_ub.v );   
 		globalc_manager->reposition_globals(ret);	
 		numrows_ += ret;

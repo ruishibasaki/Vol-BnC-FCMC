@@ -212,7 +212,7 @@ LocalCutCollection::desactvLocalc(int lim, int * actvS, int & actvSSz, int& num_
         idx_out = actvS[vi->id_vi];
         //std::cout<<"try vi: "<<vi->serial_nmbr<<std::endl;
         if((vi->n_nviol >= lim /*&& dualu[idx_out]<=0 */&& dstaru[idx_out]<=0)){
-            //std::cout<<"remove vi: "<<vi->id_vi<<" "<<" srial: "<<vi->serial_nmbr<<" id: "
+            //std::cout<<"remove vi: "<<vi->id_vi<<" "<<" srial: "<<vi->serial_nmbr<<std::endl;
             //<<idx_out<<" nviol: "<<vi->n_nviol<<" d* "<<dstaru[idx_out]<<std::endl;;
             
             last_actv = begin ;

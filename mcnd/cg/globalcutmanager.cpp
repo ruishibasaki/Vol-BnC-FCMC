@@ -251,7 +251,8 @@ GlobalCutManager::collect_globals(const BCP_vec<BCP_var*>& vbd, int & currnum){
 
 
 void
-GlobalCutManager::add_global_vi(int added, int * actvS, int & actvSSz, double * h, double * dual, double * dual_lb, double * dual_ub ){
+GlobalCutManager::add_global_vi(int added, int * actvS, int & actvSSz,  double * dualsol, double *lhsol,
+    				 			double * h, double * dstar, double * dual_lb, double * dual_ub){
     //std::cout<<"add_local_vi: "<<actvSSz<<std::endl;
     int idx;
     GlobalCut * vi = globals.end;
@@ -259,10 +260,14 @@ GlobalCutManager::add_global_vi(int added, int * actvS, int & actvSSz, double * 
         idx = actvSSz+cont; //if(actvS[vi->id_vi]>=0){ std::cout<<actvS[vi->id_vi]<<" already taken !!!!!!! for: "<<vi->id_vi<<std::endl;abort();}
         //std::cout<<"add vi: "<< vi->id_vi<<" idx: "<<idx<<std::endl;
         actvS[vi->id_vi]=idx;
-        dual[idx] =0;
+        dstar[idx] =0;
         dual_lb[idx] = 0;
         dual_ub[idx] = 1e31;
         h[idx] = vi->hs;
+        
+        dualsol[vi->id_vi] =0;
+        lhsol[vi->id_vi] = 0;
+
         //vi->print();
         vi = vi->prev;
     }
