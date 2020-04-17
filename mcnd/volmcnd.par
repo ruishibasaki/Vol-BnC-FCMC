@@ -12,10 +12,6 @@ alphamin=1e-2
 alphafactor=0.3
 alphaint=1
 
-ubfeas=1e30
-infeas_trigger=1.1
-
-
 maxsgriters=1000
 primal_abs_precision=1e-4
 gap_abs_precision=1e-4

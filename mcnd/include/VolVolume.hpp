@@ -407,7 +407,7 @@ public:
     
     /** Copy only Atcive_Set values of <code>w</code> into the vector. */
     void copy(const VOL_dual& w, int actvSSz);
-
+	void copy(const VOL_dvector& w, int actvSSz);
 };
 
 
@@ -670,6 +670,8 @@ private:
       double __pad0;
    };
    //@}
+   
+   
 
 public:
      
@@ -705,6 +707,7 @@ public:
     */
    VOL_dvector dual_ub;
    //@}
+
 
 public:
    /**@name Methods returning final data */

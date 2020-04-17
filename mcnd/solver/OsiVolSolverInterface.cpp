@@ -360,16 +360,10 @@ OsiVolSolverInterface::resolve(){
     if(mode==-2) return;
     volprob_.active_size = fsize + csize;
     
-    volprob_.dsize = maxNumrows_;
     volprob_.psize = szunfxd + data->ndemands*sznz;
-    volprob_.dsol.allocate(maxNumrows_);
-    volprob_.dual_lb.allocate(maxNumrows_);
-    volprob_.dual_ub.allocate(maxNumrows_);
+    
     set_start();
-
     //std::cout<<"re solve "<<szunfxd<<" dsize: "<<volprob_.active_size<<" maxdsz: "<<maxNumrows_<<std::endl;
-    
-    
     // Set the dual starting point
     retval = volprob_.solve(*this, true);
     
@@ -487,12 +481,11 @@ int
 OsiVolSolverInterface::compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int actvSSz){
     const Arc* item;
     int arc;
-	
     for(int a=szunfxd; a--;){
         arc = nz_arcs[a];
         item = &data->arcs[arc];
         rc[a] = item->f;
-        addrc[a] =0;
+        //addrc[a] =0;
         for(int k=ndemands; k--; ){
             rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity - dual[actv[k*nnodes + item->j-1]] + dual[actv[k*nnodes + item->i-1]];
         }
@@ -511,7 +504,7 @@ OsiVolSolverInterface::compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int 
         
     }
     globalc_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
-    localc_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
+    localc_manager->compute_localc_rc( dual.v, actv,  actvSSz, rc.v,   B0);
     cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
 
     //double b = B0;
@@ -541,7 +534,7 @@ OsiVolSolverInterface::compute_sg(const VOL_dvector& x, int actvSSz, VOL_dvector
         }
     }
     cover_manager->compute_cover_sg( x.v, actv,  actvSSz, v.v);
-    localc_manager->compute_cover_sg( x.v, actv,  actvSSz, v.v);
+    localc_manager->compute_localc_sg( x.v, actv,  actvSSz, v.v);
     globalc_manager->compute_cover_sg( x.v, actv,  actvSSz, v.v);
 
     return 0;
@@ -994,46 +987,33 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     
     //std::cout<<"OsiVolSolverInterface::loadProblem nrows: "<<numrows<<std::endl;
     OsiVolAuxInfo * auxinfo  = static_cast<OsiVolAuxInfo*>(OsiSolverInterface::getApplicationData());
-    data = auxinfo->data;
-    cover_manager = auxinfo->cover_manager;
-    ss_manager = auxinfo->ss_manager;
-    localc_manager = auxinfo->localc_manager;
-    globalc_manager =  auxinfo->globalc_manager;
-    
-    nnodes =  data->nnodes;
-    ndemands = data->ndemands;
-    narcs = data->narcs;
-    volprob_.value =0;
-    retval = 0;
     
     maxNumVI =auxinfo->maxNumVI;
     intvlVI = auxinfo->intvlVI;
+
+    nnodes =  data->nnodes;
+    ndemands = data->ndemands;
+    narcs = data->narcs;
     
-    gutsOfDestructor_();
+    volprob_.value =0;
+    retval = 0;
+
     maxNumcols_ = numcols_ = numcols;
     numrows_ = numrows + cover_manager->covers.sizeOfCollection;
     numrows_ += localc_manager->locals.sizeOfCollection;
     numrows_ += globalc_manager->globals.sizeOfCollection;
     maxNumrows_ = numrows_+maxNumVI;
-    if (maxNumrows_ > 0) {
-        rowRimAllocator_();
-        CoinFillN(rowub, maxNumrows_, 0.0);
-        CoinFillN(rowlb, maxNumrows_, 0.0);
-        // Set the initial dual solution
-        CoinFillN(dual, numrows_, 0.0);
-        CoinFillN(lhs_, numrows_, 0.0);
-      
+    if(numrows_> auxinfo->maxPos){
+    	std::cout<<"OsiVolSolverInterface::loadProblem PROBLEM "<<numrows_<<" > "<<auxinfo->maxPos<<std::endl;
+    	abort();
     }
-
-    if (maxNumcols_ > 0) {
-        colRimAllocator_();
-         
-        CoinFillN(colub, numcols, OsiVolInfinity);
-		CoinFillN(collb, numcols, 0.0);
-        // Set the initial rc solution
-        CoinFillN(rc_, numcols, 0.0);
-
-    }
+    if(maxNumrows_ > auxinfo->maxPos)
+    	maxNumrows_ =  auxinfo->maxPos;
+   
+   	volprob_.dsize = maxNumrows_;
+    volprob_.dsol.allocate(maxNumrows_);
+    volprob_.dual_lb.allocate(maxNumrows_);
+    volprob_.dual_ub.allocate(maxNumrows_);
     
     
 }
@@ -1177,7 +1157,7 @@ OsiVolSolverInterface::rebuild_collections(){
 void
 OsiVolSolverInterface::rowRimAllocator_()
 {
-    rowub = new double[maxNumrows_];
+    /*rowub = new double[maxNumrows_];
     rowlb = new double[maxNumrows_];
     //rowsense_ = new char[maxNumrows_];
     //rhs_      = new double[maxNumrows_];
@@ -1185,7 +1165,7 @@ OsiVolSolverInterface::rowRimAllocator_()
     dual = new double[maxNumrows_];
     lhs_      = new double[maxNumrows_];
     actv =  new int [maxNumrows_];
-    std::cout<<"OsiVolSolverInterface::rowRimAllocator_"<<std::endl;
+    std::cout<<"OsiVolSolverInterface::rowRimAllocator_"<<std::endl;*/
 
 }
 
@@ -1194,7 +1174,7 @@ OsiVolSolverInterface::rowRimAllocator_()
 void
 OsiVolSolverInterface::colRimAllocator_()
 {
-    colub  = new double[maxNumcols_];
+    /*colub  = new double[maxNumcols_];
     collb  = new double[maxNumcols_];
     //continuous_ = new bool[maxNumcols_];
     //objcoeffs_ = new double[maxNumcols_];
@@ -1204,7 +1184,7 @@ OsiVolSolverInterface::colRimAllocator_()
     if(!VItopo)VItopo = new double [narcs];
     if(!addrc)addrc = new double [narcs];
     if(!arc_map)arc_map =  new int [narcs];
-    std::cout<<"OsiVolSolverInterface::colRimAllocator_"<<std::endl;
+    std::cout<<"OsiVolSolverInterface::colRimAllocator_"<<std::endl;*/
 
 
 }
@@ -1214,7 +1194,7 @@ OsiVolSolverInterface::colRimAllocator_()
 void
 OsiVolSolverInterface::gutsOfDestructor_()
 {
-	std::cout<<"OsiVolSolverInterface::gutsOfDestructor_()"<<std::endl;
+	/*std::cout<<"OsiVolSolverInterface::gutsOfDestructor_()"<<std::endl;
     //rowMatrix_.clear();
     //colMatrix_.clear();
     //rowMatrixCurrent_ = true;
@@ -1234,7 +1214,7 @@ OsiVolSolverInterface::gutsOfDestructor_()
     if(lhs_){delete[] lhs_;    lhs_ = 0;}
     if(actv){delete[] actv; actv=0;}
     numrows_ = maxNumrows_ = 0;
-    numcols_ = maxNumcols_ = 0;
+    numcols_ = maxNumcols_ = 0;*/
 }
 
 //-----------------------------------------------------------------------
@@ -1290,15 +1270,74 @@ arc_map(0),
 VItopo(0),
 addrc(0),
 actv(0),
-HotStart_(0){
-
+HotStart_(0)
+{
+	
     maxNumrows_ = maxNumcols_ = 0;
     mode =1;
     num_purgbl=0;
     min_lower_bound=0; 
     recheck_collct=in_strong_branch = HotStartSet = false;
+    
 }
 
+//---------------------------------------------------------------------------
+
+void 
+OsiVolSolverInterface::initialize(OsiVolAuxInfo & osidata){
+	data = osidata.data;
+    cover_manager = osidata.cover_manager;
+    ss_manager = osidata.ss_manager;
+    localc_manager = osidata.localc_manager;
+    globalc_manager =  osidata.globalc_manager;
+    
+    nnodes =  data->nnodes;
+    ndemands = data->ndemands;
+    narcs = data->narcs;
+    
+    maxNumVI =osidata.maxNumVI;
+    intvlVI = osidata.intvlVI;
+    
+    osidata.maxPos += nnodes*ndemands;
+	int maxvi = osidata.maxPos;
+	
+	
+    rowub = new double[maxvi];
+    rowlb = new double[maxvi];
+    dual = new double[maxvi];
+    lhs_      = new double[maxvi];
+    actv =  new int [maxvi];
+    
+   	int ncol = narcs+ndemands*narcs;
+   	colub  = new double[ncol];
+    collb  = new double[ncol];
+    solution    = new double[ncol];
+    rc_        = new double[ncol];
+    yhit =  new double [narcs];
+    VItopo = new double [narcs];
+    arc_map =  new int [narcs];
+    
+    CoinFillN(rowub, maxvi, 0.0);
+    CoinFillN(rowlb, maxvi, 0.0);
+    CoinFillN(dual, ncol, 0.0);
+    CoinFillN(lhs_, ncol, 0.0);
+	CoinFillN(colub, ncol, OsiVolInfinity);
+	CoinFillN(collb, ncol, 0.0);
+    CoinFillN(rc_, ncol, 0.0);
+    
+    osidata.rowub = rowub;
+    osidata.rowlb = rowlb;
+    osidata.colub = colub;
+    osidata.collb = collb;
+    osidata.dual = dual;
+    osidata.lhs_ = lhs_;
+    osidata.actv = actv;
+	osidata.rc_ = rc_;
+	osidata.VItopo = VItopo;
+	osidata.arc_map = arc_map;
+	osidata.yhit = yhit;
+    //if(!addrc)addrc = new double [data->narcs];
+}
 
 //---------------------------------------------------------------------------
 
@@ -1338,87 +1377,71 @@ OsiVolSolverInterface::clone(bool copyData) const {
 
 OsiVolSolverInterface::OsiVolSolverInterface(const OsiVolSolverInterface& x) :
 OsiSolverInterface(x),
-volprob_(),
-colub(0),
-collb(0),
-rowub(0),
-rowlb(0),
-solution(0),
-dual(0),
-rc_(0),
-lhs_(0),
-yhit(0),
-arc_map(0),
-VItopo(0),
-addrc(0),
-actv(0),
-HotStart_(0)
+volprob_()
 {
-    maxNumrows_ = maxNumcols_ = 0;
-    mode =1;
+	HotStart_ = x.HotStart_;
+    maxNumrows_ = x.maxNumrows_;
+    maxNumcols_ = x.maxNumcols_;
+    mode = x.mode;
     recheck_collct=HotStartSet = false;
-    num_purgbl=0;
-    min_lower_bound=0;
+    num_purgbl=x.num_purgbl;
+    min_lower_bound=x.min_lower_bound;
     in_strong_branch = x.in_strong_branch;
-    operator=(x);
+    colub = x.colub;
+	collb = x.collb;
+	rowub = x.rowub;
+	rowlb = x.rowlb;
+	solution = x.solution;
+	dual = x.dual;
+	rc_ = x.rc_;
+	lhs_ = x.lhs_;
+	yhit = x.yhit;
+	arc_map = x.arc_map;
+	VItopo = x.VItopo;
+	addrc = x.addrc;
+	actv = x.actv;
+	
+	data = x.data;   
+	cover_manager = x.cover_manager;
+    ss_manager = x.ss_manager;
+    localc_manager = x.localc_manager;
+    globalc_manager = x.globalc_manager;
 }
 
 //-----------------------------------------------------------------------
 
 OsiVolSolverInterface&
-OsiVolSolverInterface::operator=(const OsiVolSolverInterface& rhs){
-    if (&rhs == this)
+OsiVolSolverInterface::operator=(const OsiVolSolverInterface& x){
+    if (&x == this)
         return *this;
     
-    OsiSolverInterface::operator=(rhs);
-    gutsOfDestructor_();
+    colub = x.colub;
+	collb = x.collb;
+	rowub = x.rowub;
+	rowlb = x.rowlb;
+	solution = x.solution;
+	dual = x.dual;
+	rc_ = x.rc_;
+	lhs_ = x.lhs_;
+	yhit = x.yhit;
+	arc_map = x.arc_map;
+	VItopo = x.VItopo;
+	addrc = x.addrc;
+	actv = x.actv;
+	HotStart_ = x.HotStart_;
     
-    if (rhs.maxNumrows_) {
-        maxNumrows_ = rhs.maxNumrows_;
-        rowRimAllocator_();
-        const int rownum = rhs.numrows_;
-        CoinDisjointCopyN(rhs.rowub, rownum, rowub);
-        CoinDisjointCopyN(rhs.rowlb, rownum, rowlb);
-        //CoinDisjointCopyN(rhs.rowsense_, rownum, rowsense_);
-        //CoinDisjointCopyN(rhs.rhs_, rownum, rhs_);
-        //CoinDisjointCopyN(rhs.rowrange_, rownum, rowrange_);
-        CoinDisjointCopyN(rhs.dual, rownum, dual);
-        CoinDisjointCopyN(rhs.lhs_, rownum, lhs_);
-    }
-    if (rhs.maxNumcols_) {
-        maxNumcols_ = rhs.maxNumcols_;
-        colRimAllocator_();
-        const int colnum = numcols_;
-        CoinDisjointCopyN(rhs.colub, colnum, colub);
-        CoinDisjointCopyN(rhs.collb, colnum, collb);
-        // CoinDisjointCopyN(rhs.continuous_, colnum, continuous_);
-        //CoinDisjointCopyN(rhs.objcoeffs_, colnum, objcoeffs_);
-        CoinDisjointCopyN(rhs.solution, colnum, solution);
-        CoinDisjointCopyN(rhs.rc_, colnum, rc_);
-    }
-    //volprob_.parm.granularity = 0.0;
+    data = x.data;   
+	cover_manager = x.cover_manager;
+    ss_manager = x.ss_manager;
+    localc_manager = x.localc_manager;
+    globalc_manager = x.globalc_manager;
     return *this;
 }
 
 //-----------------------------------------------------------------------
 
 OsiVolSolverInterface::~OsiVolSolverInterface (){
-    if(yhit) delete [] yhit;
-    if(arc_map) delete [] arc_map;
-    if(VItopo) delete [] VItopo;
-    if(addrc) delete [] addrc;
-    if(rowub){delete[] rowub;    rowub = 0;}
-    if(rowlb){delete[] rowlb;    rowlb = 0;}
-    if(colub){delete[] colub; colub = 0;}
-    if(collb){delete[] collb;    collb = 0;}
-    if(solution){delete[] solution;	        solution = 0;}
-    if(dual){delete[] dual;	        dual = 0;}
-    if(rc_){delete[] rc_;     rc_ = 0;}
-    if(lhs_){delete[] lhs_;    lhs_ = 0;}
-    if(actv){delete[] actv; actv=0;}
 }
-
-
 
 
 

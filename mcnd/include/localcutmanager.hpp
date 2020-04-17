@@ -55,10 +55,11 @@ public:
     //  Volume Integration methods
     //-------------------------------------------------------------------------------------------
     
-    int compute_cover_rc(const double * dual, const int* actvS, int actvSSz, double * rc, double & B0);
-    int compute_cover_sg(const double * x, const int * actvS, int actvSSz,  double * v);
+    int compute_localc_rc(const double * dual, const int* actvS, int actvSSz, double * rc, double & B0);
+    int compute_localc_sg(const double * x, const int * actvS, int actvSSz,  double * v);
     void add_local_vi(int added, int * actvS, int & actvSSz,  double * dualsol, double *lhsol,
     				 double * h, double * dstar, double * dual_lb, double * dual_ub );
+
     double arc_dg_imp(int arc, const double * xy, const double * h, const int * actvS, int actvSSz);
 };
 

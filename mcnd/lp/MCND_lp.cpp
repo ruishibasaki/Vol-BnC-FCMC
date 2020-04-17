@@ -39,7 +39,6 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     AppVolData.cover_manager = &cover_manager;
     AppVolData.localc_manager = &localc_manager;
     AppVolData.globalc_manager = &globalc_manager;
-
     srand(10);
      
 }
@@ -49,9 +48,10 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
 OsiSolverInterface *
 MCND_lp::initialize_solver_interface(){
     OsiVolSolverInterface* volsolver = new OsiVolSolverInterface("volmcnd.par");
+	volsolver->initialize( AppVolData);
     setOsiBabSolver(volsolver);
     //MaxIt = volsolver->volprob_.parm.maxsgriters;
-    //std::cout<<"vol instantiated "<<MaxIt<<std::endl;
+    std::cout<<"vol instantiated "<<volsolver<<std::endl;
     return volsolver;
     
 }
@@ -116,7 +116,7 @@ void
 MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
                       BCP_var_set& vars, BCP_cut_set& cuts){
 	//if(lp_mode & LP_ForceNodeAbort) return;
-    //std::cout<<"load problem "<<core->varnum()<<" "<<cuts.size()<<std::endl;
+    //std::cout<<"load problem "<<core->varnum()<<" "<<cuts.size()<<" "<<getOsiVolBabSolver()<<std::endl;
     cover_manager.clean_collection();
     localc_manager.clean_collection();
 	globalc_manager.clean_collection();

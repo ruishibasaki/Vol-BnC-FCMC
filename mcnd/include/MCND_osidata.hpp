@@ -26,14 +26,62 @@ public:
     CutSetManager * ss_manager;
     LocalCutManager* localc_manager;
     GlobalCutManager* globalc_manager;
-    int maxNumVI, intvlVI;
     
-    inline OsiVolAuxInfo():data(0), cover_manager(0), ss_manager(0), localc_manager(0), globalc_manager(0){
+    //OsiSolver attributes record;
+    double  *colub;
+    double  *collb;
+    double  *rowub;
+    double  *rowlb;
+    
+    double  *solution;
+    double  *dual;
+    double  *rc_;
+    double  *lhs_;
+    
+    double * VItopo;
+    double * yhit;
+    int * arc_map;
+    int * actv; 
+ 
+     //Cut generation attributes
+    int maxNumVI, intvlVI;
+    int maxPos;
+    
+    OsiVolAuxInfo():data(0), cover_manager(0), ss_manager(0), localc_manager(0), globalc_manager(0){
         maxNumVI =1000;
+		maxPos = 10000;
         intvlVI =50;
         appData_ = this;
+        colub= 0;
+    	collb=0;
+    	rowub=0;
+    	rowlb=0;
+    
+    	solution=0;
+    	dual=0;
+    	rc_=0;
+    	lhs_=0;
+    
+    	VItopo=0;
+    	yhit=0;
+    	arc_map=0;
+    	actv=0; 
     }  
     
+    ~OsiVolAuxInfo(){
+		if(yhit){ delete [] yhit;  yhit=0;}
+		if(arc_map){ delete [] arc_map;  arc_map=0;}
+		if(VItopo){ delete [] VItopo;  VItopo=0;}
+		if(rowub){delete[] rowub;    rowub = 0;}
+		if(rowlb){delete[] rowlb;    rowlb = 0;}
+		if(colub){delete[] colub; colub = 0;}
+		if(collb){delete[] collb;    collb = 0;}
+		if(solution){delete[] solution;	        solution = 0;}
+		if(dual){delete[] dual;	        dual = 0;}
+		if(rc_){delete[] rc_;     rc_ = 0;}
+		if(lhs_){delete[] lhs_;    lhs_ = 0;}
+		if(actv){delete[] actv; actv=0;}
+    }
 };
 
 

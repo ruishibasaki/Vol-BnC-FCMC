@@ -19,7 +19,6 @@
 #include "MCND_solution.hpp"
 
 #include "CoinPackedMatrix.hpp"
-
 #include "OsiSolverInterface.hpp"
 #include "WarmStartDual.hpp"
 
@@ -118,8 +117,8 @@ public:
     //@{
     virtual int getNumCols() const{return numcols_;};
     virtual int getNumRows() const{return numrows_;};
-    virtual int getMaxNumCols() const {return maxNumcols_;};
-    virtual int getMaxNumRows() const {return maxNumrows_;};
+    virtual int getMaxNumCols() const {return numcols_;};
+    virtual int getMaxNumRows() const {return numrows_;};
     virtual int getNumElements() const {return 0;}
     virtual const double * getColLower() const{return collb;};
     virtual const double * getColUpper() const{return colub;};
@@ -318,6 +317,7 @@ public:
     OsiVolSolverInterface ();
     
     OsiVolSolverInterface(const char * volparfile);
+    void initialize(OsiVolAuxInfo & osidata);
     
     /// Clone
     virtual OsiSolverInterface * clone(bool copyData = true) const;

@@ -166,6 +166,22 @@ VOL_dual::copy(const VOL_dual& w, int actvSSz){
     }
 }
 
+//-----------------------------------------------------------------------
+/** Copy only Atcive_Set values of <code>w</code> into the vector. */
+void
+VOL_dual::copy(const VOL_dvector& w, int actvSSz){
+    const int wsz = w.size();
+    if (wsz != u.size()) {
+        u.clear();
+        u = w;
+    }else{
+        for (int i = actvSSz; i--; ){
+            u[i] = w[i];
+        }
+    }
+}
+
+
 //############################################################################
 /** Computing inner products. It computes v * ( alpha v + (1-alpha) h),
  v * h, v * v, h * h. Here v is the subgradient direction, and h is
@@ -419,7 +435,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
 
     VOL_dvector rc(psize); // reduced costs
     VOL_dual dual(dsize); // dual vector
-    dual.u = dsol;
+    dual.copy(dsol, active_size);
     
     VOL_primal primal(psize, dsize);  // primal vector
     VOL_primal pstar(psize, dsize);
@@ -456,7 +472,6 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     
     //dual.compute_xrc(pstar.x, primal.x, rc); // compute xrc
     
-    //
     VOL_dual dstar(dual);
     VOL_dual dlast(dual);
     

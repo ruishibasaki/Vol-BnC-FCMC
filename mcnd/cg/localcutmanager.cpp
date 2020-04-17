@@ -279,7 +279,7 @@ LocalCutManager::add_local_vi(int added, int * actvS, int & actvSSz, double * du
 //-------------------------------------------------------------------------------
 
 int
-LocalCutManager::compute_cover_sg( const double * x, const int * actvS, int actvSSz,  double * v){
+LocalCutManager::compute_localc_sg( const double * x, const int * actvS, int actvSSz,  double * v){
     //std::cout<<"compute_flowpack_sg"<<std::endl;
     int index, id_arc;
     int sz = num_actv;
@@ -306,13 +306,14 @@ LocalCutManager::compute_cover_sg( const double * x, const int * actvS, int actv
 //-------------------------------------------------------------------------------
 
 int
-LocalCutManager::compute_cover_rc(const double * dual, const int* actvS, int actvSSz, double * rc, double & B0){
+LocalCutManager::compute_localc_rc(const double * dual, const int* actvS, int actvSSz, double * rc, double & B0){
 
     int index, id_arc;
     int sz = num_actv;
     LocalCut *vi = locals.begin;
     for(;sz--;){   
         index = actvS[vi->id_vi];
+        //std::cout<<" idx: "<<index<<std::endl;
         if(dual[index]==0){
             ++vi->n_zerom;
             vi = vi->next;
