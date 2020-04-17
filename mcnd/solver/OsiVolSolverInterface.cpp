@@ -484,33 +484,35 @@ int
 OsiVolSolverInterface::compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int actvSSz){
     const Arc* item;
     int arc;
-
+	
     for(int a=szunfxd; a--;){
         arc = nz_arcs[a];
         item = &data->arcs[arc];
         rc[a] = item->f;
         addrc[a] =0;
         for(int k=ndemands; k--; ){
-            rc[szunfxd + k*sznz + a] = item->c[k] - dual[actv[k*nnodes + item->j-1]] + dual[actv[k*nnodes + item->i-1]];
+            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity - dual[actv[k*nnodes + item->j-1]] + dual[actv[k*nnodes + item->i-1]];
         }
     }
     for(int a=szunfxd; a<sznz;++a){
         arc = nz_arcs[a];
         item = &data->arcs[arc];
         for(int k=ndemands; k-- ;){
-            rc[szunfxd + k*sznz + a] = item->c[k] - dual[actv[k*nnodes + item->j-1]] + dual[actv[k*nnodes + item->i-1]];
+            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity - dual[actv[k*nnodes + item->j-1]] + dual[actv[k*nnodes + item->i-1]];
         }
     }
 
     B0=0;
     for(int k=0; k<data->ndemands; ++k){
-        B0 += data->d_k[k].quantity * ( dual[actv[k*nnodes + data->d_k[k].D-1]] - dual[actv[k*nnodes + data->d_k[k].O-1]]);
+        B0 += ( dual[actv[k*nnodes + data->d_k[k].D-1]] - dual[actv[k*nnodes + data->d_k[k].O-1]]);
         
     }
     globalc_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
     localc_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
-    double b = B0;
-    cover_manager->compute_cover_rc( dual.v,  actv,  actvSSz, addrc, b);
+    cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
+
+    //double b = B0;
+    //cover_manager->compute_cover_rc( dual.v,  actv,  actvSSz, addrc, b);
     return 0;
 }
 
@@ -520,16 +522,19 @@ int
 OsiVolSolverInterface::compute_sg(const VOL_dvector& x, int actvSSz, VOL_dvector& v){
     
     v =0;
-    int arc;
+    int arc, basek, basef;
     const Arc* item; const Demand* itemd;
     for(int k=ndemands; k--; ){
         itemd = &data->d_k[k];
-        v[actv[k*nnodes + itemd->O-1]] -= itemd->quantity;
-        v[actv[k*nnodes + itemd->D-1]] += itemd->quantity;
+        basek = k*nnodes;
+        v[actv[basek+ itemd->O-1]] -= 1;
+        v[actv[basek + itemd->D-1]] += 1;
         for(int a=0; a<sznz; ++a){
             arc = nz_arcs[a];
-            v[actv[k*nnodes + data->arcs[arc].i-1]] += x[szunfxd+k*sznz+ a];
-            v[actv[k*nnodes + data->arcs[arc].j-1]] -= x[szunfxd+ k*sznz+ a];
+            item = &data->arcs[arc];
+            basef = szunfxd+k*sznz;
+            v[actv[basek + item->i-1]] += x[basef+ a];
+            v[actv[basek + item->j-1]] -= x[basef+ a];
         }
     }
     cover_manager->compute_cover_sg( x.v, actv,  actvSSz, v.v);
@@ -555,20 +560,20 @@ OsiVolSolverInterface::solve_subproblem(const VOL_dvector& xstar,
     	if(xstar[a]>1)std::cout<<"WHAT? "<<xstar[a]<<std::endl;
         arc = nz_arcs[a];
         rc[a] += knapsack(a, rc.v, x.v);
-        addrc[a]+= rc[a];
+        //addrc[a]+= rc[a];
         //std::cout<<a<<", "<<arc<<" addrc: "<<addrc[a]<<std::endl;
-        if(addrc[a]<1e-10 && addrc[a]>-1e-10) addrc[a] = 0;
-        if( addrc[a] < 0.0){
+        //if(addrc[a]<1e-10 && addrc[a]>-1e-10) addrc[a] = 0;
+        /*if( addrc[a] < 0.0){
             x[a] =1.0;
-        }else x[a] = 0.0;
+        }else x[a] = 0.0;*/
     }
     for(int a=szunfxd; a<sznz;++a){
         arc = nz_arcs[a];
         cost_a = knapsack(a, rc.v, x.v);
         lcost += cost_a + data->arcs[arc].f;
-        pcost += data->arcs[arc].f;
-        for(int k=ndemands; k--; )
-            pcost += data->arcs[arc].c[k] * x[szunfxd + k*sznz + a];
+        //pcost += data->arcs[arc].f;
+        //for(int k=ndemands; k--; )
+         //   pcost += data->arcs[arc].c[k] * x[szunfxd + k*sznz + a];
     }
     
     return 0;
@@ -585,15 +590,15 @@ OsiVolSolverInterface::resolve_subproblem(const VOL_dvector& dual, VOL_dvector& 
     lcost += B0;
     for(int a=szunfxd; a--; ){
         arc = nz_arcs[a];
-        //std::cout<<a<<", "<<arc<<" rc: "<<addrc[a]<<std::endl;
-        if( rc[a]<0 || (rc[a]==0 && x[a]==1.0)){
+        if(rc[a]<1e-10 && rc[a]>-1e-10) rc[a] = 0;
+        if( rc[a]<0 /*|| (rc[a]==0 && x[a]==1.0)*/){
             lcost += rc[a];
             x[a]=1.0;
-            pcost += data->arcs[arc].f;
-            for(int k=0; k<ndemands; ++k)
-                pcost += data->arcs[arc].c[k] * x[szunfxd + k*sznz + a];
+            //pcost += data->arcs[arc].f;
+            //for(int k=0; k<ndemands; ++k)
+             //   pcost += data->arcs[arc].c[k] * x[szunfxd + k*sznz + a];
         }else{
-            if(x[a]==1.0){ std::cout<<"rarc: "<<a<<" "<<arc<<" rc: "<<rc[a]<<" y: "<<x[a]<<std::endl; abort();}
+            //if(x[a]==1.0){ std::cout<<"rarc: "<<a<<" "<<arc<<" rc: "<<rc[a]<<" y: "<<x[a]<<std::endl; abort();}
             x[a]=0.0;
             for(int k=0; k<ndemands; ++k)
                 x[szunfxd + k*sznz + a]=0.0;
@@ -610,27 +615,26 @@ OsiVolSolverInterface::resolve_subproblem(const VOL_dvector& dual, VOL_dvector& 
 int
 OsiVolSolverInterface::additional_settings(int iter, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h,
                           VOL_dvector& x, const VOL_dvector& xhist, int actvSSz){
-   
-    if(cover_manager->covers.sizeOfCollection==0 || iter==0){
+   return 0;
+   /* if(cover_manager->covers.sizeOfCollection==0 || iter==0){
         cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
         return 0;
-    }
-    double ret=0;
+    }*/
+    //double ret=0;
 	
 	
-    cover_manager->recompute_mult_neg( dual.v, addrc, rc.v, x.v, actv, actvSSz);
-    cover_manager->recompute_mult_pos( dual.v, h.v, addrc, x.v, actv);
-    //cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
-    int sz = cover_manager->num_actv;
+    //cover_manager->recompute_mult_neg( dual.v, addrc, rc.v, x.v, actv, actvSSz);
+    //cover_manager->recompute_mult_pos( dual.v, h.v, addrc, x.v, actv);
+    /*int sz = cover_manager->num_actv;
     int index;
     Cover *vi = cover_manager->covers.begin;
     for(;sz--;){
         index = actv[vi->id_vi];
         B0 +=  dual[index]*vi->get_total_rhs();
         vi = vi->next;
-    }
-    for(int a=szunfxd; a--; ){
-    	rc[a] = addrc[a];
+    }*/
+    /*for(int a=szunfxd; a--; ){
+    	//rc[a] = addrc[a];
         if(rc[a]<1e-5 && rc[a]>-1e-5) rc[a] = 0;
         if(rc[a]==0 ){
             ret = arc_dg_imp(a, x.v, h.v , actvSSz);
@@ -640,8 +644,8 @@ OsiVolSolverInterface::additional_settings(int iter, double& lcost, VOL_dvector&
                 x[a] = 1.0 ;
             }else if(ret<0 && xhist[a]<=0.0)  x[a] = 0.0 ;
         }
-    }
-    return 0;
+    }*/
+    //return 0;
 }
 
 //---------------------------------------------------------------------------
@@ -652,12 +656,15 @@ double
 OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
     double kpsack =0;
     double fillUp =0;
+    double rcost, flow;
     int arc = nz_arcs[a];
+    int basex;
     std::list<HeapCell> heap;
     //get reduced cost for each commodity in arc e
     for(int k=ndemands; k--; ){
-        if(rc[szunfxd + k*sznz + a]<0.0 && colub[narcs+k*narcs+arc]>0.0){
-            heap.push_back(HeapCell(k,rc[szunfxd + k*sznz + a]));
+    	rcost = rc[szunfxd + k*sznz + a];
+        if(rcost<0.0 && colub[narcs+k*narcs+arc]>0.0){
+            heap.push_back(HeapCell(k, double(rcost/data->d_k[k].quantity)));
         }else x[szunfxd + k*sznz + a]=0.0;
     }
     
@@ -669,16 +676,18 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
     while(heap.size()>0){
         capa = data->arcs[arc].capa;
         comm = heap.back().k;
+        basex = szunfxd + comm*sznz;
         if(fillUp < capa){
         	//if(colub[narcs+comm*narcs+arc]<data->arcs[arc].b[comm])
         	// std::cout<<narcs+comm*narcs+arc<<" confirm: "<<arc+1<<" comm: "<<comm+1<<" "<<colub[narcs+comm*narcs+arc]<<std::endl;
-            x[szunfxd + comm*sznz + a] = std::min((capa - fillUp), colub[narcs+comm*narcs+arc]);
-            fillUp += x[szunfxd + comm*sznz + a];
-            kpsack += heap.back().rc_ * x[szunfxd + comm*sznz + a];
+        	flow = std::min((capa - fillUp), colub[narcs+comm*narcs+arc]);
+            x[basex + a] = flow/data->d_k[comm].quantity;
+            fillUp += flow;
+            kpsack += rc[basex + a] * x[basex + a];
             heap.pop_back();
             //std::cout<<"in"<<std::endl;
         }else{
-            x[szunfxd + comm*sznz + a] = 0.0;
+            x[basex + a] = 0.0;
             heap.pop_back();
         }
     }
@@ -1008,8 +1017,8 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
         CoinFillN(rowub, maxNumrows_, 0.0);
         CoinFillN(rowlb, maxNumrows_, 0.0);
         // Set the initial dual solution
-        CoinFillN(dual, maxNumrows_, 0.0);
-        CoinFillN(lhs_, maxNumrows_, 0.0);
+        CoinFillN(dual, numrows_, 0.0);
+        CoinFillN(lhs_, numrows_, 0.0);
       
     }
 
@@ -1173,7 +1182,7 @@ OsiVolSolverInterface::rowRimAllocator_()
     dual = new double[maxNumrows_];
     lhs_      = new double[maxNumrows_];
     actv =  new int [maxNumrows_];
-    //std::cout<<"OsiVolSolverInterface::rowRimAllocator_"<<std::endl;
+    std::cout<<"OsiVolSolverInterface::rowRimAllocator_"<<std::endl;
 
 }
 
@@ -1192,7 +1201,7 @@ OsiVolSolverInterface::colRimAllocator_()
     if(!VItopo)VItopo = new double [narcs];
     if(!addrc)addrc = new double [narcs];
     if(!arc_map)arc_map =  new int [narcs];
-    //std::cout<<"OsiVolSolverInterface::colRimAllocator_"<<std::endl;
+    std::cout<<"OsiVolSolverInterface::colRimAllocator_"<<std::endl;
 
 
 }
@@ -1202,6 +1211,7 @@ OsiVolSolverInterface::colRimAllocator_()
 void
 OsiVolSolverInterface::gutsOfDestructor_()
 {
+	std::cout<<"OsiVolSolverInterface::gutsOfDestructor_()"<<std::endl;
     //rowMatrix_.clear();
     //colMatrix_.clear();
     //rowMatrixCurrent_ = true;
@@ -1394,7 +1404,15 @@ OsiVolSolverInterface::~OsiVolSolverInterface (){
     if(arc_map) delete [] arc_map;
     if(VItopo) delete [] VItopo;
     if(addrc) delete [] addrc;
-    gutsOfDestructor_();
+    if(rowub){delete[] rowub;    rowub = 0;}
+    if(rowlb){delete[] rowlb;    rowlb = 0;}
+    if(colub){delete[] colub; colub = 0;}
+    if(collb){delete[] collb;    collb = 0;}
+    if(solution){delete[] solution;	        solution = 0;}
+    if(dual){delete[] dual;	        dual = 0;}
+    if(rc_){delete[] rc_;     rc_ = 0;}
+    if(lhs_){delete[] lhs_;    lhs_ = 0;}
+    if(actv){delete[] actv; actv=0;}
 }
 
 

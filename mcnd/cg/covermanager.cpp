@@ -296,6 +296,7 @@ CoverManager::form_c1(std::deque<Pair2> & lift_down, std::deque<Trio1> & ss_,
             aux.push_back(Trio1(arc, double(ystar[id_arc]), capa));
             ss_.pop_front();
             arc = ss_.front().fst;
+            id_arc = arc_map[arc];
             continue;
             //break;
         }
@@ -304,6 +305,7 @@ CoverManager::form_c1(std::deque<Pair2> & lift_down, std::deque<Trio1> & ss_,
         ss_.pop_front();
         //std::cout<<"n/c "<<arc<<" :("<<data->arcs[arc].i<<"-"<<data->arcs[arc].j<<") capa: "<<capa<<" y*: "<<ystar[arc]<<std::endl;
         arc = ss_.front().fst;
+        id_arc = arc_map[arc];
     }
     //std::cout<<"stop : delta =  "<<delta<<std::endl;
     ss_.insert(ss_.end(), aux.begin(), aux.end());

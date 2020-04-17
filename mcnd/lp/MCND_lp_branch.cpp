@@ -86,8 +86,8 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		//std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd
-		///*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
+		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd
+		/*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
         candidates.pop_front();		
 		vpos[0] = arc;
 		vbd[0] = 0.0;
@@ -186,6 +186,8 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			}
 		}
 	}
+	
+	
 	if(changed_pos.size()>0) lp_mode |= LP_LogicalFixed;
 	if(lp_mode & LP_TestConnectivity){
 		lp_mode &= ~LP_TestConnectivity;

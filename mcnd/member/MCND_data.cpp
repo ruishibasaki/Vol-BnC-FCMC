@@ -27,7 +27,6 @@ FlowConnect::initialize(Data *d){
     adjf = new std::list<int>[nnodes];
     adjb = new std::list<int>[nnodes];
     
-    std::deque<int> comm;
     for(int i=nnodes;i--;){
         Kd[i] = new int[ndemands+1];
         Ko[i] = new int[ndemands+1];
@@ -102,7 +101,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	double dk = data->d_k[k].quantity;
                 	//std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
                 	if(vars[id]->ub() < dk){ std::cout<<"FlowConnect conflict3"<<std::endl; return false;}
-                	else if(vars[id]->ub() > dk) set_bd(id, dk, dk,  changed_pos, new_bd);
+                	else if(vars[id]->lb() < dk) set_bd(id, dk, dk,  changed_pos, new_bd);
                 	if(vars[arc_unique]->lb() < 0.5 && yfxd[arc_unique]==-1){
                 		set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
                     	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
@@ -128,7 +127,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	double dk = data->d_k[k].quantity;
                 	//std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
                 	if(vars[id]->ub() < dk){ std::cout<<"FlowConnect conflict5"<<std::endl; return false;}
-                	set_bd(id, dk, dk,  changed_pos, new_bd);
+                	else if(vars[id]->lb() < dk) set_bd(id, dk, dk,  changed_pos, new_bd);
                 	if(vars[arc_unique]->lb() < 0.5 && yfxd[arc_unique]==-1){
                 		set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
                     	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;

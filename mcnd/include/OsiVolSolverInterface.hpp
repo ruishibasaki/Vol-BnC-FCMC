@@ -488,7 +488,7 @@ public:
     double * yhit;
     
     int * arc_map;
-    int * actv;  
+    int * actv; 
     int maxNumVI, intvlVI;
     double upper_bound;
     double min_lower_bound;
