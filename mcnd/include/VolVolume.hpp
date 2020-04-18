@@ -347,7 +347,7 @@ public:
    // v=b-Ax, for the relaxed constraints
    VOL_dvector v; 
 
-    VOL_primal(const int psize, const int dsize) : x(psize), v(dsize) {v=0.0; x=0.0; viol=1e30; value=0.0;}
+    VOL_primal(const int psize, const int dsize) : x(psize), v(dsize) {viol=1e30; value=0.0;}
    VOL_primal(const VOL_primal& primal) :
       value(primal.value), viol(primal.viol), x(primal.x), v(primal.v) {}
    ~VOL_primal() {}
@@ -360,19 +360,22 @@ public:
       v = p.v;
       return *this;
    }
-
+   
+   	void reset(){ viol =1e30; value =0.0;}
+	void initialize(const int psize, const int dsize){ v.allocate(dsize); x.allocate(psize);}
    // convex combination. data members in this will be overwritten
    // convex combination between two primal solutions
    // x <-- alpha x + (1 - alpha) p.x
    // v <-- alpha v + (1 - alpha) p.v
-   inline void cc(const double alpha, const VOL_primal& p,  int actvSSz) {
+   inline void cc(const double alpha, const VOL_primal& p,  int actvSSz, int psize) {
       value = alpha * p.value + (1.0 - alpha) * value;
-      x.cc(alpha, p.x, -1);
+      x.cc(alpha, p.x, psize);
       v.cc(alpha, p.v, actvSSz);
    }
    // find maximum of v[i]
    void find_max_viol(const VOL_dvector& dual_lb, 
 		      const VOL_dvector& dual_ub, int actvSSz);
+	void copy(const VOL_primal& p, int psize, int actvSSz);
 };
 
 //-----------------------------------------------------------------------------
@@ -387,7 +390,7 @@ public:
    // dual vector
    VOL_dvector u; 
 
-   VOL_dual(const int dsize) : u(dsize) { u = 0.0; xrc=0; lcost=0;}
+   VOL_dual(const int dsize) : u(dsize) { xrc=0; lcost=0;}
    VOL_dual(const VOL_dual& dual) :
       lcost(dual.lcost), xrc(dual.xrc), u(dual.u) {}
    ~VOL_dual() {}
@@ -399,6 +402,9 @@ public:
       u = p.u;
       return *this;
    }
+   
+   void reset(){ lcost = xrc =0.0;}
+   void initialize( const int dsize){ u.allocate(dsize); }
    // dual step
     double step(const double target, const double lambda,
 	       const VOL_dvector& dual_lb, const VOL_dvector& dual_ub,
@@ -672,9 +678,7 @@ private:
       double __pad0;
    };
    //@}
-   
-   
-
+  
 public:
      
    /**@name External data (containing the result after solve) */

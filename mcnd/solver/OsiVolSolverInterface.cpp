@@ -221,7 +221,7 @@ OsiVolSolverInterface::translate_hotstart(){
 	for(int i=fidx; i--;){
 		idx = actv[i];
 		if(idx>=0){
-			volprob_.dsol[idx] = HotStart_->dual_[i];
+			volprob_->dsol[idx] = HotStart_->dual_[i];
 		}
 	}
 	sz = cover_manager->covers.sizeOfCollection;
@@ -229,8 +229,8 @@ OsiVolSolverInterface::translate_hotstart(){
 	for(int i=sz; i--;){
 		idx = actv[vi->id_vi];
 		if(idx>=0){
-			volprob_.dsol[idx] = HotStart_->get_mapped(vi->serial_nmbr);
-			//std::cout<<" wsvi idx "<<idx<<" serial "<<vi->serial_nmbr<<" : "<<volprob_.dsol[idx]<<std::endl;
+			volprob_->dsol[idx] = HotStart_->get_mapped(vi->serial_nmbr);
+			//std::cout<<" wsvi idx "<<idx<<" serial "<<vi->serial_nmbr<<" : "<<volprob_->dsol[idx]<<std::endl;
 		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
 		vi = vi->next;
 	}
@@ -240,8 +240,8 @@ OsiVolSolverInterface::translate_hotstart(){
 	for(int i=sz; i--;){
 		idx = actv[vilc->id_vi];
 		if(idx>=0){
-			volprob_.dsol[idx] = HotStart_->get_mapped(vilc->serial_nmbr);
-			//std::cout<<" wsvi idx "<<idx<<" serial "<<vilc->serial_nmbr<<" : "<<volprob_.dsol[idx]<<std::endl;
+			volprob_->dsol[idx] = HotStart_->get_mapped(vilc->serial_nmbr);
+			//std::cout<<" wsvi idx "<<idx<<" serial "<<vilc->serial_nmbr<<" : "<<volprob_->dsol[idx]<<std::endl;
 		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
 		vilc = vilc->next;
 	}
@@ -251,8 +251,8 @@ OsiVolSolverInterface::translate_hotstart(){
 	for(int i=sz; i--;){
 		idx = actv[vigc->id_vi];
 		if(idx>=0){
-			volprob_.dsol[idx] = HotStart_->get_mapped(vigc->serial_nmbr);
-			//std::cout<<" wsvi idx "<<idx<<" serial "<<vigc->serial_nmbr<<" : "<<volprob_.dsol[idx]<<std::endl;
+			volprob_->dsol[idx] = HotStart_->get_mapped(vigc->serial_nmbr);
+			//std::cout<<" wsvi idx "<<idx<<" serial "<<vigc->serial_nmbr<<" : "<<volprob_->dsol[idx]<<std::endl;
 		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
 		vigc = vigc->next;
 	}
@@ -269,9 +269,9 @@ OsiVolSolverInterface::set_start(){
    
     VItt = VIub=-1e31;
     
-    CoinFillN(volprob_.dual_ub.v, getNumRows(), 0.0);
-    CoinFillN(volprob_.dual_lb.v, getNumRows(), 0.0);
-    CoinFillN(volprob_.dsol.v, getNumRows(), 0.0);
+    CoinFillN(volprob_->dual_ub.v, getNumRows(), 0.0);
+    CoinFillN(volprob_->dual_lb.v, getNumRows(), 0.0);
+    CoinFillN(volprob_->dsol.v, getNumRows(), 0.0);
     CoinFillN(rc_, narcs, 0.0);
 
     for(int i=fidx; i--;){
@@ -279,8 +279,8 @@ OsiVolSolverInterface::set_start(){
         //std::cout<<old_dual[old_index[i]]<<std::endl;
         idx = actv[i];
         if(idx>=0){
-            volprob_.dual_lb[idx] = -1.0e31;
-            volprob_.dual_ub[idx] = 1.0e31;
+            volprob_->dual_lb[idx] = -1.0e31;
+            volprob_->dual_ub[idx] = 1.0e31;
         }
     }
     sz = cover_manager->num_actv;
@@ -288,7 +288,7 @@ OsiVolSolverInterface::set_start(){
     for(int i=sz; i--;){
         idx = actv[vi->id_vi];
         if(idx>=0){
-            volprob_.dual_ub[idx] = 1.0e31;
+            volprob_->dual_ub[idx] = 1.0e31;
         }
         vi = vi->next;
     }
@@ -297,7 +297,7 @@ OsiVolSolverInterface::set_start(){
     for(int i=sz; i--;){
         idx = actv[vilc->id_vi];
         if(idx>=0){
-            volprob_.dual_ub[idx] = 1.0e31;
+            volprob_->dual_ub[idx] = 1.0e31;
         }
         vilc = vilc->next;
     }
@@ -306,17 +306,17 @@ OsiVolSolverInterface::set_start(){
     for(int i=sz; i--;){
         idx = actv[vigc->id_vi];
         if(idx>=0){
-            volprob_.dual_ub[idx] = 1.0e31;
+            volprob_->dual_ub[idx] = 1.0e31;
         }
         vigc = vigc->next;
     }
     
     
     if(HotStartSet){
-    	if(volprob_.parm.maxsgriters>250)
-    		volprob_.parm.maxsgriters=250;
+    	if(volprob_->parm.maxsgriters>250)
+    		volprob_->parm.maxsgriters=250;
 		translate_hotstart();
-    }else volprob_.parm.maxsgriters=500;
+    }else volprob_->parm.maxsgriters=500;
 }
 
 //-----------------------------------------------------------------------
@@ -328,7 +328,7 @@ OsiVolSolverInterface::set_start(){
 
 void 
 OsiVolSolverInterface::solveFromHotStart(){
-    //std::cout<<"solveFromHotStart() maxiter: "<<volprob_.parm.maxsgriters<<" dsize: "<<numrows_<<std::endl;
+    //std::cout<<"solveFromHotStart() maxiter: "<<volprob_->parm.maxsgriters<<" dsize: "<<numrows_<<std::endl;
     //CoinDisjointCopyN(HotStart_, numrows_, dual);
     //OsiVolAuxInfo * auxinfo  = static_cast<OsiVolAuxInfo*>(OsiSolverInterface::getApplicationData());
     resolve();
@@ -358,18 +358,18 @@ OsiVolSolverInterface::resolve(){
     
     map_duals();
     if(mode==-2) return;
-    volprob_.active_size = fsize + csize;
+    volprob_->active_size = fsize + csize;
     
-    volprob_.psize = szunfxd + data->ndemands*sznz;
+    volprob_->psize = szunfxd + data->ndemands*sznz;
     
     set_start();
-    //std::cout<<"re solve "<<szunfxd<<" dsize: "<<volprob_.active_size<<" maxdsz: "<<maxNumrows_<<std::endl;
+    //std::cout<<"re solve "<<szunfxd<<" dsize: "<<volprob_->active_size<<" maxdsz: "<<maxNumrows_<<std::endl;
     // Set the dual starting point
-    retval = volprob_.solve(*this, true);
+    retval = volprob_->solve(*this, true);
     
-    //std::cout<<std::setprecision(10)<<"result: "<<volprob_.value<<" numrows: "<<numrows_<<" iters: "<<volprob_.iter()<<"/"<<volprob_.parm.maxsgriters<<std::endl;
-    if(volprob_.value< min_lower_bound && in_strong_branch){
-     	volprob_.value = min_lower_bound;
+    //std::cout<<std::setprecision(10)<<"result: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<std::endl;
+    if(volprob_->value< min_lower_bound && in_strong_branch){
+     	volprob_->value = min_lower_bound;
     }
     translate_sol();
     if(mode ==3){
@@ -553,7 +553,7 @@ OsiVolSolverInterface::solve_subproblem(const VOL_dvector& xstar,
     pcost= 0;
     lcost =0;
     for(int a=szunfxd; a--; ){
-    	if(xstar[a]>1)std::cout<<"WHAT? "<<xstar[a]<<std::endl;
+    	//if(xstar[a]>1)std::cout<<"WHAT? "<<xstar[a]<<std::endl;
         arc = nz_arcs[a];
         rc[a] += knapsack(a, rc.v, x.v);
         //addrc[a]+= rc[a];
@@ -755,8 +755,8 @@ OsiVolSolverInterface::add_external_cover(const std::deque<Pair2>& c){
 	int ret = cover_manager->add_external_cover(c, numrows_, maxNumrows_);
 	if(ret){
 	
-		cover_manager->add_cover_vi(1, actv, volprob_.active_size, volprob_.viol.v, 
-								volprob_.dsol.v, volprob_.dual_lb.v,  volprob_.dual_ub.v );       
+		cover_manager->add_cover_vi(1, actv, volprob_->active_size, volprob_->viol.v, 
+								volprob_->dsol.v, volprob_->dual_lb.v,  volprob_->dual_ub.v );       
 		cover_manager->reposition_covers(1);	
 		++numrows_;
 	}
@@ -769,12 +769,12 @@ int
 OsiVolSolverInterface::add_external_localc( const int * y){
     if(numrows_>=maxNumrows_) return 0;
 
-	int ret = localc_manager->localc1_generation_main(volprob_.value, upper_bound, solution, 
+	int ret = localc_manager->localc1_generation_main(volprob_->value, upper_bound, solution, 
 														y, rc_, numrows_, maxNumrows_);
 	if(ret){
 		//std::cout<<"add local: "<<ret<<std::endl;
-		localc_manager->add_local_vi(ret, actv, volprob_.active_size, dual, lhs_, volprob_.viol.v,
-								volprob_.dsol.v, volprob_.dual_lb.v,  volprob_.dual_ub.v );   
+		localc_manager->add_local_vi(ret, actv, volprob_->active_size, dual, lhs_, volprob_->viol.v,
+								volprob_->dsol.v, volprob_->dual_lb.v,  volprob_->dual_ub.v );   
 		localc_manager->reposition_locals(ret);	
 		numrows_ += ret;
 	}
@@ -796,8 +796,8 @@ OsiVolSolverInterface::add_external_globalc( const double * y, int type, int con
 		GlobalCut* gloc = globalc_manager->globals.track.back();
 		globalc_manager->globals.insert_end(gloc);
 		globalc_manager->num_actv += ret;
-		globalc_manager->add_global_vi(ret, actv, volprob_.active_size, dual, lhs_, volprob_.viol.v, 
-								volprob_.dsol.v, volprob_.dual_lb.v,  volprob_.dual_ub.v );   
+		globalc_manager->add_global_vi(ret, actv, volprob_->active_size, dual, lhs_, volprob_->viol.v, 
+								volprob_->dsol.v, volprob_->dual_lb.v,  volprob_->dual_ub.v );   
 		globalc_manager->reposition_globals(ret);	
 		numrows_ += ret;
 		 
@@ -820,16 +820,16 @@ OsiVolSolverInterface::translate_sol(){
     for(int a=szunfxd; a--;){
         arc = nz_arcs[a];
         
-        solution[arc] = volprob_.psol[a];
-        //std::cout<<arc<<" "<<volprob_.psol[a]<<std::endl;// /double(volprob_.iter())<<std::endl;
+        solution[arc] = volprob_->psol[a];
+        //std::cout<<arc<<" "<<volprob_->psol[a]<<std::endl;// /double(volprob_->iter())<<std::endl;
         for(int k=ndemands; k--; )
-            solution[narcs+k*narcs+arc] = volprob_.psol[szunfxd + k*sznz + a];
+            solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
     }
     for(int a=szunfxd; a<sznz;++a){
         arc = nz_arcs[a];
         solution[arc] = 1;
         for(int k=ndemands; k--; )
-            solution[narcs+k*narcs+arc] = volprob_.psol[szunfxd + k*sznz + a];
+            solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
     }
     translate_dualsol();
 }
@@ -842,9 +842,9 @@ OsiVolSolverInterface::translate_dualsol(){
 	for(int i=ndemands*nnodes; i-- ;){
         idx = actv[i];
         if(idx>=0){
-            //if(i>=ndemands*nnodes) std::cout<<i<<": "<<volprob_.dsol[idx]<<std::endl;
-            dual[i] = volprob_.dsol[idx];
-            lhs_[i] = volprob_.viol[idx];
+            //if(i>=ndemands*nnodes) std::cout<<i<<": "<<volprob_->dsol[idx]<<std::endl;
+            dual[i] = volprob_->dsol[idx];
+            lhs_[i] = volprob_->viol[idx];
         }else{
             dual[i] =0;
             lhs_[i] =0;
@@ -855,8 +855,8 @@ OsiVolSolverInterface::translate_dualsol(){
 	for(;sz--;){
 		idx = actv[vi->id_vi];
 		if(idx>=0){
-            dual[vi->id_vi] = volprob_.dsol[idx];
-            lhs_[vi->id_vi] = volprob_.viol[idx];
+            dual[vi->id_vi] = volprob_->dsol[idx];
+            lhs_[vi->id_vi] = volprob_->viol[idx];
         }else{
             dual[vi->id_vi] =0;
             lhs_[vi->id_vi] =0;
@@ -870,8 +870,8 @@ OsiVolSolverInterface::translate_dualsol(){
 		//std::cout<<"ok "<<sz<<" "<<vi->id_vi<<std::endl;
 		idx = actv[vilc->id_vi];
 		if(idx>=0){
-            dual[vilc->id_vi] = volprob_.dsol[idx];
-            lhs_[vilc->id_vi] = volprob_.viol[idx];
+            dual[vilc->id_vi] = volprob_->dsol[idx];
+            lhs_[vilc->id_vi] = volprob_->viol[idx];
         }else{
             dual[vilc->id_vi] =0;
             lhs_[vilc->id_vi] =0;
@@ -886,8 +886,8 @@ OsiVolSolverInterface::translate_dualsol(){
 		//std::cout<<"ok "<<sz<<" "<<vi->id_vi<<std::endl;
 		idx = actv[vigc->id_vi];
 		if(idx>=0){
-            dual[vigc->id_vi] = volprob_.dsol[idx];
-            lhs_[vigc->id_vi] = volprob_.viol[idx];
+            dual[vigc->id_vi] = volprob_->dsol[idx];
+            lhs_[vigc->id_vi] = volprob_->viol[idx];
         }else{
             dual[vigc->id_vi] =0;
             lhs_[vigc->id_vi] =0;
@@ -955,7 +955,7 @@ OsiVolSolverInterface::translate_dualws(){
 bool 
 OsiVolSolverInterface::isProvenPrimalInfeasible()const{
 	if(mode==-2) return true;
-	if(retval==-1 || volprob_.value<0 || volprob_.value>(volprob_.parm.dual_limit + 0.0001)
+	if(retval==-1 || volprob_->value<0 || volprob_->value>(volprob_->parm.dual_limit + 0.0001)
 		|| (isPrimalObjectiveLimitReached() && !has_sol)){
 		return true;
 	}else return false;
@@ -966,8 +966,8 @@ OsiVolSolverInterface::isProvenPrimalInfeasible()const{
 bool 
 OsiVolSolverInterface::isPrimalObjectiveLimitReached() const{
 	if((retval==0)){
-		if(volprob_.value>(volprob_.parm.dual_limit + 0.0001)) return false;
-		return (volprob_.value>(upper_bound + 0.0001))? true : false;
+		if(volprob_->value>(volprob_->parm.dual_limit + 0.0001)) return false;
+		return (volprob_->value>(upper_bound + 0.0001))? true : false;
 	}else return false;
 }
  
@@ -995,7 +995,7 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     ndemands = data->ndemands;
     narcs = data->narcs;
     
-    volprob_.value =0;
+    volprob_->value =0;
     retval = 0;
 
     maxNumcols_ = numcols_ = numcols;
@@ -1010,10 +1010,10 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     if(maxNumrows_ > auxinfo->maxPos)
     	maxNumrows_ =  auxinfo->maxPos;
    
-   	volprob_.dsize = maxNumrows_;
-    volprob_.dsol.allocate(maxNumrows_);
-    volprob_.dual_lb.allocate(maxNumrows_);
-    volprob_.dual_ub.allocate(maxNumrows_);
+   	volprob_->dsize = maxNumrows_;
+    volprob_->dsol.allocate(maxNumrows_);
+    volprob_->dual_lb.allocate(maxNumrows_);
+    volprob_->dual_ub.allocate(maxNumrows_);
     
     
 }
@@ -1041,7 +1041,7 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
 	}
 	
 	rebuild_collections();
-	volprob_.active_size = fsize+localc_manager->num_actv + cover_manager->num_actv + globalc_manager->num_actv;
+	volprob_->active_size = fsize+localc_manager->num_actv + cover_manager->num_actv + globalc_manager->num_actv;
 	//abort();
 }
 
@@ -1253,33 +1253,7 @@ HotStart_(0){
     recheck_collct=in_strong_branch = HotStartSet = false;
 }
 
-//---------------------------------------------------------------------------
 
-OsiVolSolverInterface::OsiVolSolverInterface(const char * volparfile):
-volprob_(volparfile),
-colub(0),
-collb(0),
-rowub(0),
-rowlb(0),
-solution(0),
-dual(0),
-rc_(0),
-lhs_(0),
-yhit(0),
-arc_map(0),
-VItopo(0),
-addrc(0),
-actv(0),
-HotStart_(0)
-{
-	
-    maxNumrows_ = maxNumcols_ = 0;
-    mode =1;
-    num_purgbl=0;
-    min_lower_bound=0; 
-    recheck_collct=in_strong_branch = HotStartSet = false;
-    
-}
 
 //---------------------------------------------------------------------------
 
@@ -1290,7 +1264,8 @@ OsiVolSolverInterface::initialize(OsiVolAuxInfo & osidata){
     ss_manager = osidata.ss_manager;
     localc_manager = osidata.localc_manager;
     globalc_manager =  osidata.globalc_manager;
-    
+    volprob_ = &osidata.volprob;
+
     nnodes =  data->nnodes;
     ndemands = data->ndemands;
     narcs = data->narcs;
@@ -1349,27 +1324,6 @@ OsiVolSolverInterface::clone(bool copyData) const {
     else
         c =new OsiVolSolverInterface();
     
-    //c->volprob_.parm.temp_dualfile =volprob_.parm.temp_dualfile ;
-    c->volprob_.parm.ubinit = volprob_.parm.ubinit;
-    c->volprob_.parm.printflag = volprob_.parm.printflag;
-    c->volprob_.parm.printinvl = volprob_.parm.printinvl ;
-    c->volprob_.parm.maxsgriters = volprob_.parm.maxsgriters;
-    c->volprob_.parm.maxtime = volprob_.parm.maxtime;
-    //c->volprob_.parm.heurinvl = volprob_.parm.heurinvl;
-    c->volprob_.parm.greentestinvl =volprob_.parm.greentestinvl ;
-    c->volprob_.parm.yellowtestinvl = volprob_.parm.yellowtestinvl;
-    c->volprob_.parm.redtestinvl = volprob_.parm.redtestinvl;
-    c->volprob_.parm.lambdainit = volprob_.parm.lambdainit ;
-    c->volprob_.parm.alphainit = volprob_.parm.alphainit;
-    c->volprob_.parm.alphamin = volprob_.parm.alphamin ;
-    c->volprob_.parm.alphafactor =volprob_.parm.alphafactor ;
-    c->volprob_.parm.alphaint = volprob_.parm.alphaint;
-    c->volprob_.parm.primal_abs_precision = volprob_.parm.primal_abs_precision;
-    c->volprob_.parm.gap_abs_precision = volprob_.parm.gap_abs_precision;
-    c->volprob_.parm.gap_rel_precision =volprob_.parm.gap_rel_precision ;
-    //c->volprob_.parm.ubfeas = volprob_.parm.ubfeas;
-    //c->volprob_.parm.infeas_trigger = volprob_.parm.infeas_trigger;
-    //c->volprob_.parm.granularity = volprob_.parm.granularity ;
     return c;
 }
 
@@ -1406,6 +1360,7 @@ volprob_()
     ss_manager = x.ss_manager;
     localc_manager = x.localc_manager;
     globalc_manager = x.globalc_manager;
+    volprob_ = x.volprob_;
 }
 
 //-----------------------------------------------------------------------
@@ -1435,6 +1390,7 @@ OsiVolSolverInterface::operator=(const OsiVolSolverInterface& x){
     ss_manager = x.ss_manager;
     localc_manager = x.localc_manager;
     globalc_manager = x.globalc_manager;
+    volprob_ = x.volprob_;
     return *this;
 }
 

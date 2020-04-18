@@ -10,6 +10,7 @@
 #include "cutsetmanager.hpp"
 #include "localcutmanager.hpp"
 #include "globalcutmanager.hpp"
+#include "VolVolume.hpp"
 
 #include "Structures.hpp"
 #include "OsiAuxInfo.hpp"
@@ -26,6 +27,8 @@ public:
     CutSetManager * ss_manager;
     LocalCutManager* localc_manager;
     GlobalCutManager* globalc_manager;
+    
+    VOL_problem volprob;
     
     //OsiSolver attributes record;
     double  *colub;
@@ -47,7 +50,7 @@ public:
     int maxNumVI, intvlVI;
     int maxPos;
     
-    OsiVolAuxInfo():data(0), cover_manager(0), ss_manager(0), localc_manager(0), globalc_manager(0){
+    OsiVolAuxInfo():volprob("volmcnd.par") {
         maxNumVI =1000;
 		maxPos = 10000;
         intvlVI =50;
@@ -66,6 +69,7 @@ public:
     	yhit=0;
     	arc_map=0;
     	actv=0; 
+    	data =(0); cover_manager =(0); ss_manager =(0); localc_manager =(0); globalc_manager =(0);
     }  
     
     ~OsiVolAuxInfo(){

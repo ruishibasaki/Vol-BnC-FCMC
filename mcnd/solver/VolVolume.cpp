@@ -155,30 +155,26 @@ void
 VOL_dual::copy(const VOL_dual& w, int actvSSz){
     lcost = w.lcost;
     xrc = w.xrc;
-    const int wsz = w.u.size();
-    if (wsz != u.size()) {
-        u.clear();
-        u = w.u;
-    }else{
-        for (int i = actvSSz; i--; ){
-            u[i] = w.u[i];
-        }
-    }
+    u.copy(w.u, actvSSz);
 }
 
 //-----------------------------------------------------------------------
 /** Copy only Atcive_Set values of <code>w</code> into the vector. */
 void
 VOL_dual::copy(const VOL_dvector& w, int actvSSz){
-    const int wsz = w.size();
-    if (wsz != u.size()) {
-        u.clear();
-        u = w;
-    }else{
-        for (int i = actvSSz; i--; ){
-            u[i] = w[i];
-        }
-    }
+    u.copy(w, actvSSz);
+}
+
+//############################################################################
+//-----------------------------------------------------------------------
+/** Copy only Atcive_Set values of <code>w</code> into the vector. */
+
+void 
+VOL_primal::copy(const VOL_primal& p, int psize, int actvSSz){
+      value = p.value;
+      viol = p.viol;
+      x.copy(p.x, psize);
+      v.copy(p.v, actvSSz);
 }
 
 
@@ -460,9 +456,6 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
 
     retval = hooks.compute_rc(dual.u, rc, active_size); // compute reduced costs
     if (retval < 0)  return -1;
-    // solve relaxed problem
-    
-
     retval = hooks.solve_subproblem(pstar.x,dual.u, rc, dual.lcost, primal.x, primal.value);
     if (retval < 0)  return -1;
     retval = hooks.additional_settings(0, dual.lcost, dual.u, rc, pstar.v, primal.x, pstar.x, active_size);
@@ -482,15 +475,15 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     // find primal violation
     //primal.find_max_viol(dual_lb, dual_ub); // this may be left out for speed
     
-    pstar = primal; // set pstar=primal
+    pstar.copy(primal, psize, active_size); // set pstar=primal
     primal.find_max_viol(dual_lb, dual_ub, active_size);
     max_viol = primal.viol;
     //pstar.find_max_viol(dual_lb, dual_ub); // set violation of pstar
     
     //dual.compute_xrc(pstar.x, primal.x, rc); // compute xrc
     
-    VOL_dual dstar(dual);
-    VOL_dual dlast(dual);
+    VOL_dual dstar(dsize); dstar.copy(dual, active_size);
+    VOL_dual dlast(dsize); dlast.copy(dual, active_size);
     
     iter_ = 0;
     if (parm.printflag)
@@ -565,7 +558,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         }
 
         // convex combination with new primal vector
-        pstar.cc(power_heur(primal, pstar, dual), primal,active_size);
+        pstar.cc(power_heur(primal, pstar, dual), primal,active_size, psize);
 
         //pstar.find_max_viol(dual_lb, dual_ub, active_size); // find maximum violation of pstar
         if (swing.rd)

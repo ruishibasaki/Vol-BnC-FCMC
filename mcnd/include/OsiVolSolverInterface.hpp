@@ -12,7 +12,6 @@
 #include <deque>
 #include <list>
 
-#include "VolVolume.hpp"
 #include "Structures.hpp"
 #include "MCND_data.hpp"
 #include "MCND_osidata.hpp"
@@ -62,7 +61,7 @@ public:
         return false;}
     
     virtual bool isIterationLimitReached() const{
-        return(volprob_.iter()>= volprob_.parm.maxsgriters)? true: false;
+        return(volprob_->iter()>= volprob_->parm.maxsgriters)? true: false;
     }
     
     virtual bool isProvenPrimalInfeasible()const;
@@ -138,7 +137,7 @@ public:
     /**@name Methods related to querying the solution */
     //@{
      virtual double  getViolation() const{//std::cout<<"get primal "<<std::endl;
-        return volprob_.max_viol;}
+        return volprob_->max_viol;}
     /// Get pointer to array[getNumCols()] of primal solution vector
     virtual const double * getColSolution() const{//std::cout<<"get primal "<<std::endl;
         return solution;}
@@ -153,14 +152,14 @@ public:
         return lhs_; }
     
     virtual double getObjValue() const {
-        if(retval==-1 || volprob_.value<0 ){
+        if(retval==-1 || volprob_->value<0 ){
             return getInfinity();
         }else{
         	if(isPrimalObjectiveLimitReached()) return (upper_bound + 0.0001);
-        	else return volprob_.value;
+        	else return volprob_->value;
         } 
     }
-    virtual int getIterationCount() const { return volprob_.iter(); }
+    virtual int getIterationCount() const { return volprob_->iter(); }
     
     
     virtual std::vector<double*> getDualRays(int maxNumRays,
@@ -316,7 +315,6 @@ public:
     /// Default Constructor
     OsiVolSolverInterface ();
     
-    OsiVolSolverInterface(const char * volparfile);
     void initialize(OsiVolAuxInfo & osidata);
     
     /// Clone
@@ -499,8 +497,7 @@ public:
     GlobalCutManager* globalc_manager;
     //feasibility solver
     /// The volume solver
-    VOL_problem volprob_;
-    VOL_problem* volprob() { return &volprob_; }
+    VOL_problem* volprob_;
     
 };
 

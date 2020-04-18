@@ -47,7 +47,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
 
 OsiSolverInterface *
 MCND_lp::initialize_solver_interface(){
-    OsiVolSolverInterface* volsolver = new OsiVolSolverInterface("volmcnd.par");
+    OsiVolSolverInterface* volsolver = new OsiVolSolverInterface();
 	volsolver->initialize( AppVolData);
     setOsiBabSolver(volsolver);
     //MaxIt = volsolver->volprob_.parm.maxsgriters;
@@ -165,7 +165,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     //std::cout<<"modify lp param "<<changeType<<" "<<in_strong_branching<<" iter: "<<current_level()<<std::endl;
     lp->setDblParam(OsiPrimalTolerance, 1e-4);
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
-    VOL_parms& par = vollp->volprob_.parm;
+    VOL_parms& par = AppVolData.volprob.parm;
     
     vollp->has_sol = has_sol;
     vollp->recheck_collct=false;
