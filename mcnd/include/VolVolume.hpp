@@ -320,7 +320,9 @@ public:
       std::swap(v, w.v);
       std::swap(sz, w.sz);
    }
-
+	
+   /** Copy <code>w</code> into the vector. */
+   void copy(const VOL_dvector& w, int actvSSz);
    /** Copy <code>w</code> into the vector. */
    VOL_dvector& operator=(const VOL_dvector& w);
    /** Replace every entry in the vector with <code>w</code>. */
