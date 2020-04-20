@@ -31,7 +31,7 @@ enum LP_Mode{
    /** Branch is driven by a Unfeasible pump problem.*/
    LP_Normal = 0,
    /** Branch is driven by a Feasible pump problem.*/
-   LP_Infeasibility = 2,
+   LP_Solved = 2,
    /** Extra Iteration due to cut addition.*/
    LP_HeuristicRunned = 4,
    /** Extra Iteration due to cut addition.*/
@@ -78,7 +78,9 @@ public:
 
     std::vector<Pair> ninsp;
     std::vector<PairF> psdcost;
-	
+	std::vector<int> tabu;
+
+
 	int num_nodes;
     std::deque<const MCND_CutUnit *> track;
 

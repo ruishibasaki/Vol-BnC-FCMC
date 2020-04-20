@@ -452,6 +452,24 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
 
 int
 OsiVolSolverInterface::removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector& dstaru,  VOL_dvector& dualu){
+	/*
+	Cover* vic1 = cover_manager->covers.begin;
+ 	for(int i=0;i<cover_manager->num_actv;++i){
+ 		std::cout<<"cover: "<<i<<" id: "<< actv[vic1->id_vi]<<" -> "<<pstarv[actv[vic1->id_vi]]<<" "<<dstaru[actv[vic1->id_vi]]<<" "<<dualu[actv[vic1->id_vi]]<<std::endl;			
+		vic1 = vic1->next;
+	}
+	
+	LocalCut* vilc1 = localc_manager->locals.begin;
+ 	for(int i=0;i<localc_manager->num_actv;++i){
+ 		std::cout<<"local: "<<i<<" id: "<< actv[vilc1->id_vi]<<" -> "<<pstarv[actv[vilc1->id_vi]]<<" "<<dstaru[actv[vilc1->id_vi]]<<" "<<dualu[actv[vilc1->id_vi]]<<std::endl;			
+		vilc1 = vilc1->next;
+	}
+	
+	GlobalCut* vigc1 = globalc_manager->globals.begin;
+ 	for(int i=0;i<globalc_manager->num_actv;++i){
+ 		std::cout<<"global: "<<i<<" id: "<< actv[vigc1->id_vi]<<" -> "<<pstarv[actv[vigc1->id_vi]]<<" "<<dstaru[actv[vigc1->id_vi]]<<" "<<dualu[actv[vigc1->id_vi]]<<std::endl;			 				
+		vigc1 = vigc1->next;
+	}*/
 	
 	int oldsz  = actvSSz;
     cover_manager->covers.desactvCover(cover_manager->lim_to_remv, actv, actvSSz, cover_manager->num_actv, pstarv.v, dstaru.v, dualu.v);
@@ -500,33 +518,37 @@ OsiVolSolverInterface::removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector
 	//redo identifications
 	vic = cover_manager->covers.begin;
  	for(int i=0;i<sz;++i){
- 		id = fidx+i;
+ 		id = fsize+i;
 		actv[vic->id_vi] = id;
  		pstarv[id] = collect[i].fst;	
 		dstaru[id] = collect[i].snd;	
 		dualu[id] = collect[i].trd;	
+		//std::cout<<"cover: "<<i<<" id: "<< actv[vic->id_vi]<<" -> "<<pstarv[actv[vic->id_vi]]<<" "<<dstaru[actv[vic->id_vi]]<<" "<<dualu[actv[vic->id_vi]]<<std::endl;			
  		vic = vic->next;
 	}
  	vilc = localc_manager->locals.begin;
 	for(int i=sz;i<sz2;++i){
-		id = fidx+i;
+		id = fsize+i;
 		actv[vilc->id_vi] = id;
  		pstarv[id] = collect[i].fst;	
 		dstaru[id] = collect[i].snd;	
-		dualu[id] = collect[i].trd;	
+		dualu[id] = collect[i].trd;
+		//std::cout<<"local: "<<i<<" id: "<< actv[vilc->id_vi]<<" -> "<<pstarv[actv[vilc->id_vi]]<<" "<<dstaru[actv[vilc->id_vi]]<<" "<<dualu[actv[vilc->id_vi]]<<std::endl;				
 		vilc = vilc->next;
 	}
 	vigc = globalc_manager->globals.begin;
 	for(int i=sz2;i<sz3;++i){
-		id = fidx+i;
+		id = fsize+i;
 		actv[vigc->id_vi] = id;
  		pstarv[id] = collect[i].fst;	
 		dstaru[id] = collect[i].snd;	
 		dualu[id] = collect[i].trd;	
+		//std::cout<<"global: "<<i<<" id: "<< actv[vigc->id_vi]<<" -> "<<pstarv[actv[vigc->id_vi]]<<" "<<dstaru[actv[vigc->id_vi]]<<" "<<dualu[actv[vigc->id_vi]]<<std::endl;			 				
 		vigc = vigc->next;
 	}
 	collect.clear();
 	if(fidx+sz3 != actvSSz){ std::cout<<"cont: "<<fidx+sz3<<" sz: "<<actvSSz<<std::endl; abort();}
+	//abort();
     return 0;
 }
 
@@ -1072,10 +1094,7 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     if(maxNumrows_ > auxinfo->maxPos)
     	maxNumrows_ =  auxinfo->maxPos;
    
-   	volprob_->dsize = maxNumrows_;
-    volprob_->dsol.allocate(maxNumrows_);
-    volprob_->dual_lb.allocate(maxNumrows_);
-    volprob_->dual_ub.allocate(maxNumrows_);
+   	
     
     
 }
@@ -1286,13 +1305,6 @@ OsiVolSolverInterface::gutsOfDestructor_()
 //-----------------------------------------------------------------------
 
 OsiVolSolverInterface::OsiVolSolverInterface () :
-//rowsense_(0),
-//rhs_(0),
-//rowrange_(0),
-//continuous_(0),
-//objcoeffs_(0),
-//objsense_(1.0),
-volprob_(),
 colub(0),
 collb(0),
 rowub(0),
@@ -1306,7 +1318,9 @@ arc_map(0),
 VItopo(0),
 addrc(0),
 actv(0),
-HotStart_(0){
+HotStart_(0),
+volprob_(0)
+{
 
     maxNumrows_ = maxNumcols_ = 0;
     mode =1;
@@ -1322,20 +1336,21 @@ HotStart_(0){
 void 
 OsiVolSolverInterface::initialize(OsiVolAuxInfo & osidata){
 	data = osidata.data;
+	nnodes =  data->nnodes;
+    ndemands = data->ndemands;
+    narcs = data->narcs;
+    
     cover_manager = osidata.cover_manager;
     ss_manager = osidata.ss_manager;
     localc_manager = osidata.localc_manager;
     globalc_manager =  osidata.globalc_manager;
+
+    osidata.init_solver(nnodes*ndemands);
     volprob_ = &osidata.volprob;
 
-    nnodes =  data->nnodes;
-    ndemands = data->ndemands;
-    narcs = data->narcs;
-    
     maxNumVI =osidata.maxNumVI;
     intvlVI = osidata.intvlVI;
     
-    osidata.maxPos += nnodes*ndemands;
 	int maxvi = osidata.maxPos;
 	
 	
@@ -1446,8 +1461,9 @@ OsiVolSolverInterface::operator=(const OsiVolSolverInterface& x){
 	addrc = x.addrc;
 	actv = x.actv;
 	HotStart_ = x.HotStart_;
-    
+    mode = x.mode;
     data = x.data;   
+    
 	cover_manager = x.cover_manager;
     ss_manager = x.ss_manager;
     localc_manager = x.localc_manager;

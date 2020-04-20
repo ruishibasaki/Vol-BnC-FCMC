@@ -50,6 +50,19 @@ public:
     int maxNumVI, intvlVI;
     int maxPos;
     
+//-----------------------------------------------------
+//-----------------------------------------------------
+//-----------------------------------------------------
+    
+	void init_solver(int corevi){
+		maxPos+= corevi;
+		volprob.ext_initializer(data->narcs+data->narcs*data->ndemands, maxPos);
+	}
+
+//-----------------------------------------------------
+//-----------------------------------------------------
+//-----------------------------------------------------
+
     OsiVolAuxInfo():volprob("volmcnd.par") {
         maxNumVI =1000;
 		maxPos = 10000;
@@ -71,7 +84,9 @@ public:
     	actv=0; 
     	data =(0); cover_manager =(0); ss_manager =(0); localc_manager =(0); globalc_manager =(0);
     }  
-    
+
+//-----------------------------------------------------
+
     ~OsiVolAuxInfo(){
 		if(yhit){ delete [] yhit;  yhit=0;}
 		if(arc_map){ delete [] arc_map;  arc_map=0;}

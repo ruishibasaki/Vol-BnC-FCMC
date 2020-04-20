@@ -347,6 +347,7 @@ public:
    // v=b-Ax, for the relaxed constraints
    VOL_dvector v; 
 
+	VOL_primal(){viol =1e30; value=0.0;}
     VOL_primal(const int psize, const int dsize) : x(psize), v(dsize) {viol=1e30; value=0.0;}
    VOL_primal(const VOL_primal& primal) :
       value(primal.value), viol(primal.viol), x(primal.x), v(primal.v) {}
@@ -389,7 +390,8 @@ public:
    // this information is only printed
    // dual vector
    VOL_dvector u; 
-
+   
+   VOL_dual(){ xrc=0; lcost=0;}
    VOL_dual(const int dsize) : u(dsize) { xrc=0; lcost=0;}
    VOL_dual(const VOL_dual& dual) :
       lcost(dual.lcost), xrc(dual.xrc), u(dual.u) {}
@@ -654,6 +656,8 @@ public:
    /** Destruct the object. */
    ~VOL_problem();
    //@}
+   
+	void ext_initializer(int maxprimalsz, int maxdualsz);
 
    /**@name Method to solve the problem. */
    //@{
@@ -662,6 +666,15 @@ public:
        points to. */
    int solve(VOL_user_hooks& hooks, const bool use_preset_dual = false);
    //@}
+   
+    
+    VOL_primal primal;  // primal vector
+    VOL_primal pstar;
+	VOL_dvector rc; // reduced costs
+	VOL_dual dstar;
+    VOL_dual dlast;
+    VOL_dual dual; // dual vector
+
 
 private: 
    /**@name Internal data (may be inquired for) */
@@ -678,6 +691,7 @@ private:
       double __pad0;
    };
    //@}
+   
   
 public:
      

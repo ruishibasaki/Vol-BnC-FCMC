@@ -429,6 +429,28 @@ VOL_problem::print_info(const int iter,
 }
 
 //######################################################################
+
+void 
+VOL_problem::ext_initializer(int maxprimalsz, int maxdualsz){
+ 
+ 	primal.initialize(maxprimalsz, maxdualsz);
+	pstar.initialize(maxprimalsz, maxdualsz);
+	psol.allocate(maxprimalsz);
+	rc.allocate(maxprimalsz);
+	
+	dstar.initialize(maxdualsz);
+    dlast.initialize(maxdualsz);
+	dual.initialize(maxdualsz); // dual vector
+	
+	viol.allocate(maxdualsz);
+	dsol.allocate(maxdualsz);
+    dual_lb.allocate(maxdualsz);
+    dual_ub.allocate(maxdualsz);
+    dsize = maxdualsz;
+}
+
+
+//######################################################################
 /// this is the Volume Algorithm
 int
 VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual) 
@@ -446,12 +468,9 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     double step=0;
     int old_sz = active_size;
 
-    VOL_dvector rc(psize); // reduced costs
-    VOL_dual dual(dsize); // dual vector
+    
     dual.copy(dsol, active_size);
     
-    VOL_primal primal(psize, dsize);  // primal vector
-    VOL_primal pstar(psize, dsize);
     
 
     retval = hooks.compute_rc(dual.u, rc, active_size); // compute reduced costs
@@ -482,8 +501,8 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     
     //dual.compute_xrc(pstar.x, primal.x, rc); // compute xrc
     
-    VOL_dual dstar(dsize); dstar.copy(dual, active_size);
-    VOL_dual dlast(dsize); dlast.copy(dual, active_size);
+    dstar.copy(dual, active_size);
+    dlast.copy(dual, active_size);
     
     iter_ = 0;
     if (parm.printflag)
@@ -685,6 +704,12 @@ VOL_problem::initialize(const bool use_preset_dual) {
         dsol.allocate(dsize);
         dsol = 0.0;
     }
+    dstar.reset();
+    dlast.reset();
+    dual.reset();
+    primal.reset();  // primal vector
+    pstar.reset();
+
     return 0;
 }
 

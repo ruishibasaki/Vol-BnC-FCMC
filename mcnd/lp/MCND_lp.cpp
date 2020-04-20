@@ -25,6 +25,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     std::fill(yfix,yfix+data.narcs, -1);
     ninsp.resize(data.narcs,Pair(0,0));
     psdcost.resize(data.narcs,PairF(0,0));
+    tabu.resize(data.narcs,0);
     
     ss_manager.initialize(&data);
     cover_manager.initialize(&data, 20);
@@ -40,6 +41,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     AppVolData.localc_manager = &localc_manager;
     AppVolData.globalc_manager = &globalc_manager;
     srand(10);
+
      
 }
 
@@ -166,7 +168,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     lp->setDblParam(OsiPrimalTolerance, 1e-4);
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = AppVolData.volprob.parm;
-    
+    vollp->mode=1;
     vollp->has_sol = has_sol;
     vollp->recheck_collct=false;
     vollp->upper_bound = LBi >0 ? fmin(upper_bound(), LBi*5) : upper_bound();
@@ -190,7 +192,6 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
 
      	AppVolData.intvlVI = 200; /*vollp->mode=2;*/
     }
-	else{ vollp->mode=1;}
 	
 	if(lp_mode & LP_LogicalFixed){
 		vollp->recheck_collct=true;  
@@ -204,13 +205,17 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
 	}else if(changeType==1 || lp_mode & LP_ForceNodeAbort ){ 
     	vollp->recheck_collct=true; 
     	vollp->mode=-1; 
+    	//std::cout<<"aqui1"<<std::endl;
     	//std::cout<<"changeType "<<changeType<<" lpmode: "<<(lp_mode & LP_ForceNodeAbort)<<std::endl; 
     }else if((lp_mode & LP_CutAddedFromHeuristic) ){
     	vollp->mode=-1; 
+    	//std::cout<<"aqui2"<<std::endl;
     	//std::cout<<"LP_CutAddedFromHeuristic"<<std::endl;
     }
+    if(vollp->mode>=0 && !in_strong_branching) lp_mode |= LP_Solved;
+    else lp_mode &= ~LP_Solved;
     vollp->in_strong_branch = in_strong_branching;
-
+	//std::cout<<"modify_lp_parameters "<<vollp->mode<<std::endl;
    
 }
 
@@ -413,10 +418,20 @@ MCND_lp::process_lp_result(const BCP_lp_result& lpres,
 		for (int a=data.narcs; a--;)
 			std::cout<<"sol y_"<<a<<" "<<lpres.x()[a]<<std::endl;
 	}*/
+	if(!(lp_mode & LP_Solved)) return;
+	
+	std::cout<<"process_lp_result"<<std::endl;
 	lp_mode |= LP_tighterBounds;
     const double *y_vol = lpres.x();
-    y.assign(y_vol, y_vol+data.narcs);
-    
+    double val;
+    for (int a=data.narcs; a--;) {
+    	val = y_vol[a];
+    	y[a] = val;
+		if(vars[a]->lb()==0 && vars[a]->ub()==1){
+			if(val>1e-8) --tabu[a];
+			else if(val<=1e-8) ++tabu[a];
+		}
+	}
     return;
 }
 
