@@ -293,6 +293,7 @@ LocalCutManager::compute_localc_sg( const double * x, const int * actvS, int act
             v[index] -=  x[id_arc];
         }
 		
+		if(index>=actvSSz){ std::cout<<"localindex: "<<index<<"/"<<actvSSz<<std::endl; abort(); }
 		v[index] *= vi->sense;
         if(v[index]<=0){
             ++vi->n_nviol;

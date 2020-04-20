@@ -290,7 +290,7 @@ GlobalCutManager::compute_cover_sg( const double * x, const int * actvS, int act
             if(id_arc<0) continue;
             v[index] -=  vi->coef[a]*x[id_arc];
         } 
-		
+		if(index>=actvSSz){ std::cout<<"localindex: "<<index<<"/"<<actvSSz<<std::endl; abort(); }
 		v[index] *= vi->sense;
         if(v[index]<=0){
             ++vi->n_nviol;

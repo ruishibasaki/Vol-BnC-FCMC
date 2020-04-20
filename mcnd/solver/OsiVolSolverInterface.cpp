@@ -453,25 +453,80 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
 int
 OsiVolSolverInterface::removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector& dstaru,  VOL_dvector& dualu){
 	
-	/*std::cout<<"try remv"<<std::endl;
-	Cover * c = cover_manager->covers.end ;
-	for(int i =cover_manager->covers.sizeOfCollection; i--; ){
-		if(actv[c->id_vi]>=0)std::cout<<"vi "<<c->id_vi<<" serial: "<<c->serial_nmbr<<" d* "<<dstaru[actv[c->id_vi]]<<" d "<<dualu[actv[c->id_vi]]<<" h "<<pstarv[actv[c->id_vi]]<<std::endl;
-		else std::cout<<"vi "<<c->id_vi<<" serial: "<<c->serial_nmbr<<" d* "<<0<<" d "<<0<<" h "<<0<<std::endl;
-
-		c = c->prev;
-	}*/
+	int oldsz  = actvSSz;
     cover_manager->covers.desactvCover(cover_manager->lim_to_remv, actv, actvSSz, cover_manager->num_actv, pstarv.v, dstaru.v, dualu.v);
     localc_manager->locals.desactvLocalc(localc_manager->lim_to_remv, actv, actvSSz, localc_manager->num_actv, pstarv.v, dstaru.v, dualu.v);
     globalc_manager->globals.desactvGlobalc(globalc_manager->lim_to_remv, actv, actvSSz, globalc_manager->num_actv, pstarv.v, dstaru.v, dualu.v);
 
-    /*std::cout<<"after "<<std::endl;
-    c = cover_manager->covers.end ;
-	for(int i =cover_manager->covers.sizeOfCollection; i--; ){
-		if(actv[c->id_vi]>=0)std::cout<<"vi "<<c->id_vi<<" serial: "<<c->serial_nmbr<<" d* "<<dstaru[actv[c->id_vi]]<<" d "<<dualu[actv[c->id_vi]]<<" h "<<pstarv[actv[c->id_vi]]<<std::endl;
-		else std::cout<<"vi "<<c->id_vi<<" serial: "<<c->serial_nmbr<<" d* "<<0<<" d "<<0<<" h "<<0<<std::endl;
-		c = c->prev;
-	}*/
+    if(oldsz == actvSSz) return 0;
+    	
+    int fidx = nnodes*ndemands;
+	int id;
+	int sz = cover_manager->num_actv;
+	int sz2 = sz+localc_manager->num_actv;
+	int sz3 = sz2+globalc_manager->num_actv;
+ 	std::vector<TrioF> collect(sz3);
+	
+	Cover* vic = cover_manager->covers.begin;
+ 	for(int i=0;i<sz;++i){
+ 		//std::cout<<"globalc: "<<i<<" id: "<<vigc->id_vi<<" srnb: "<<vigc->serial_nmbr<<std::endl;		
+ 		id = actv[vic->id_vi];
+		collect[i].fst = pstarv[id];	
+		collect[i].snd = dstaru[id];	
+		collect[i].trd = dualu[id];	
+		vic = vic->next;
+	}
+	
+	LocalCut* vilc = localc_manager->locals.begin;
+ 	for(int i=sz;i<sz2;++i){
+ 		//std::cout<<"globalc: "<<i<<" id: "<<vigc->id_vi<<" srnb: "<<vigc->serial_nmbr<<std::endl;		
+		id = actv[vilc->id_vi];
+		collect[i].fst = pstarv[id];	
+		collect[i].snd = dstaru[id];	
+		collect[i].trd = dualu[id];		
+		vilc = vilc->next;
+	}
+	
+	GlobalCut* vigc = globalc_manager->globals.begin;
+ 	for(int i=sz2;i<sz3;++i){
+ 		//std::cout<<"globalc: "<<i<<" id: "<<vigc->id_vi<<" srnb: "<<vigc->serial_nmbr<<std::endl;		
+		id = actv[vigc->id_vi];
+		collect[i].fst = pstarv[id];	
+		collect[i].snd = dstaru[id];	
+		collect[i].trd = dualu[id];				
+		vigc = vigc->next;
+	}
+	//std::cout<<"first: "<<fidx+sz3<<" sz: "<<actvSSz<<std::endl;
+	//redo identifications
+	vic = cover_manager->covers.begin;
+ 	for(int i=0;i<sz;++i){
+ 		id = fidx+i;
+		actv[vic->id_vi] = id;
+ 		pstarv[id] = collect[i].fst;	
+		dstaru[id] = collect[i].snd;	
+		dualu[id] = collect[i].trd;	
+ 		vic = vic->next;
+	}
+ 	vilc = localc_manager->locals.begin;
+	for(int i=sz;i<sz2;++i){
+		id = fidx+i;
+		actv[vilc->id_vi] = id;
+ 		pstarv[id] = collect[i].fst;	
+		dstaru[id] = collect[i].snd;	
+		dualu[id] = collect[i].trd;	
+		vilc = vilc->next;
+	}
+	vigc = globalc_manager->globals.begin;
+	for(int i=sz2;i<sz3;++i){
+		id = fidx+i;
+		actv[vigc->id_vi] = id;
+ 		pstarv[id] = collect[i].fst;	
+		dstaru[id] = collect[i].snd;	
+		dualu[id] = collect[i].trd;	
+		vigc = vigc->next;
+	}
+	collect.clear();
+	if(fidx+sz3 != actvSSz){ std::cout<<"cont: "<<fidx+sz3<<" sz: "<<actvSSz<<std::endl; abort();}
     return 0;
 }
 
@@ -503,9 +558,9 @@ OsiVolSolverInterface::compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int 
         B0 += ( dual[actv[k*nnodes + data->d_k[k].D-1]] - dual[actv[k*nnodes + data->d_k[k].O-1]]);
         
     }
-    globalc_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
-    localc_manager->compute_localc_rc( dual.v, actv,  actvSSz, rc.v,   B0);
     cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
+    localc_manager->compute_localc_rc( dual.v, actv,  actvSSz, rc.v,   B0);
+    globalc_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
 
     //double b = B0;
     //cover_manager->compute_cover_rc( dual.v,  actv,  actvSSz, addrc, b);
@@ -516,21 +571,28 @@ OsiVolSolverInterface::compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int 
 
 int
 OsiVolSolverInterface::compute_sg(const VOL_dvector& x, int actvSSz, VOL_dvector& v){
-    
-    v =0;
+    //std::cout<<"compute_sg"<<std::endl;
+    for(int n=actvSSz; n--; )
+    	v[n] = 0;
+    	
     int arc, basek, basef;
+    int id;
     const Arc* item; const Demand* itemd;
     for(int k=ndemands; k--; ){
         itemd = &data->d_k[k];
         basek = k*nnodes;
-        v[actv[basek+ itemd->O-1]] -= 1;
-        v[actv[basek + itemd->D-1]] += 1;
+        id = actv[basek+ itemd->O-1];
+        if(id>=0)v[id] -= 1;
+        id=actv[basek + itemd->D-1];
+        if(id>=0)v[id] += 1;
         for(int a=0; a<sznz; ++a){
             arc = nz_arcs[a];
             item = &data->arcs[arc];
             basef = szunfxd+k*sznz;
-            v[actv[basek + item->i-1]] += x[basef+ a];
-            v[actv[basek + item->j-1]] -= x[basef+ a];
+            id = actv[basek + item->i-1];
+            if(id>=0)v[id] += x[basef+ a];
+            id = actv[basek + item->j-1];
+            if(id>=0)v[id] -= x[basef+ a];
         }
     }
     cover_manager->compute_cover_sg( x.v, actv,  actvSSz, v.v);
@@ -1134,9 +1196,9 @@ OsiVolSolverInterface::rebuild_collections(){
 		vigc = vigc->prev;
 	}
 	collect.clear();
-	globalc_manager->num_actv =  globalc_manager->globals.sizeOfCollection;
-	localc_manager->num_actv =  localc_manager->locals.sizeOfCollection;
 	cover_manager->num_actv =  cover_manager->covers.sizeOfCollection;
+	localc_manager->num_actv =  localc_manager->locals.sizeOfCollection;
+	globalc_manager->num_actv =  globalc_manager->globals.sizeOfCollection;
 	/*vi = cover_manager->covers.end;
  	for(;sz--;){
 		std::cout<<"vi serial: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<" sol: "<<dual[vi->id_vi]<<std::endl;
