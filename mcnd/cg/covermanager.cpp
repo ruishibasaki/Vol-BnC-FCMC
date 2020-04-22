@@ -71,6 +71,12 @@ CoverManager::reset_and_map_collection(int fsize, const double* topo, double * d
 
 void
 CoverManager::clean_collection(){
+	Cover * c = covers.begin;
+	for(int i=covers.sizeOfCollection;i--;){
+		covers.begin = covers.begin->next;
+		if(c->toadd) delete c;
+		c = covers.begin;
+	}
 	covers.begin = covers.end = 0;
 	covers.sizeOfCollection = covers.discarted = 0;
 	covers.empty = true;

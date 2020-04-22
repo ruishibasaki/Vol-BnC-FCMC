@@ -30,28 +30,17 @@ GlobalCutCollection::initialize(int M){
 //----------------------------------------------------------------------------------
 
 GlobalCut *
-GlobalCutCollection::createNewGlobalCut(int sz,  int* vars_,  double * coef_, int id_vi, int serial_num_, int sense_, double rhs_, int type_){
+GlobalCutCollection::createNewGlobalCut(int sz,  int* vars_, int id_vi, int serial_num_){
     int arc;
-     GlobalCut * newC = new GlobalCut(sizeOfIdSeq, sz,  id_vi, serial_num_, sense_, type_);
+    GlobalCut * newC = new GlobalCut(sizeOfIdSeq, sz,  id_vi, serial_num_);
     newC->vars = vars_; 
-    newC->coef = coef_;
-    newC->rhs = rhs_;
     
-    if(type_==1){
-    	for(int n=sz;n--;){
-			arc = vars_[n];
-			if(coef_[n]==-1)newC->addArc(map[arc].fst, map[arc].snd);
- 			 
-		}
-    }else{
-		for(int n=sz;n--;){
-			arc = vars_[n];
-			newC->addArc(map[arc].fst, map[arc].snd);
-			 
-		}
-    }
+	for(int n=sz;n--;){
+		arc = vars_[n];
+		newC->addArc(map[arc].fst, map[arc].snd);	 
+	}
+    
     vars_=0;
-    coef_=0;
     return newC;
 }
 
@@ -83,7 +72,7 @@ GlobalCutCollection::collected(GlobalCut * tryC){
     	C = track[i];
         vi1sz = tryC->get_total_sz();
         vi2sz = C->get_total_sz();            
-        if( vi1sz == vi2sz && tryC->sense == C->sense && tryC->type == C->type){
+        if( vi1sz == vi2sz ){
             equal = true;
             for(int id=0;id<sizeOfIdSeq;++id){
                 if(tryC->id_seq[id]!=C->id_seq[id]){
@@ -411,14 +400,9 @@ double
 GlobalCutCollection::GlobalCut_hasArc(const GlobalCut * globalCut, int arc){
     if(!globalCut->hasArc(map[arc].fst, map[arc].snd)) return 0;
     
-    if(globalCut->type==1){
-    	return globalCut->coef[arc];
-    }else{
-    	for(int n=globalCut->size;n--;)
-    		if(globalCut->vars[n]==arc) return globalCut->coef[n];
-    }
-    
-    
+    for(int n=globalCut->size;n--;)
+		if(globalCut->vars[n]==arc) return 1.0;
+
     return 0.0;
 }
 
@@ -443,49 +427,33 @@ GlobalCutCollection::map_collection(std::map<int, int>& mapd){
 bool 
 GlobalCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vbd, BCP_vec<int>& var_changed_pos,
                                 BCP_vec<double>& var_new_bd, bool & viol, bool & zrofx, int* fixd){
- 	double dimsh=0;
+ 	int opnd=0;
     int sz = size;
     int arc;
     int ntofx=0;
 	int tofix;
     
     viol=true;
-    rhs_dimsh=0;
     
     for(int a=0;a<sz;++a){
      	arc = vars[a];
 		if(vbd[arc]->lb() > 0.5 || fixd[arc]==1){
-        	dimsh+= coef[a];
-        	if(coef[a]==1){
-        		viol= false;
-        	}
+        	opnd+= 1;
 		}else if(vbd[arc]->ub() > 0.5 && fixd[arc]==-1){
- 			tofix=a;
+ 			tofix=arc;
 			++ntofx;
-		}else if(coef[a]==-1){
-        	viol= false;
-        }
+		} 
     }
- 	rhs_dimsh = dimsh;
-  	if(viol && ntofx==0){ return false;} //abort;
-	if(viol && ntofx==1){
+ 	if(opnd==0 && ntofx==0){ return false;} //abort;
+	if(opnd >= 1){viol= false;}
+	else if(ntofx==1){
 		viol= false;
-		if(coef[ntofx]==1){
- 			arc =vars[tofix]; 
-			fixd[arc]=1;
-			std::cout<<"fix "<<arc<<" to 1 " <<std::endl;
- 			var_changed_pos.push_back(arc);
-			var_new_bd.push_back(1.0);
-			var_new_bd.push_back(1.0);
-		}else if(coef[ntofx]==-1){
-			arc =vars[tofix]; 
-			fixd[arc]=0;
-			std::cout<<"fix "<<arc<<" to 0 "<<std::endl;
-			zrofx=true;
- 			var_changed_pos.push_back(arc);
-			var_new_bd.push_back(0.0);
-			var_new_bd.push_back(0.0);
-		}
+		fixd[tofix]=1;
+		std::cout<<"globalfix "<<tofix<<" to 1 "<<std::endl;
+		var_changed_pos.push_back(tofix);
+		var_new_bd.push_back(1.0);
+		var_new_bd.push_back(1.0);
+		
 	}
 	return true;
 }
@@ -498,25 +466,18 @@ GlobalCut::check_updt_Viol(const double *y, bool & infeas)  {
     int sz = size;
     int arc;
     int ntofx=0;
- 	
     double viol=true;
-    rhs_dimsh=0;
     
     for(int a=0;a<sz;++a){
      	arc = vars[a];
      	//std::cout<<arc<<" "<<y[arc]<<std::endl;
 		if(y[arc]==1){
-        	dimsh+= coef[a];
-        	if(coef[a]==1){
-        		viol= false;
-        	}
+        	dimsh+= 1.0;
+        	viol=false;
 		}else if(y[arc]==-1){
  			++ntofx;
-		}else if(coef[a]==-1){
-        	viol= false;
-        }
+		}
     }
- 	rhs_dimsh = dimsh;
 	if(!viol) return false;
  	if(viol && ntofx==0){/*std::cout<<"GlobalCut::check_updt_Viol:: infeas"<<std::endl;*/ infeas= true; return false;} //abort;
 	return true;
@@ -529,10 +490,8 @@ GlobalCut::check_viol(const BCP_vec<BCP_var*>& vbd) {
  	int arc=0;
     for(int a=0;a<size;++a){
       	arc = vars[a];
-      	if(vbd[arc]->lb()>0.5 && coef[a]==1)
+      	if(vbd[arc]->lb()>0.5)
       		 return false;
-        if(vbd[arc]->ub()<0.5 && coef[a]==-1)
-        	return false;
     }
     return true;
 }
@@ -552,7 +511,7 @@ GlobalCut::at(int pos) const{
 double
 GlobalCut::gamma_at(int pos) const{
     if(pos >= size) return -1;
-    return coef[pos];
+    return 1.0;
 }
 
 //----------------------------------------------------------------------------------
@@ -561,23 +520,23 @@ GlobalCut::gamma_at(int pos) const{
 void
 GlobalCut::get_total_sz_rhs(int & sz, double &rhs) const{
     sz = size;
-    rhs = rhs- rhs_dimsh;
+    rhs = 1.0;
 }
 
 //----------------------------------------------------------------------------------
 
 double
-GlobalCut::get_total_rhs() const{ return  rhs - rhs_dimsh;}
+GlobalCut::get_total_rhs() const{ return  1.0;}
 
 //----------------------------------------------------------------------------------
 
 double
-GlobalCut::get_rhs() const{  return rhs; }
+GlobalCut::get_rhs() const{  return 1.0; }
 
 //----------------------------------------------------------------------------------
 
 int
-GlobalCut::get_total_sz()const{    return size;}
+GlobalCut::get_total_sz()const{ return size;}
 
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
@@ -608,11 +567,10 @@ GlobalCut::hasArc(int iset, int arc) const{
 
 void 
 GlobalCut::print(){
-    double rhs_ = rhs;
-    std::cout<<"G"<<type<<": ";
+    std::cout<<"G"<<": ";
     for(int i=size;i--;)
-        std::cout<<"("<<vars[i]<<", mtl: "<<coef[i]<<") ";
+        std::cout<<"("<<vars[i]<<", mtl: "<<1<<") ";
     
-    std::cout<<" rhs: "<<rhs_<<" nmbr: "<<serial_nmbr<<std::endl;
+    std::cout<<" rhs: "<<1<<" nmbr: "<<serial_nmbr<<std::endl;
 }
 

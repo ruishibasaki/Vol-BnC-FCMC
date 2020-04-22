@@ -44,7 +44,6 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	}else if((lp_mode & LP_CutAddedFromHeuristic)){
 		return BCP_DoNotBranch;
 	} 
-	
 	mapd.clear();
     cover_manager.covers.map_collection(mapd);
 	localc_manager.locals.map_collection(mapd);

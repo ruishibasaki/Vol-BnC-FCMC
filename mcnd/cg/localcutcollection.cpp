@@ -31,11 +31,28 @@ LocalCutCollection::initialize(int M){
 //----------------------------------------------------------------------------------
 
 LocalCut *
+LocalCutCollection::createNewLocalCut(int sz,  int* vars_, int id_vi, int serial_num_){
+    int arc;
+    LocalCut * newC = new LocalCut(sizeOfIdSeq, sz,  id_vi, serial_num_, 1, 0);
+    newC->vars = vars_;  
+    
+	for(int n=sz;n--;){
+		arc = vars_[n];
+		newC->addArc(map[arc].fst, map[arc].snd);	 
+	}
+    newC->rhs = 1.0;
+    vars_=0;
+    return newC;
+}
+
+//----------------------------------------------------------------------------------
+
+LocalCut *
 LocalCutCollection::createNewLocalCut(const std::vector<int>& c, int id_vi, int serial_num_, int sense_, double rhs_){
     int arc;
     int csize =(int) c.size();
-    LocalCut * newC = new LocalCut(sizeOfIdSeq, csize,  id_vi, serial_num_, sense_);
-    
+    LocalCut * newC = new LocalCut(sizeOfIdSeq, csize,  id_vi, serial_num_, sense_, 1);
+    newC->vars = new int[csize];
     for(int n=csize;n--;){
         arc = c[n];
         newC->addArc(map[arc].fst, map[arc].snd);
@@ -48,8 +65,29 @@ LocalCutCollection::createNewLocalCut(const std::vector<int>& c, int id_vi, int 
 
 //----------------------------------------------------------------------------------
 
+
+LocalCut * 
+LocalCutCollection::createNewLocalCut(int sz,  int* vars_, double * coef_, double rhs_, int id_vi, 
+    								int serial_num_){
+    int arc;
+    LocalCut * newC = new LocalCut(sizeOfIdSeq, sz,  id_vi, serial_num_, 1, 2);
+    newC->vars = vars_;  
+    newC->coef  = coef_;
+    newC->rhs = rhs_;
+	for(int n=sz;n--;){
+		if(coef_[n]==-1) continue;
+		arc = vars_[n];
+		newC->addArc(map[arc].fst, map[arc].snd);	 
+	}
+    vars_=0;
+    coef_=0;
+    return newC;						
+    								
+}
+    								
+//----------------------------------------------------------------------------------
+
 LocalCutCollection::~LocalCutCollection(){
-     
     if(map) delete [] map;
 }
 
@@ -68,9 +106,9 @@ LocalCutCollection::collected(LocalCut * tryC){
     LocalCut* C = begin;
     //std::cout<<"coll: "<<sizeOfCollection<<std::endl;
     for(int i=0;i<sizeOfCollection;++i){
-        vi1sz = tryC->get_total_sz();
-        vi2sz = C->get_total_sz();            
-        if( vi1sz == vi2sz && tryC->sense == C->sense){
+        vi1sz = tryC->size;
+        vi2sz = C->size;            
+        if( vi1sz == vi2sz && tryC->sense == C->sense && tryC->rhs == C->rhs){
             equal = true;
             for(int id=0;id<sizeOfIdSeq;++id){
                 if(tryC->id_seq[id]!=C->id_seq[id]){
@@ -79,7 +117,7 @@ LocalCutCollection::collected(LocalCut * tryC){
                 }
             }
             
-            if(equal){  return 2; }
+            if(equal){  return 1; }
         }
         C = C->next;
     }
@@ -97,14 +135,14 @@ int
 LocalCutCollection::addLocalCut(LocalCut * tryC){
     int arc, ret;
             
-
     ret = collected(tryC);
-    if(ret==2){++discarted; delete tryC; return 0;}
+    if(ret==1){  delete tryC; return 0;}
     else if(ret==0){
         //std::cout<<"local add: "; tryC->print();
         insert_end(tryC);
         return 1;
-    } 
+    }
+    delete tryC; 
     return 0;
 }
 
@@ -113,7 +151,6 @@ LocalCutCollection::addLocalCut(LocalCut * tryC){
 void 
 LocalCutCollection::insert_end(LocalCut * tryC){
 	++sizeOfCollection;
-	//std::cout<<"ok"<<std::endl;
 	if(empty){
 		end = begin = tryC;
 		empty=false;
@@ -398,7 +435,11 @@ LocalCutCollection::print(){
 double
 LocalCutCollection::LocalCut_hasArc(const LocalCut * localCut, int arc){
     if(!localCut->hasArc(map[arc].fst, map[arc].snd)) return 0;
-    return 1.0;
+    if(localCut->coef){
+		for(int n=localCut->size;n--;)
+			if(localCut->vars[n]==arc) return localCut->coef[n];
+		return 0;
+	} return 1.0;
 }
 
 //----------------------------------------------------------------------------------
@@ -419,8 +460,40 @@ LocalCutCollection::map_collection(std::map<int, int>& mapd){
 //====================================================================================
 //====================================================================================
 
+
+bool 
+LocalCut::check_updt_Viol2(const double *y, bool & infeas) {
+	int arc;
+    int ntofx=0;
+    double coef_;
+	double viol=true;
+	rhs_dimsh=0;
+
+	for(int a=0;a<size;++a){
+		arc = vars[a];
+		coef_ = coef_at(a);
+		if(y[arc]==1){
+			rhs_dimsh+= coef[a];
+			if(coef[a]==1){
+				viol= false;
+			}
+		}else if(y[arc]==-1){
+			++ntofx;
+		}else if(coef[a]==-1){
+			viol= false;
+		}
+	}
+	if(!viol) return false;
+	if(viol && ntofx==0){/*std::cout<<"GlobalCut::check_updt_Viol:: infeas"<<std::endl;*/ infeas= true; return false;} //abort;
+	return true;
+
+}
+
+//----------------------------------------------------------------------------------
+
 bool 
 LocalCut::check_updt_Viol(const double *y, bool & infeas) {
+	if(type==2)check_updt_Viol2(y,infeas);
 	int arc;
 	int sumzro=0;
 	double sum=0; 
@@ -446,43 +519,16 @@ LocalCut::check_updt_Viol(const double *y, bool & infeas) {
     return true;
 }
 
-//----------------------------------------------------------------------------------
-
-
-double 
-LocalCut::viol(const double *y)const {
-	double sum=0;
-      for(int a=0;a<size;++a){
-        sum+= y[vars[a]];
-        if(sense*(rhs - sum)<=0){return 0;}
-    }
-    return sense*(rhs-sum);
-}
-
-//----------------------------------------------------------------------------------
-
-int
-LocalCut::at(int pos) const{
-    if(pos >= get_total_sz()) return -1;
-     return vars[pos];
-}
 
 //----------------------------------------------------------------------------------
 
 double
-LocalCut::gamma_at(int pos) const{
+LocalCut::coef_at(int pos) const{
     if(pos >= size) return -1;
+    if(coef) return coef[pos];
     return 1.0;
 }
 
-//----------------------------------------------------------------------------------
-
-
-void
-LocalCut::get_total_sz_rhs(int & sz, double &rhs) const{
-    sz = size;
-    rhs = rhs- rhs_dimsh;
-}
 
 //----------------------------------------------------------------------------------
 
@@ -493,11 +539,6 @@ LocalCut::get_total_rhs() const{ return  rhs - rhs_dimsh;}
 
 double
 LocalCut::get_rhs() const{  return rhs; }
-
-//----------------------------------------------------------------------------------
-
-int
-LocalCut::get_total_sz()const{    return size;}
 
 //----------------------------------------------------------------------------------
 
@@ -523,7 +564,7 @@ bool LocalCut::hasArc(int iset, int arc) const{
 
 void LocalCut::print(){
     double rhs_ = rhs;
-    std::cout<<"T"<<sense<<": ";
+    std::cout<<"T"<<type<<" sens: "<<sense<<": ";
     for(int i=size;i--;)
         std::cout<<"("<<vars[i]<<", mtl: 1) ";
     

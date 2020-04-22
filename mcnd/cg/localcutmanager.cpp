@@ -68,6 +68,12 @@ LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double 
 
 void
 LocalCutManager::clean_collection(){
+	LocalCut * loc = locals.begin;
+	for(int i=locals.sizeOfCollection;i--;){
+		locals.begin = locals.begin->next;
+		if(loc->toadd) delete loc;
+		loc = locals.begin;
+	}
 	locals.begin = locals.end = 0;
 	locals.sizeOfCollection = locals.discarted = 0;
 	locals.empty = true;
@@ -78,6 +84,57 @@ LocalCutManager::clean_collection(){
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 //  main methods
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+
+int 
+LocalCutManager::localc0_generation_main( const double * ystar,  const int * closed, int sz, int curr_id){
+	int opnd=0;
+    int * vars_;
+	 
+	vars_ = new int[sz];
+	for(int a=sz;a--;){
+		 vars_[a]=closed[a];
+	}
+	
+    int added=0;
+	added += make_localcut0( ystar, sz, vars_, curr_id);	
+ 
+ 	return added;
+}
+
+//-------------------------------------------------------------------------------------------
+
+int
+LocalCutManager::make_localcut0(const double * ystar, int sz,  int* vars_, int curr_id){
+  	double suml=0;
+	int id_arc;
+	LocalCut *loc=0;
+	if(ystar){
+		for(int i=sz;i--;){
+  			suml += ystar[vars_[i]];
+ 		}
+ 	}
+	//std::cout<<std::endl;
+ 	loc = locals.createNewLocalCut(sz, vars_, curr_id, ttgend);
+ 
+    if(loc!=0){
+    	//std::cout<<"GlobalCutManager::make_globalcut try add: "<<std::endl;
+        int added = locals.addLocalCut(loc);
+         if(added){
+        	loc->hs = (1.0 - suml);
+        	//std::cout<<"GlobalCutManager::make_globalcut add global: "<<std::endl;
+        	//gloc->print();
+        	++ttgend;
+        	++gend;
+        	++num_actv;
+        	return 1;
+        }
+    }
+    return 0;
+}
+
+//-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 
@@ -106,13 +163,13 @@ LocalCutManager::localc1_generation_main(double lb, double ub, const double * ys
 	//std::cout<<"positive"<<std::endl;
 	rc_ttp = check_fixable(rc_p, Tp, lb, ub ,0);
 	form_t(rc_p, Tp, lb, ub, rc_ttp);
-	added += make_localcut( Tp, ystar, curr_id, 0);
+	added += make_localcut1( Tp, ystar, curr_id, 0);
 	if(added+curr_id>=max)return added;
 	
 	//std::cout<<"negative"<<std::endl;
 	rc_ttm = check_fixable(rc_m, Tm, lb, ub ,1);
 	form_t(rc_m, Tm, lb, ub, rc_ttm);
-	added += make_localcut( Tm, ystar, curr_id+added, 1);
+	added += make_localcut1( Tm, ystar, curr_id+added, 1);
 
  	return added;
 }
@@ -120,7 +177,7 @@ LocalCutManager::localc1_generation_main(double lb, double ub, const double * ys
 //-------------------------------------------------------------------------------------------
 
 int 
-LocalCutManager::make_localcut(std::vector<int>& T, const double * ystar, int curr_id, int oneor0){
+LocalCutManager::make_localcut1(std::vector<int>& T, const double * ystar, int curr_id, int oneor0){
 	double rhs;
  	double suml=0;
 	int id_arc;
@@ -201,6 +258,66 @@ LocalCutManager::check_fixable(std::list<Pair2>& rc_, std::vector<int>& T, doubl
 	return 0;
 }
  
+ 
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------
+
+int 
+LocalCutManager::localc2_generation_main( const double * ystar,  const double * topo, int sz, int curr_id){
+    int * vars_;
+    double* coef_;
+    double rhs=0;
+  		
+	vars_ = new int[data->narcs];
+	coef_ = new double[data->narcs];
+	for(int a=data->narcs;a--;){
+		vars_[a]=a;
+		if(topo[a]<0.5){
+			coef_[a] = 1.0;
+		}else if(topo[a]>0.5){
+			coef_[a] = -1.0;
+			rhs-=1.0;
+		}else{ std::cout<<"LocalCutManager::localc2_generation_main"<<std::endl;  abort();}
+	}
+	
+	int added=0;
+	added += make_localcut2( ystar, data->narcs, vars_, coef_, rhs, curr_id);	
+ 
+ 	return added;
+}
+
+//-----------------------------------------------------------------------------------
+
+int 
+LocalCutManager::make_localcut2(const double * ystar, int sz,  int* vars_, double* coef_, double rhs_, int curr_id){
+	double suml=0;
+	int id_arc;
+	LocalCut *loc=0;
+	if(ystar){
+		for(int i=sz;i--;){
+  			suml += coef_[i]*ystar[vars_[i]];
+ 		}
+ 	}
+	//std::cout<<std::endl;
+ 	loc = locals.createNewLocalCut(sz, vars_, coef_, rhs_, curr_id, ttgend);
+ 
+    if(loc!=0){
+    	//std::cout<<"GlobalCutManager::make_globalcut try add: "<<std::endl;
+         int added = locals.addLocalCut(loc);
+         if(added){
+        	loc->hs = (rhs_ - suml);
+        	//std::cout<<"GlobalCutManager::make_globalcut add global: "<<std::endl;
+        	//gloc->print();
+        	++ttgend;
+        	++gend;
+        	++num_actv;
+        	return 1;
+        }
+    }
+    return 0;
+}
+	
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
 //  auxiliary methods
@@ -290,7 +407,7 @@ LocalCutManager::compute_localc_sg( const double * x, const int * actvS, int act
         for(int a=vi->size;a--;){
             id_arc = arc_map[vi->vars[a]];
             if(id_arc<0) continue;
-            v[index] -=  x[id_arc];
+            v[index] -=  vi->coef_at(a)*x[id_arc];
         }
 		
 		if(index>=actvSSz){ std::cout<<"localindex: "<<index<<"/"<<actvSSz<<std::endl; abort(); }
@@ -325,7 +442,7 @@ LocalCutManager::compute_localc_rc(const double * dual, const int* actvS, int ac
         for(int a=vi->size;a--;){
             id_arc = arc_map[vi->vars[a]];
             if(id_arc<0) continue;
-            rc[id_arc]-= vi->sense*dual[index];   
+            rc[id_arc]-= vi->sense*vi->coef_at(a)*dual[index];   
         }   
         vi = vi->next;
     }

@@ -100,7 +100,11 @@ public:
 		if(rc_){delete[] rc_;     rc_ = 0;}
 		if(lhs_){delete[] lhs_;    lhs_ = 0;}
 		if(actv){delete[] actv; actv=0;}
-    }
+    } 
+    
+    
+   
+ 
 };
 
 

@@ -210,6 +210,7 @@ FlowConnect::BFS(bool forwback, int s, const std::list<int> * adj, std::vector<i
             }
         }
     }
+    delete [] visited;
 } 
 
 //-------------------------------------------------------------------------------

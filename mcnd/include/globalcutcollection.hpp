@@ -40,8 +40,8 @@ public:
     
     ~GlobalCutCollection();
     
-    GlobalCut * createNewGlobalCut(int sz, int* vars_,  double * coef_, int id_vi, 
-    								int serial_num_, int sense_, double rhs_, int type_);
+    GlobalCut * createNewGlobalCut(int sz,  int* vars_, int id_vi, 
+    								int serial_num_);
 
     //--------------------------------------
     //  insert/del methods
@@ -94,18 +94,13 @@ public:
     int serial_nmbr;
     int n_zerom;
     int n_nviol;
-    int type;
     
     int size;
     int *vars;
-    double * coef;
-    int sense;
     bool purgbl;
     
     unsigned int *id_seq;
     double hs;
-    double rhs;
-    double rhs_dimsh;
 	
 	//--------------------------------------
 
@@ -130,23 +125,19 @@ public:
 	bool check_viol_updt_fix(const BCP_vec<BCP_var*>& vbd, BCP_vec<int>& var_changed_pos,
                                 BCP_vec<double>& var_new_bd, bool & viol, bool & zrofx, int* fixd);
     //implemetn map
-    inline GlobalCut(int M, int sz, int id_vi_, int serial_nmbr_, int sense_, int type_):size(sz), next(0), prev(0){
+    inline GlobalCut(int M, int sz, int id_vi_, int serial_nmbr_):size(sz), next(0), prev(0){
         id_seq = new unsigned int[M];
         std::fill(id_seq, id_seq+M, 0);
-        rhs=0.0;
         n_nviol = 0;
         n_zerom = 0;
         id_vi = id_vi_;
-        rhs_dimsh = 0.0;
         hs=0;
         purgbl=false;
-        sense=sense_;
-        type = type_;
 		serial_nmbr = serial_nmbr_;
     }
     inline ~GlobalCut(){
         delete [] id_seq;
-        if(size>0){ delete [] vars; delete []  coef;}
+        if(size>0){ delete [] vars;}
     }
 };
 

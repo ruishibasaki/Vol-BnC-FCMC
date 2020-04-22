@@ -40,11 +40,18 @@ public:
     //-------------------------------------------------------------------------------------------
     //  main methods
     //-------------------------------------------------------------------------------------------
-    
+    int localc0_generation_main( const double * ystar,  const int * closed, int sz, int curr_id);
+	int make_localcut0(const double * ystar, int sz,  int* vars_, int curr_id);
+
+    //-------------------------------------------------------------------------------------------
     int localc1_generation_main(double lb, double ub, const double * ystar, const int * y, const double * rc, int curr_id, int max);
-    int make_localcut(std::vector<int>& T, const double * ystar, int curr_id, int oneor0);
+    int make_localcut1(std::vector<int>& T, const double * ystar, int curr_id, int oneor0);
     int check_fixable(std::list<Pair2>& rc_, std::vector<int>& T, double lb, double ub, int oneor0);
     void form_t(std::list<Pair2>& rc_, std::vector<int>& T, double lb, double ub, double rc_tt);
+    
+    //-------------------------------------------------------------------------------------------
+	int localc2_generation_main( const double * ystar,  const double * topo, int sz, int curr_id);
+	int make_localcut2(const double * ystar, int sz,  int* vars_, double* coef_, double rhs_, int curr_id);
     
     //-------------------------------------------------------------------------------------------
     //  auxiliary methods

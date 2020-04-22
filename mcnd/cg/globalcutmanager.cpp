@@ -74,81 +74,22 @@ GlobalCutManager::clean_collection(){
 //-------------------------------------------------------------------------------------------
 //  main methods
 //-------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 
 int
-GlobalCutManager::globalc_extra_generation( const BCP_vec<BCP_var*>& vbd,  int type){
-    int opnd=0;
-    int size=0;
-    int * vars_;
-    double* coef_;
-    double rhs;
-  		
-	vars_ = new int[data->narcs];
-	coef_ = new double[data->narcs];
-	for(int a=data->narcs;a--;){
-		 if(vbd[a]->ub()<0.5){
-			vars_[size]=a;
-			coef_[size] = 1;
-			size++;
-		}
-	}
-	if(type==1){
-		for(int a=data->narcs;a--;){
-			if(vbd[a]->lb()>0.5){
-				vars_[size]=a;
-				coef_[size] = -1;
-				size++;
-				opnd++;
-			}
-		}
-	}
-	rhs = 1-opnd;
- 	if(size< data->narcs){
- 		int * vars_temp =  new int[size];
-   		double* coef_temp =new double[size];
-   		memcpy( vars_temp, vars_, size * sizeof(int) );
-   		memcpy( coef_temp, coef_, size * sizeof(double) );
-   		delete [] vars_; delete [] coef_;
-		vars_ = vars_temp; coef_ = coef_temp;
- 	}
-    int added=0;
-	added += make_globalcut( 0, size, vars_, coef_, rhs, 0, type);	
- 
- 	return added;
-}
-
-//-------------------------------------------------------------------------------------------
-
-int
-GlobalCutManager::globalc_generation_main( const double * ystar, const double * ycoef, int cont0, int curr_id, int type){
+GlobalCutManager::globalc_generation_main( const double * ystar, const double * closed, int cont0, int curr_id){
     int opnd=0;
     int size;
     int * vars_;
-    double* coef_;
-    double rhs;
-	if(type==1){
- 		vars_ = new int[data->narcs];
-		coef_ = new double[data->narcs];
-		for(int a=data->narcs;a--;){
-			 vars_[a]=a;
-			 if(ycoef[a]==1){ coef_[a] = -1; ++opnd;}
-			 else coef_[a] = 1;
-		}
- 		rhs = 1-opnd;
- 		size = data->narcs;
-	}else{
- 		vars_ = new int[cont0];
-		coef_ = new double[cont0];
-		for(int a=cont0;a--;){
-			 vars_[a]=ycoef[a];
-			 coef_[a]=1.0;
- 		}
-		rhs = 1;
-		size = cont0;
+	 
+	vars_ = new int[cont0];
+	for(int a=cont0;a--;){
+		 vars_[a]=closed[a];
 	}
+	size = cont0;
+	
     int added=0;
-	added += make_globalcut( ystar, size, vars_, coef_, rhs, curr_id, type);	
+	added += make_globalcut( ystar, size, vars_, curr_id);	
  
  	return added;
 }
@@ -156,23 +97,23 @@ GlobalCutManager::globalc_generation_main( const double * ystar, const double * 
 //-------------------------------------------------------------------------------------------
 
 int 
-GlobalCutManager::make_globalcut(const double * ystar, int sz,  int* vars_,  double * coef_, double rhs, int curr_id, int type){
+GlobalCutManager::make_globalcut(const double * ystar, int sz,  int* vars_, int curr_id){
   	double suml=0;
 	int id_arc;
 	GlobalCut *gloc=0;
 	if(ystar){
 		for(int i=sz;i--;){
-  			suml += coef_[i]*ystar[vars_[i]];
+  			suml += ystar[vars_[i]];
  		}
  	}
 	//std::cout<<std::endl;
- 	gloc = globals.createNewGlobalCut(sz, vars_, coef_, curr_id, ttgend, 1, rhs, type);
+ 	gloc = globals.createNewGlobalCut(sz, vars_, curr_id, ttgend);
  
     if(gloc!=0){
     	//std::cout<<"GlobalCutManager::make_globalcut try add: "<<std::endl;
         int added = globals.addGlobalCut(gloc);
          if(added){
-        	gloc->hs = gloc->sense*(rhs - suml);
+        	gloc->hs = (1.0 - suml);
         	//std::cout<<"GlobalCutManager::make_globalcut add global: "<<std::endl;
         	//gloc->print();
         	++ttgend;
@@ -284,14 +225,14 @@ GlobalCutManager::compute_cover_sg( const double * x, const int * actvS, int act
     GlobalCut *vi = globals.begin;
     for(int n=0;n<sz;++n){
         index = actvS[vi->id_vi];
-        v[index] = vi->get_total_rhs();
+        
+        v[index] = 1.0;
         for(int a=vi->size;a--;){
             id_arc = arc_map[vi->vars[a]];
             if(id_arc<0) continue;
-            v[index] -=  vi->coef[a]*x[id_arc];
+            v[index] -=  x[id_arc];
         } 
 		if(index>=actvSSz){ std::cout<<"localindex: "<<index<<"/"<<actvSSz<<std::endl; abort(); }
-		v[index] *= vi->sense;
         if(v[index]<=0){
             ++vi->n_nviol;
             if(vi->n_nviol>=lim_to_remv && vi->n_zerom>0) v[index]=0;
@@ -318,11 +259,11 @@ GlobalCutManager::compute_cover_rc(const double * dual, const int* actvS, int ac
             continue;        
         }else vi->n_zerom = 0; 
 
-        B0 +=   vi->sense*dual[index]*vi->get_total_rhs();
+        B0 += dual[index];
         for(int a=vi->size;a--;){
             id_arc = arc_map[vi->vars[a]];
             if(id_arc<0) continue;
-            rc[id_arc]-= vi->sense*vi->coef[a]*dual[index];   
+            rc[id_arc]-= dual[index];   
         }   
         vi = vi->next;
     }
@@ -341,7 +282,7 @@ GlobalCutManager::arc_dg_imp(int arc, const double * xy, const double * h, const
     for(;sz--;){
         index = actvS[vi->id_vi];
         gam = globals.GlobalCut_hasArc(vi, arc);
-        dg += -vi->sense*gam*h[index];
+        dg += gam*h[index];
         vi = vi->next;
     }
     return dg;

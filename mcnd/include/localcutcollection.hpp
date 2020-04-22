@@ -39,6 +39,10 @@ public:
     ~LocalCutCollection();
     
     LocalCut * createNewLocalCut(const std::vector<int>& c, int id_vi, int serial_num_, int sense_, double rhs_);
+    LocalCut * createNewLocalCut(int sz,  int* vars_, int id_vi, 
+    								int serial_num_);
+    LocalCut * createNewLocalCut(int sz,  int* vars_, double * coef_, double rhs_, int id_vi, 
+    								int serial_num_);
 
     //--------------------------------------
     //  insert/del methods
@@ -96,7 +100,10 @@ public:
     
     int size;
     int *vars;
+    double *coef;
+    
     int sense;
+    int type;
     
     unsigned int *id_seq;
     double hs;
@@ -108,25 +115,21 @@ public:
     void addArc(int iset, int arc);
     void removeArc(int iset, int arc);
     bool hasArc(int iset, int arc) const ;
-    int at(int pos)const ;
-    double gamma_at(int pos)const;
+    double coef_at(int pos)const;
 
     //--------------------------------------
  
     void print();
-    void get_total_sz_rhs(int & sz, double &rhs)const;
-    int get_total_sz()const;
     double get_total_rhs() const;
     double get_rhs() const;
   
     //--------------------------------------
 
-    double viol(const double *y)const;
     bool check_updt_Viol(const double *y, bool & infeas);
-
+	bool check_updt_Viol2(const double *y, bool & infeas);
     //implemetn map
-    inline LocalCut(int M, int sz, int id_vi_, int serial_nmbr_, int sense_):size(sz), next(0), prev(0){
-        vars = new int[sz];
+    inline LocalCut(int M, int sz, int id_vi_, int serial_nmbr_, int sense_, int type_):
+    				size(sz), next(0), prev(0), coef(0), vars(0){
         id_seq = new unsigned int[M];
         std::fill(id_seq, id_seq+M, 0);
         rhs=0.0;
@@ -139,10 +142,12 @@ public:
         toadd = true;
         sense=sense_;
 		serial_nmbr = serial_nmbr_;
+		type = type_;
     }
     inline ~LocalCut(){
         delete [] id_seq;
         if(size>0){ delete [] vars; }
+        if(coef)delete [] coef;
     }
 };
 
@@ -169,10 +174,9 @@ public:
 	inline LocalCut* get_localc(){ return localc;}
 	inline void set_localc(LocalCut* c){ localc = c;}
 	
-	bool check_viol(const BCP_vec<BCP_var*>& vars);
-	double check_viol(const double* vars);
-	bool check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs);
-	bool check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_changed_pos,
+	bool check_viol_updt_fix2(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_changed_pos,
+                                BCP_vec<double>& var_new_bd, bool & viol, bool & zrofx, int* fixd); 
+ 	bool check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_changed_pos,
                                 BCP_vec<double>& var_new_bd, bool & viol, bool & zrofx, int* fixd);
 	bool purgbl(){return localc->prgbl;}
 	void mark_unpurgbl(){localc->prgbl=false; }

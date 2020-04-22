@@ -82,10 +82,8 @@ public:
 
 
 	int num_nodes;
-    std::deque<const MCND_CutUnit *> track;
-
+    std::deque<MCND_CutUnit *> track;
     BCP_vec<Pair2> to_logical_fix;
-
     std::map<int, int> mapd;
     
         
@@ -273,7 +271,7 @@ public:
     //--------------------------------------------------------------------------
     
     void update_branch_data(MCND_node_branch_data * ndata);
-    void keep_track(const MCND_CutUnit* vi);
+    void keep_track( MCND_CutUnit* vi);
     void rearrange_bd_vec(int old_sz, int added, BCP_vec< double >& bd_vars );
     
     //--------------------------------------------------------------------------

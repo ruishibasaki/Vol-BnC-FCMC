@@ -21,19 +21,21 @@ class WarmStartDual: public CoinWarmStartDual{
 public:
     
     std::map<int, int> mapd; //mapping for extra core cuts;
-    const double * dual_; // corevalues/covervalues matching map in sequence.
+    double * dual; // corevalues/covervalues matching map in sequence.
+    int size;
     
     //---------------------
-    inline WarmStartDual(): dual_(0){};
+    inline WarmStartDual(): dual(0){size=0;};
     WarmStartDual(int size, const double* dual, const CoverCollection* covers, const LocalCutCollection* locals, const GlobalCutCollection* globals);
     WarmStartDual(int size, const double* dual, const std::map<int, int>& map_ );
     WarmStartDual(int size, const double* dual);
     WarmStartDual(const WarmStartDual* wsd);
     
-    inline ~WarmStartDual(){ mapd.clear();}
+    inline ~WarmStartDual(){ mapd.clear(); if(size) delete [] dual;}
     CoinWarmStart * clone () const{ return new WarmStartDual(this);}
     WarmStartDual * clone_ws () const{ return new WarmStartDual(this);}
 
+ 
 	//---------------------
 
      CoinWarmStartDiff * 	generateDiff (const CoinWarmStart *const oldCWS) const;

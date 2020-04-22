@@ -100,7 +100,7 @@ BCP_lp_prob::~BCP_lp_prob() {
 
    delete local_var_pool;
    delete local_cut_pool;
-
+    delete msg_env;
    // these are vectors of ptrs, but they need not be purged. they just point
    // into the appropriate fields of p.node->vars/cuts
    //    purge_ptr_vector(all_vars);

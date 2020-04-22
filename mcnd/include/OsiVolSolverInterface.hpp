@@ -459,8 +459,8 @@ public:
 	bool deleteGlobalRows();
 	void rebuild_collections();
     void add_external_cover(const std::deque<Pair2>& c);
-    int add_external_localc( const int * y);
-    int add_external_globalc( const double * y, int type, int cont0=0);
+    int add_external_localc( const int * y, const double * sol, int sz, int type);
+    int add_external_globalc( const double * y, int cont0);
     void direct_solve(const std::deque<int>& topo, const CoinWarmStart* warmstart);
     
     

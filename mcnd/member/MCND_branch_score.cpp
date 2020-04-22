@@ -47,7 +47,7 @@ MCND_node_branch_data::pack(BCP_buffer& buf) const{
     //std::cout<<"pack MCND_node_branch_data "<<hs<<" size:"<<buf.size()<<std::endl;
     //std::cout<<branch_var<<" "<<pos_neg<<" "<<score<<" "<<score_parent<<std::endl;
     bool hashs = false;
-    if(hs && hs->size()>0){
+    if(hs && hs->size>0){
     	hashs = true;
     	buf.pack(hashs);
     	hs->pack(buf);

@@ -63,7 +63,7 @@ CoverCollection::createNewCover(const std::deque<Pair2>& c,  int id_vi, int seri
 
 
 CoverCollection::~CoverCollection(){
-     
+   
     if(map) delete [] map;
 }
 
@@ -101,9 +101,9 @@ CoverCollection::collected(Cover * tryC){
                     //replace(C, tryC);
                     C->prgbl=true;
                     //abort();
-                    return 1;
+                    return 0;
                 }
-                return 2;
+                return 1;
             }
         }
         C = C->next;
@@ -204,7 +204,7 @@ CoverCollection::addCover(Cover * tryC, const double * xystar){
         }
     }
     ret = collected(tryC);
-    if(ret==2){++discarted; delete tryC;return 0;}
+    if(ret==1){ delete tryC;return 0;}
     else if(ret==0){
     	//if(xystar){
     		//ret = check_maximal(tryC , xystar);
@@ -212,7 +212,7 @@ CoverCollection::addCover(Cover * tryC, const double * xystar){
     	//}
         insert_end(tryC);
         return 1;
-    }else return 0;
+    }else{ delete tryC; return 0;}
 
     
 }

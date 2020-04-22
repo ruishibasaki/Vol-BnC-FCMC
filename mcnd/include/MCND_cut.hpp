@@ -27,9 +27,6 @@ public:
 	virtual void pack(BCP_buffer& buf) const =0;
 	virtual void unpack(BCP_buffer& buf) =0;
 	
-	virtual bool check_viol(const BCP_vec<BCP_var*>& vars)=0;
-	virtual double check_viol(const double* vars)=0;
-	virtual bool check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs)=0;
 	virtual bool check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_changed_pos,
                                 BCP_vec<double>& var_new_bd, bool & viol, bool & zrofx, int* fixd)=0;
 	virtual bool purgbl()=0;

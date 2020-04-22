@@ -38,9 +38,8 @@ public:
     //-------------------------------------------------------------------------------------------
     //  main methods
     //-------------------------------------------------------------------------------------------
-    int globalc_extra_generation( const BCP_vec<BCP_var*>& vbd,  int type);
-    int globalc_generation_main( const double * ystar, const double * ycoef, int cont0, int curr_id, int type);
-    int make_globalcut(const double * ystar, int sz,  int* vars_,  double * coef_, double rhs, int curr_id, int type);
+    int globalc_generation_main( const double * ystar, const double * closed, int cont0, int curr_id);
+    int make_globalcut(const double * ystar, int sz,  int* vars_,  int curr_id);
      
     //-------------------------------------------------------------------------------------------
     //  auxiliary methods

@@ -53,6 +53,7 @@ OsiVolSolverInterface::setWarmStart(const CoinWarmStart* warmstart){
         HotStartSet = false;
     	return false;
     }
+    if(HotStart_) delete HotStart_;
     HotStart_ = ws->clone_ws();
     //std::cout<<"setWarmStart "<<HotStart_->size()<<" "<<getNumRows()<<std::endl;
     HotStartSet = true;
@@ -63,7 +64,7 @@ OsiVolSolverInterface::setWarmStart(const CoinWarmStart* warmstart){
 
 void 
 OsiVolSolverInterface::markHotStart(){
-    std::cout<<"markHotStart() "<<getNumRows()<<std::endl;
+    //std::cout<<"markHotStart() "<<getNumRows()<<std::endl;
     if(HotStart_) delete HotStart_;
     HotStart_ = new WarmStartDual(getNumRows(), dual, &cover_manager->covers, &localc_manager->locals, &globalc_manager->globals); 
     //std::cout<<"markHotStart() now "<<std::endl;
@@ -124,7 +125,7 @@ OsiVolSolverInterface::map_topology(){
 	nz_arcs.clear();
     szopnd=0;
     szunfxd=0;
-    for(int arc=data->narcs;arc--;){
+    for(int arc= narcs;arc--;){
         if(collb[arc] == 1){
             nz_arcs.push_back(arc);
             arc_map[arc] = -2;
@@ -221,7 +222,7 @@ OsiVolSolverInterface::translate_hotstart(){
 	for(int i=fidx; i--;){
 		idx = actv[i];
 		if(idx>=0){
-			volprob_->dsol[idx] = HotStart_->dual_[i];
+			volprob_->dsol[idx] = HotStart_->dual[i];
 		}
 	}
 	sz = cover_manager->covers.sizeOfCollection;
@@ -349,7 +350,7 @@ OsiVolSolverInterface::initialSolve(){
 
 void
 OsiVolSolverInterface::resolve(){
-    //std::cout<<"mode: "<<mode<<" "<<numrows_<<" "<<globalc_manager->globals.sizeOfCollection<<std::endl;
+    //std::cout<<"mode: "<<mode<<" numrows: "<<numrows_<<std::endl;
 	if(mode==-1) return;
 	else if(mode ==3){
 		markHotStart();
@@ -392,7 +393,7 @@ void OsiVolSolverInterface::direct_solve(const std::deque<int>& topo, const Coin
     setWarmStart(warmstart);
     resolve();
     
-    CoinDisjointCopyN(HotStart_->dual(), getNumRows(), dual);
+    CoinDisjointCopyN(HotStart_->dual, getNumRows(), dual);
     unmarkHotStart();
 }
 
@@ -850,13 +851,30 @@ OsiVolSolverInterface::add_external_cover(const std::deque<Pair2>& c){
 //-----------------------------------------------------------------------
 
 int 
-OsiVolSolverInterface::add_external_localc( const int * y){
+OsiVolSolverInterface::add_external_localc( const int * y, const double * sol, int sz, int type){ 
     if(numrows_>=maxNumrows_) return 0;
 
-	int ret = localc_manager->localc1_generation_main(volprob_->value, upper_bound, solution, 
+	int ret;
+	switch(type){
+		case 0:{
+			ret = localc_manager->localc0_generation_main(solution,  y, sz, numrows_);
+			break;
+		}
+		case 1:{
+			ret = localc_manager->localc1_generation_main(volprob_->value, upper_bound, solution, 
 														y, rc_, numrows_, maxNumrows_);
+			break;
+		}
+		case 2:{
+			ret = localc_manager->localc2_generation_main(solution, sol, sz, numrows_);
+			break;
+		}
+		default: break;
+	}
+		
+		
 	if(ret){
-		//std::cout<<"add local: "<<ret<<std::endl;
+		std::cout<<"add local: "<<std::endl;
 		localc_manager->add_local_vi(ret, actv, volprob_->active_size, dual, lhs_, volprob_->viol.v,
 								volprob_->dsol.v, volprob_->dual_lb.v,  volprob_->dual_ub.v );   
 		localc_manager->reposition_locals(ret);	
@@ -869,10 +887,10 @@ OsiVolSolverInterface::add_external_localc( const int * y){
 //-----------------------------------------------------------------------
 
 int 
-OsiVolSolverInterface::add_external_globalc( const double * y, int type, int cont0){
+OsiVolSolverInterface::add_external_globalc( const double * y, int cont0){
 	
      
- 	int ret = globalc_manager->globalc_generation_main(solution , y, cont0, numrows_, type);
+ 	int ret = globalc_manager->globalc_generation_main(solution , y, cont0, numrows_);
  
 	if(numrows_>=maxNumrows_) return 0;
 	
@@ -991,7 +1009,7 @@ OsiVolSolverInterface::translate_dualws(){
 	for(int i=ndemands*nnodes; i-- ;){
         idx = actv[i];
         if(idx>=0){
-            dual[i] = HotStart_->dual_[i];
+            dual[i] = HotStart_->dual[i];
         }else{
             dual[i] =0;
         }
@@ -1070,6 +1088,7 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
                                    const double* rowlb_, const double* rowub_){
     
     //std::cout<<"OsiVolSolverInterface::loadProblem nrows: "<<numrows<<std::endl;
+    unmarkHotStart();
     OsiVolAuxInfo * auxinfo  = static_cast<OsiVolAuxInfo*>(OsiSolverInterface::getApplicationData());
     
     maxNumVI =auxinfo->maxNumVI;
@@ -1388,6 +1407,7 @@ OsiVolSolverInterface::initialize(OsiVolAuxInfo & osidata){
 	osidata.VItopo = VItopo;
 	osidata.arc_map = arc_map;
 	osidata.yhit = yhit;
+	osidata.solution = solution;
     //if(!addrc)addrc = new double [data->narcs];
 }
 
@@ -1475,6 +1495,7 @@ OsiVolSolverInterface::operator=(const OsiVolSolverInterface& x){
 //-----------------------------------------------------------------------
 
 OsiVolSolverInterface::~OsiVolSolverInterface (){
+	unmarkHotStart();
 }
 
 

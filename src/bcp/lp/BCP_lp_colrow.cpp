@@ -346,7 +346,7 @@ void BCP_lp_delete_cols_and_rows(BCP_lp_prob& p,
 	 lp->setWarmStart(bas);
       }
       delete bas;
-   }
+   }else if(ws)delete ws;
 }
 
 //#############################################################################

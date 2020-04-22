@@ -9,7 +9,13 @@
 #include "WarmStartDual.hpp"
 
 
-WarmStartDual::WarmStartDual(int size, const double* dual, const CoverCollection* covers, const LocalCutCollection* locals, const GlobalCutCollection* globals):CoinWarmStartDual(size, dual){
+WarmStartDual::WarmStartDual(int size_, const double* dual_, const CoverCollection* covers, 
+							const LocalCutCollection* locals, const GlobalCutCollection* globals){
+							
+		size = size_;
+ 		dual = new double[size];
+ 		CoinDisjointCopyN(dual_, size, dual);
+ 		
         int sz = covers->sizeOfCollection;
         Cover *vi = covers->begin;
         for(;sz--;){
@@ -28,25 +34,32 @@ WarmStartDual::WarmStartDual(int size, const double* dual, const CoverCollection
         	mapd.insert(std::pair<int,int>(vigc->serial_nmbr,vigc->id_vi));
         	vigc = vigc->next;
         }
-        dual_ = CoinWarmStartDual::dual();
 }
 
 //-------------------------------------------------------------------------------------------
 
-WarmStartDual::WarmStartDual(int size, const double* dual, const std::map<int, int>& map_ ):CoinWarmStartDual(size, dual){
-		dual_ = CoinWarmStartDual::dual();
+WarmStartDual::WarmStartDual(int size_, const double* dual_, const std::map<int, int>& map_ ){
+ 		size = size_;
+ 		dual = new double[size_];
+ 		CoinDisjointCopyN(dual_, size, dual);
 		mapd = map_;
 }
 
 //-------------------------------------------------------------------------------------------
 
-WarmStartDual::WarmStartDual(int size, const double* dual):CoinWarmStartDual(size, dual){}
+WarmStartDual::WarmStartDual(int size_, const double* dual_){
+	size = size_;
+ 	dual = new double[size_];
+ 	CoinDisjointCopyN(dual_, size, dual);
+}
 
 //-------------------------------------------------------------------------------------------
 
-WarmStartDual::WarmStartDual(const WarmStartDual* wsd) : CoinWarmStartDual(*wsd){
+WarmStartDual::WarmStartDual(const WarmStartDual* wsd){
+		size = wsd->size;
+ 		dual = new double[size];
+ 		CoinDisjointCopyN(wsd->dual, size, dual);
     	mapd = wsd->mapd;
-        dual_ = CoinWarmStartDual::dual();
 }
 
 
@@ -79,7 +92,7 @@ double
 WarmStartDual::get_mapped(int key) const{ // the key is the serial number of the cover
 	if(mapd.size()==0 ){//}|| CoinWarmStartDual::size()==0){ 
 		std::cout<<"Attention: map.size()==0 || CoinWarmStartDual::size()==0" <<std::endl;
-		return dual_[key];
+		return dual[key];
 		//return 0;
 	}
 	//std::cout<<"ok "<<size()<<std::endl;
@@ -88,7 +101,7 @@ WarmStartDual::get_mapped(int key) const{ // the key is the serial number of the
 	//std::cout<<key<<" "<<it->second<<std::endl;
 	//std::cout<<dual_[it->second]<<std::endl;
 	//std::cout<<key<<" "<<it->second<<std::endl;
-	return dual_[it->second];
+	return dual[it->second];
 }
 
 //-------------------------------------------------------------------------------------------
@@ -97,11 +110,10 @@ WarmStartDual::get_mapped(int key) const{ // the key is the serial number of the
 
 void 
 WarmStartDual::pack(BCP_buffer& buf) const{
-	int sz = size(); //std::cout<<"sz dual "<<sz<<" "<< mapd.size()<<std::endl;
-	buf.pack(sz);
-	for(int i =sz ; i--;) buf.pack(double(dual_[i]));
+	buf.pack(size);
+	for(int i =size ; i--;) buf.pack(double(dual[i]));
 	
-	sz = mapd.size();
+	int sz = mapd.size();
 	buf.pack(sz);
 	std::map<int,int>::const_iterator it = mapd.begin();
 	for( ; it != mapd.end(); ++it) buf.pack(int(it->first)).pack(int(it->second));
@@ -113,14 +125,11 @@ WarmStartDual::pack(BCP_buffer& buf) const{
 
 void 
 WarmStartDual::unpack(BCP_buffer& buf){
-	int sz;
-	buf.unpack(sz); //std::cout<<"sz dual "<<sz<<std::endl;
-	double* d = new double[sz];
-	for(int i =sz ; i--;) buf.unpack(d[i]);
-	assignDual(sz,d);
-	dual_ = CoinWarmStartDual::dual();
-
-	int fst, snd;
+	buf.unpack(size); //std::cout<<"sz dual "<<sz<<std::endl;
+	dual = new double[size];
+	for(int i =size ; i--;) buf.unpack(dual[i]);
+	
+	int fst, snd, sz;
 	buf.unpack(sz); //std::cout<<"sz map "<<sz<<std::endl;
 	for( ; sz--;){
 		buf.unpack(fst).unpack(snd);

@@ -71,7 +71,7 @@ CutSetManager::compute_cutset(std::vector<int>& s,  const double * ystar, const 
             make_cutset( s,  ss_, uss, dss, s_s, us_s, ds_s);
             if(dss>0 || ds_s>0){
                 added += sets.addCutSet( newSS_, ss_, uss, dss, s_s, us_s, ds_s);
-            }
+            }else delete newSS_;
         }
         ss_.clear();
         s_s.clear();
