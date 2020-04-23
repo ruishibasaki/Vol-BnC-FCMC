@@ -145,7 +145,6 @@ LocalCCut::check_viol_updt_fix2(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var
 			viol= false;
 		}
 	} 
-	
 	localc->rhs_dimsh = dimsh;
 	if(viol && ntofx==0){ return false;} //abort;
 	if(viol && ntofx==1){
@@ -154,14 +153,14 @@ LocalCCut::check_viol_updt_fix2(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var
 		if(coef_==1){
 			arc = localc->vars[tofix]; 
 			fixd[arc]=1;
-			std::cout<<"globalfix "<<arc<<" to 1 " <<std::endl;
+			std::cout<<"localfix "<<arc<<" to 1 " <<std::endl;
 			var_changed_pos.push_back(arc);
 			var_new_bd.push_back(1.0);
 			var_new_bd.push_back(1.0);
 		}else if(coef_==-1){
 			arc = localc->vars[tofix]; 
 			fixd[arc]=0;
-			std::cout<<"globalfix "<<arc<<" to 0 "<<std::endl;
+			std::cout<<"localfix "<<arc<<" to 0 "<<std::endl;
 			zrofx=true;
 			var_changed_pos.push_back(arc);
 			var_new_bd.push_back(0.0);
@@ -179,7 +178,7 @@ LocalCCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_
                                 BCP_vec<double>& var_new_bd, bool & viol, bool & zrofx, int* fixd){
     
     if(localc->type==2)
-    	check_viol_updt_fix2( vars, var_changed_pos, var_new_bd,  viol,  zrofx, fixd);
+    	return check_viol_updt_fix2( vars, var_changed_pos, var_new_bd,  viol,  zrofx, fixd);
     	
 	double sum=0;
 	double dimsh=0;
@@ -201,7 +200,7 @@ LocalCCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_
 		}else if(vars[arc]->ub() > 0.5 && fixd[arc]==-1){
 			sum+= 1.0;
 			tofix[ntofx++] = arc;
-		}else sumzro+=1;
+		}else{ sumzro+=1; }
     }
 	rhs -= dimsh;
 	localc->rhs_dimsh = dimsh;
@@ -213,7 +212,7 @@ LocalCCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_
 			for(;ntofx--;){
 				arc = tofix[ntofx];
 				fixd[arc] = 1;
-				std::cout<<"fix "<<arc<<" to 1 "<<std::endl;
+				std::cout<<"localfix "<<arc<<" to 1 "<<std::endl;
 				var_changed_pos.push_back(arc);
 				var_new_bd.push_back(1.0);
 				var_new_bd.push_back(1.0);
@@ -227,7 +226,7 @@ LocalCCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_
 				arc = tofix[ntofx];
 				fixd[arc] = 0;
 				zrofx=true;
-				std::cout<<"fix "<<arc<<" to 0"<<std::endl;
+				std::cout<<"localfix "<<arc<<" to 0"<<std::endl;
 				var_changed_pos.push_back(arc);
 				var_new_bd.push_back(0.0);
 				var_new_bd.push_back(0.0);

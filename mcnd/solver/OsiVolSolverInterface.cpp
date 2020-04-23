@@ -358,7 +358,7 @@ OsiVolSolverInterface::resolve(){
     int i;
     
     map_duals();
-    if(mode==-2) return;
+    if(mode==-2){ std::cout<<"OsiVolSolverInterface::resolve infeas "<<std::endl; return;}
     volprob_->active_size = fsize + csize;
     
     volprob_->psize = szunfxd + data->ndemands*sznz;
@@ -675,12 +675,16 @@ OsiVolSolverInterface::resolve_subproblem(const VOL_dvector& dual, VOL_dvector& 
         if( rc[a]<0 /*|| (rc[a]==0 && x[a]==1.0)*/){
             lcost += rc[a];
             x[a]=1.0;
+            //if(localc_manager->locals.sizeOfCollection)
+            //	std::cout<<"a: "<<arc<<" = 1"<<std::endl;
             //pcost += data->arcs[arc].f;
             //for(int k=0; k<ndemands; ++k)
              //   pcost += data->arcs[arc].c[k] * x[szunfxd + k*sznz + a];
         }else{
             //if(x[a]==1.0){ std::cout<<"rarc: "<<a<<" "<<arc<<" rc: "<<rc[a]<<" y: "<<x[a]<<std::endl; abort();}
             x[a]=0.0;
+            //if(localc_manager->locals.sizeOfCollection)
+            //	std::cout<<"a: "<<arc<<" = 0"<<std::endl;
             for(int k=0; k<ndemands; ++k)
                 x[szunfxd + k*sznz + a]=0.0;
             

@@ -39,16 +39,15 @@ LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double 
         vi->n_nviol = 0;
         put=true;
         infeas=false;
+        //if(vi->type==0)std::cout<<"try: type "<<vi->type<<" "<<vi->prgbl<<std::endl;
 
         if(recheck_collct) put = vi->check_updt_Viol(topo, infeas);
         if(infeas) return -1;
 
-        //std::cout<<"in: id_vi "<<vi->id_vi<<std::endl;
         
         if(put && !vi->prgbl){
             actvS[vi->id_vi] = fsize+csize;
-            //std::cout<<"in: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<std::endl;
-            //vi->print();
+            //if(vi->type==0)std::cout<<"in type: "<<vi->type<<" srial: "<<vi->serial_nmbr<<std::endl;
             ++csize;
             ++num_actv;
             vi = vi->next;
@@ -267,7 +266,7 @@ int
 LocalCutManager::localc2_generation_main( const double * ystar,  const double * topo, int sz, int curr_id){
     int * vars_;
     double* coef_;
-    double rhs=0;
+    double rhs=1.0;
   		
 	vars_ = new int[data->narcs];
 	coef_ = new double[data->narcs];
@@ -412,6 +411,9 @@ LocalCutManager::compute_localc_sg( const double * x, const int * actvS, int act
 		
 		if(index>=actvSSz){ std::cout<<"localindex: "<<index<<"/"<<actvSSz<<std::endl; abort(); }
 		v[index] *= vi->sense;
+		
+		//if(vi->type==2){vi->print(); std::cout<<"viol "<<v[index]<<" rhs: "<<vi->get_total_rhs()<<" type "<<vi->type<<std::endl;}
+
         if(v[index]<=0){
             ++vi->n_nviol;
             if(vi->n_nviol>=lim_to_remv && vi->n_zerom>0) v[index]=0;

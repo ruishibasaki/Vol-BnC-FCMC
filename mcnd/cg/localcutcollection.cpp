@@ -108,7 +108,7 @@ LocalCutCollection::collected(LocalCut * tryC){
     for(int i=0;i<sizeOfCollection;++i){
         vi1sz = tryC->size;
         vi2sz = C->size;            
-        if( vi1sz == vi2sz && tryC->sense == C->sense && tryC->rhs == C->rhs){
+        if( vi1sz == vi2sz && tryC->sense == C->sense){
             equal = true;
             for(int id=0;id<sizeOfIdSeq;++id){
                 if(tryC->id_seq[id]!=C->id_seq[id]){
@@ -472,6 +472,7 @@ LocalCut::check_updt_Viol2(const double *y, bool & infeas) {
 	for(int a=0;a<size;++a){
 		arc = vars[a];
 		coef_ = coef_at(a);
+		//std::cout<<"arc: "<<arc<<" = "<<y[arc]<<std::endl;
 		if(y[arc]==1){
 			rhs_dimsh+= coef[a];
 			if(coef[a]==1){
@@ -483,6 +484,7 @@ LocalCut::check_updt_Viol2(const double *y, bool & infeas) {
 			viol= false;
 		}
 	}
+	//print();
 	if(!viol) return false;
 	if(viol && ntofx==0){/*std::cout<<"GlobalCut::check_updt_Viol:: infeas"<<std::endl;*/ infeas= true; return false;} //abort;
 	return true;
@@ -493,7 +495,7 @@ LocalCut::check_updt_Viol2(const double *y, bool & infeas) {
 
 bool 
 LocalCut::check_updt_Viol(const double *y, bool & infeas) {
-	if(type==2)check_updt_Viol2(y,infeas);
+	if(type==2) return check_updt_Viol2(y,infeas);
 	int arc;
 	int sumzro=0;
 	double sum=0; 
@@ -501,6 +503,7 @@ LocalCut::check_updt_Viol(const double *y, bool & infeas) {
     rhs_dimsh=0;
     for(int a=0;a<size;++a){
     	arc = vars[a];
+    	//if(type==0)std::cout<<"arc: "<<arc<<" = "<<y[arc]<<std::endl;
     	if( y[arc]==1){
         	rhs_dimsh+= 1.0;
 		}else if( y[arc]==-1){
@@ -509,6 +512,7 @@ LocalCut::check_updt_Viol(const double *y, bool & infeas) {
     }
 	rhs_ -= rhs_dimsh;
 	infeas=false;
+	//if(type==0){std::cout<<"rhs: "<<rhs_<<std::endl;print();}
 	if(sense==1){
 		if(sum<rhs_){ infeas=true; return false;}  
 		if(rhs_ <= 0){ return false;}
@@ -565,9 +569,14 @@ bool LocalCut::hasArc(int iset, int arc) const{
 void LocalCut::print(){
     double rhs_ = rhs;
     std::cout<<"T"<<type<<" sens: "<<sense<<": ";
-    for(int i=size;i--;)
-        std::cout<<"("<<vars[i]<<", mtl: 1) ";
-    
+    if(type==2){
+    	for(int i=size;i--;)
+        	std::cout<<"("<<vars[i]<<", mtl: "<<coef[i]<<") ";
+    }
+    else{
+    	for(int i=size;i--;)
+        	std::cout<<"("<<vars[i]<<", mtl: 1) ";
+    }
     std::cout<<" rhs: "<<rhs_<<std::endl;
 }
 

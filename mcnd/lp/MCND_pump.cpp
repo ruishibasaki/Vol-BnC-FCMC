@@ -194,9 +194,11 @@ Pump::solve(const BCP_vec<BCP_var*>& vars,  double * xy, double & val){
 	
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
 		//std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl;
-		 return -1;
+		clear();
+		return -1;
 	}else if(cplex.getStatus() == IloAlgorithm::Unbounded){
 			//std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Unbounded"<<std::endl;
+		clear();
 		return -2;
 	}
 	

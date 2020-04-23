@@ -462,7 +462,6 @@ GlobalCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vbd, BCP_vec<int>& var_c
 
 bool 
 GlobalCut::check_updt_Viol(const double *y, bool & infeas)  {
-	double dimsh=0;
     int sz = size;
     int arc;
     int ntofx=0;
@@ -472,7 +471,6 @@ GlobalCut::check_updt_Viol(const double *y, bool & infeas)  {
      	arc = vars[a];
      	//std::cout<<arc<<" "<<y[arc]<<std::endl;
 		if(y[arc]==1){
-        	dimsh+= 1.0;
         	viol=false;
 		}else if(y[arc]==-1){
  			++ntofx;
