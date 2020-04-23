@@ -449,7 +449,7 @@ GlobalCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vbd, BCP_vec<int>& var_c
 	else if(ntofx==1){
 		viol= false;
 		fixd[tofix]=1;
-		std::cout<<"globalfix "<<tofix<<" to 1 "<<std::endl;
+		//std::cout<<"globalfix "<<tofix<<" to 1 "<<std::endl;
 		var_changed_pos.push_back(tofix);
 		var_new_bd.push_back(1.0);
 		var_new_bd.push_back(1.0);

@@ -53,7 +53,7 @@ MCND_lp::initialize_solver_interface(){
 	volsolver->initialize( AppVolData);
     setOsiBabSolver(volsolver);
     //MaxIt = volsolver->volprob_.parm.maxsgriters;
-    std::cout<<"vol instantiated "<<volsolver<<std::endl;
+    //std::cout<<"vol instantiated "<<volsolver<<std::endl;
     return volsolver;
     
 }
@@ -87,8 +87,8 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         if(nodedata->hs!=0){
             getLpProblemPointer()->lp_solver->setWarmStart(nodedata->hs);
         }
-    	std::cout<<"node comes from branch on: "<<nodedata->branch_var;
-        std::cout<<" of "<<nodedata->pos_neg<<" side .. parent: "<<nodedata->parent<<std::endl;
+    	//std::cout<<"node comes from branch on: "<<nodedata->branch_var;
+        //std::cout<<" of "<<nodedata->pos_neg<<" side .. parent: "<<nodedata->parent<<std::endl;
         testconn = nodedata->test_conn ;
         if(nodedata->reduced_run)lp_mode |= LP_ReducedRun;
         //std::cout<<"reduced run? "<<nodedata->reduced_run<<std::endl;
@@ -426,7 +426,7 @@ MCND_lp::process_lp_result(const BCP_lp_result& lpres,
 	}*/
 	if(!(lp_mode & LP_Solved)) return;
 	
-	std::cout<<"process_lp_result"<<std::endl;
+	//std::cout<<"process_lp_result"<<std::endl;
 	lp_mode |= LP_tighterBounds;
     const double *y_vol = lpres.x();
     double val;
@@ -496,6 +496,7 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 	}
 	
     //std::cout<<"test_feasibility: "<<getOsiVolBabSolver()->getViolation()<<" integ: "<<integer<<" unfx: "<<cont<<std::endl;
+    std::cout<<"test_feasibility: sol: "<<mipsol->cost<<std::endl;
 	if(upper_bound() > mipsol->cost){
 		has_sol =true;
 		//std::cout<<"MCND_lp::test_feasibility::add_external_globalc type 2"<<std::endl;
@@ -560,7 +561,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     }
     
     if(cont>0){
-    	if(lp_mode & LP_HeuristicRunned /*|| num_nodes%10 */|| unfixed>=data.narcs*0.1){ 
+    	if(lp_mode & LP_HeuristicRunned /*|| num_nodes%10*/ || unfixed>=data.narcs*0.1){ 
     		topo.clear(); delete []fixd;  return 0;}
 	}
     
@@ -573,7 +574,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     lp_mode |= LP_HeuristicRunned;
     if(retval>=0){
     	delete []fixd;
-    	//std::cout<<"heuristic sol: "<<sol->cost<<std::endl;
+    	std::cout<<"heuristic sol: "<<sol->cost<<std::endl;
     	if(upper_bound() > sol->cost){
     		has_sol =true;
     		//std::cout<<"MCND_lp::generate_heuristic_solution::add_external_globalc type 1"<<std::endl;

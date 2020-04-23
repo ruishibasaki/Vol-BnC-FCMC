@@ -101,16 +101,16 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    		p.feas_sol = sol;
    }
 
-   p.par.set_entry(BCP_tm_par::VerbosityShutUp, true);
+   p.par.set_entry(BCP_tm_par::VerbosityShutUp, false);
    p.par.set_entry(BCP_tm_par::TmVerb_AllFeasibleSolutionValue, false);
     p.par.set_entry(BCP_tm_par::TmVerb_AllFeasibleSolution, false);
     p.par.set_entry(BCP_tm_par::TmVerb_BetterFeasibleSolutionValue, true);
     p.par.set_entry(BCP_tm_par::TmVerb_BetterFeasibleSolution, false);
     p.par.set_entry(BCP_tm_par::TmVerb_BestFeasibleSolution, false);
-    p.par.set_entry(BCP_tm_par::TmVerb_NewPhaseStart, true);
-    p.par.set_entry(BCP_tm_par::TmVerb_TrimmedNum, true);
+    p.par.set_entry(BCP_tm_par::TmVerb_NewPhaseStart, false);
+    p.par.set_entry(BCP_tm_par::TmVerb_TrimmedNum, false);
     p.par.set_entry(BCP_tm_par::TmVerb_TimeOfImprovingSolution, false);
-    p.par.set_entry(BCP_tm_par::TmVerb_PrunedNodeInfo, true);
+    p.par.set_entry(BCP_tm_par::TmVerb_PrunedNodeInfo, false);
     p.par.set_entry(BCP_tm_par::TmVerb_FinalStatistics, true);
     p.par.set_entry(BCP_tm_par::TmVerb_ReportDefault, false);
     
@@ -137,33 +137,33 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
 	
    MCND_lp* lp = new MCND_lp;
     
-    p.par.set_entry(BCP_lp_par::LpVerb_AddedCutCount, true);
+    p.par.set_entry(BCP_lp_par::LpVerb_AddedCutCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_AddedVarCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ChildrenInfo, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ColumnGenerationInfo, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_CutsToCutPoolCount, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_CutsToCutPoolCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_VarsToVarPoolCount, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_FathomInfo, true);
-	p.par.set_entry(BCP_lp_par::LpVerb_IterationCount, true);
-	p.par.set_entry(BCP_lp_par::LpVerb_RelaxedSolution, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_FathomInfo, false);
+	p.par.set_entry(BCP_lp_par::LpVerb_IterationCount, false);
+	p.par.set_entry(BCP_lp_par::LpVerb_RelaxedSolution, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_FinalRelaxedSolution, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_LpMatrixSize, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_LpSolutionValue, true);
-	p.par.set_entry(BCP_lp_par::LpVerb_MatrixCompression, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_LpSolutionValue, false);
+	p.par.set_entry(BCP_lp_par::LpVerb_MatrixCompression, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_NodeTime, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolvePositions, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolveResult, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_ProcessedNodeIndex, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_ProcessedNodeIndex, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportCutGenTimeout, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportVarGenTimeout, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_ReportLocalCutPoolSize, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_ReportLocalCutPoolSize, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportLocalVarPoolSize, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_RepricingResult, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_RowEffectivenessCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_VarTightening, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_StrongBranchPositions, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_StrongBranchResult, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_GeneratedCutCount, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_GeneratedCutCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_GeneratedVarCount, false);
    
    p.par.set_entry(BCP_lp_par::DoReducedCostFixingAtZero ,false);

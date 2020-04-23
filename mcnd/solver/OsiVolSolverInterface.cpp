@@ -358,7 +358,7 @@ OsiVolSolverInterface::resolve(){
     int i;
     
     map_duals();
-    if(mode==-2){ std::cout<<"OsiVolSolverInterface::resolve infeas "<<std::endl; return;}
+    if(mode==-2){ return;}
     volprob_->active_size = fsize + csize;
     
     volprob_->psize = szunfxd + data->ndemands*sznz;
@@ -878,7 +878,7 @@ OsiVolSolverInterface::add_external_localc( const int * y, const double * sol, i
 		
 		
 	if(ret){
-		std::cout<<"add local: "<<std::endl;
+		//std::cout<<"add local: "<<std::endl;
 		localc_manager->add_local_vi(ret, actv, volprob_->active_size, dual, lhs_, volprob_->viol.v,
 								volprob_->dsol.v, volprob_->dual_lb.v,  volprob_->dual_ub.v );   
 		localc_manager->reposition_locals(ret);	

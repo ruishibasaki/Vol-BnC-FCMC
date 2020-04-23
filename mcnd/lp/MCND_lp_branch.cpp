@@ -61,7 +61,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     if(candidates.empty()){
 		for (int a=data.narcs; a--;) {
 			//if(psol[a]==0) continue;
-			if(vars[a]->lb()==0 && vars[a]->ub()==1){
+			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
 				/*/if(min(ninsp[a].fst, ninsp[a].snd) >= data.narcs*0.1){
 					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
 					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
@@ -85,8 +85,8 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd
-		/*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
+		//std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd
+		///*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
         candidates.pop_front();		
 		vpos[0] = arc;
 		vbd[0] = 0.0;
@@ -141,14 +141,14 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		if(vars[a]->lb()==0.0 && vars[a]->ub()==1.0){
 			//std::cout<<"penalty test: "<<a<<" "<<gij<<" lbs: "<<lb<<" "<<LBi<<std::endl;
 			if(gij>0 && (lb+gij)>=upper_bound()){
-				std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
+				//std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0; 
 				
 			}else if(gij<0 && (lb-gij)>=upper_bound()){
-				std::cout<<a<<" WILL FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
+				//std::cout<<a<<" WILL FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
@@ -287,8 +287,8 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
    	double score = fmin(diff0, diff1);
     newobj->user_data()[0] = new MCND_node_branch_data(sz, score , var_new, 0, LBi, true);
     newobj->user_data()[1] = new MCND_node_branch_data(sz, score , var_new, 1, LBi, false);
-    std::cout<<"branch0 "<<child0.objval() <<" branch1 "<<child1.objval()<<std::endl;
-    std::cout<<" comparing ("<<var_new<<") y: "<<y[var_new]<<" score: "<<score<<" mode: "<<lp_mode<<std::endl;
+    //std::cout<<"branch0 "<<child0.objval() <<" branch1 "<<child1.objval()<<std::endl;
+    //std::cout<<" comparing ("<<var_new<<") y: "<<y[var_new]<<" score: "<<score<<" mode: "<<lp_mode<<std::endl;
      int infeas=0;
      if((child0.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
 		(child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
@@ -380,7 +380,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		//std::cout<<"cancel branching "<<std::endl;
 		return;
 	}
-	std::cout<<"branching variable: "<<var_branch<<std::endl;
+	//std::cout<<"branching variable: "<<var_branch<<std::endl;
 	
 	if(to_logical_fix.size()) lp_mode |= LP_LogicalFixed;
 	strong_branch_var_logicfix(best->candidate());
@@ -488,7 +488,7 @@ MCND_lp::strong_branch_var_logicfix(BCP_lp_branching_object* candidate){
 	while(!to_logical_fix.empty()){
 		p = &to_logical_fix.back();
 		if(p->fst != cand){
-			std::cout<<"FIX: "<<p->fst<<" to "<<p->snd<<std::endl;
+			//std::cout<<"FIX: "<<p->fst<<" to "<<p->snd<<std::endl;
 			extra_vars->push_back(p->fst);
 			++added;
 			for(int i=4;i--;)bd_extra_vars->push_back(p->snd);
