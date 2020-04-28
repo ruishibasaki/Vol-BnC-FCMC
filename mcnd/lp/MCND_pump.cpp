@@ -14,6 +14,8 @@ Pump::set_data(const Data * d, double alph_init){
 	ndemands = data->ndemands;
 	narcs = data->narcs;
 	alpha = alph_init;
+	topo.resize(narcs);
+	maxunfix = narcs*0.1;
 	set_parameters();
 }
 
@@ -30,33 +32,115 @@ void Pump::set_parameters() {
 
 }
 
+//---------------------------------------------------------------------------
+
+void
+Pump::initialize(const Data * d, double alph_init){
+    set_data(d, alph_init);
+        
+    IloExpr obj(env);
+    //x = IloNumVarArray(env);
+    //y = IloNumVarArray(env);
+    for(int a=0;a<narcs;++a){
+        for (int k = 0; k < ndemands; ++k){
+            x.add(IloNumVar(env, 0.0, IloInfinity));
+            obj += x[a*ndemands+k];
+         }
+         y.add(IloNumVar(env, 0.0, 1.0));
+         obj+= y[a];
+    }
+    fobj = IloMinimize(env, obj);
+    model.add(fobj);
+    obj.end();
+ 
+    for(int a=0;a<narcs;++a){
+        IloExpr constraint(env);
+        for (int k = 0; k < ndemands; k++) {
+            constraint += x[a*ndemands+k];
+        }
+        constraint -= data->arcs[a].capa*y[a];
+        model.add(constraint <= 0);
+        constraint.end();
+    }
+    for (int k = 0; k < ndemands; ++k) {
+        for (int i = 1; i <= nnodes; i++) {
+            IloExpr constraint(env);
+            
+            for(int a=0;a<narcs;++a){
+                if(i == data->arcs[a].i){
+                    constraint -= x[a*ndemands+k];
+                }else if(i == data->arcs[a].j){
+                    constraint += x[a*ndemands+k];
+                }
+            }
+            
+            if( i == data->d_k[k].D){
+                constraint -= data->d_k[k].quantity;
+            }else if( i ==  data->d_k[k].O){
+                constraint += data->d_k[k].quantity;
+            }
+            model.add(constraint == 0);
+            constraint.end();
+        }
+    }
+    
+    cplex.extract(model);
+}
+
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 
+int
+Pump::make_topo(int * fixd, int& closed,  const double * x ,const BCP_vec<BCP_var*>& vars){
+	int cont=0;
+	closed = 0;
+	szunfix=0;
+	for (int a=narcs; a--;){
+        if(vars[a]->lb()==1.0){
+            topo[a]=2;
+        }else if(vars[a]->ub()==1.0){
+            if(x[a]>=0.9){ 
+            	topo[a]=2;
+            }else if(x[a]>=0.1){
+            	if(x[a]>0.5){
+            		topo[a]=-1;
+            	}else{
+            		topo[a]=1;
+            	} 
+            	++szunfix;
+            }else{
+            	fixd[closed++]=a; 
+            	topo[a]=0;
+            }//std::cout<<"cand: "<<a<<" "<<x[a]<<std::endl;}
+        	++cont;
+        }else{ 
+        	fixd[closed++]=a;  
+        	topo[a]=0;
+        }
+    }
+    return cont;
+}
+
+//-------------------------------------------------------------------------------------------
+
 void  
-Pump::reset( int szunfix_, std::deque<Pair2>& topo ){
-	sznz = topo.size();
-	szunfix = szunfix_;
-	ytopo = topo;
-	
+Pump::reset( const BCP_vec<BCP_var*>& vars){
 	int arc;
 	double norm=0;
-	
-	alpha = szunfix_/double(data->narcs);
-	
-	for(int a=szunfix;a--;){
-		arc = topo[a].fst;
-		norm+= pow(data->arcs[arc].f,2);
-		//std::cout<<data->arcs[arc].f<<std::endl;
-		for (int k = 0; k<ndemands;++k)
-			norm+=pow(data->arcs[arc].c[k],2);
-	}
+	alpha = szunfix/double(maxunfix);
 	
 	if(szunfix ==0 ){
 		factorxy=1;
 		factorp=0;
 	}else{
+		for(int a=narcs;a--;){
+			if(topo[a]==0) continue;
+ 			if(topo[a]!=2) norm+= pow(data->arcs[a].f,2);
+			//std::cout<<data->arcs[arc].f<<std::endl;
+			for (int k = 0; k<ndemands;++k)
+				norm+=pow(data->arcs[a].c[k],2);
+		}
 		norm = sqrt(norm);
 		factorxy = (1.0 - alpha)/norm;
 		factorp = alpha/(sqrt(double(szunfix)));
@@ -65,88 +149,40 @@ Pump::reset( int szunfix_, std::deque<Pair2>& topo ){
 
 //-------------------------------------------------------------------------------------------
 
-void Pump::create_model(const BCP_vec<BCP_var*>& vars) {	
+void Pump::create_model( const BCP_vec<BCP_var*>& vars) {	
 	Pair2 item;
 	int arc;
 	double c;
 	
 	IloExpr obj(env);
-	x = IloNumVarArray(env);
-	y = IloNumVarArray(env);
-	for(int a=0;a<szunfix;++a){
-		y.add(IloNumVar(env,0,1));
-		item = ytopo[a];
-		arc = item.fst;
-		if(item.snd == 1.0) c = factorxy*data->arcs[arc].f - factorp;
-		else c = factorxy*data->arcs[arc].f  + factorp;
-		obj += c*y[a];
-		
-		for (int k = 0; k < ndemands; ++k){
-			x.add(IloNumVar(env, 0.0, vars[narcs+k*narcs+arc]->ub()));
-			obj += factorxy*data->arcs[arc].c[k]*x[a*ndemands+k];
+	for(int a=narcs ; a--; ){
+		if(topo[a]==0){
+			//std::cout<<"out: "<<a<<std::endl;
+			y[a].setUB(0.0);
+			y[a].setLB(0.0);
+			continue;
+		} 
+		for (int k = ndemands; k-- ;){
+			//x[a*ndemands+k].setUB(vars[narcs+k*narcs+a]->ub());
+			obj += factorxy*data->arcs[a].c[k]*x[a*ndemands+k];
+		}
+		if(topo[a] == 2){
+			y[a].setUB(1.0);
+			y[a].setLB(1.0);
+		}else{
+			unfx.push_back(a);
+			y[a].setUB(1.0);
+			y[a].setLB(0.0);
+			if(topo[a] == -1) c = factorxy*data->arcs[a].f - factorp;
+			else if(topo[a] == 1) c = factorxy*data->arcs[a].f  + factorp;
+			obj += c*y[a];
 		}
 	}
 
-	for(int a=szunfix;a<sznz;++a){
-		arc = ytopo[a].fst;
-		for (int k = 0; k < ndemands; ++k){
-			x.add(IloNumVar(env));
-			obj += factorxy*data->arcs[arc].c[k]*x[a*ndemands+k];
-		}
-	}
-	
-	model = new IloModel(env);
-	model->add(IloMinimize(env, obj));
+	fobj = IloMinimize(env, obj);
+    cplex.getObjective().setExpr(fobj);
 	obj.end();
 	
-	//constraints
-	bool flag;
-	for (int k = 0; k < ndemands; ++k) {
-		for (int i = 1; i <= nnodes; i++) {
-			flag=false;
-			IloExpr constraint(env);
-		
-			for(int a=0;a<sznz;++a){
-				arc = ytopo[a].fst;
-				if(i == data->arcs[arc].i){
-					constraint += x[a*ndemands+k];
-					flag = true;
-				}else if(i == data->arcs[arc].j){
-					constraint -= x[a*ndemands+k];
-					flag = true;
-				}
-			}
-
-		
-			if( i == data->d_k[k].D){
-				constraint +=data->d_k[k].quantity;
-				flag = true;
-			}else if( i == data->d_k[k].O){
-				constraint -=data->d_k[k].quantity;
-				flag = true;
-			}
-		
-			if(flag){
-				model->add((constraint == 0));			
-			 }
-			constraint.end();
-		}
-	}
-	
-	for(int a=0;a<sznz;++a){
-		arc = ytopo[a].fst;
-		IloExpr constraint(env);
-		for (int k = 0; k < ndemands; ++k)
-			constraint -= x[a*ndemands+k];
-		
-		if(a<szunfix)constraint+=data->arcs[arc].capa*y[a];
-		else constraint+=data->arcs[arc].capa;
-
-		model->add((constraint >= 0));
-		constraint.end();
-	}
-	
-	cplex.extract(*model);
 }
 
 //-------------------------------------------------------------------------------------------
@@ -160,15 +196,16 @@ Pump::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArr
 	int cont=0;
 	double ub;
 	for(int a=0;a<szunfix;++a){
-		arc = ytopo[a].fst;
+		arc = unfx[a];
 		for (int k = 0; k < ndemands; ++k){
 			ub = vars[narcs+k*narcs+arc]->ub();
-			if(x_[a*ndemands+k] - ub*y_[a]> 1e-10 ){
+			if(x_[arc*ndemands+k] - ub*y_[arc]> 1e-10 ){
 				IloExpr constraint(env);
-				constraint -= x[a*ndemands+k];
-				constraint+= ub*y[a];
+				constraint -= x[arc*ndemands+k];
+				constraint+= ub*y[arc];
 				++cont;
-				model->add((constraint >= 0));
+				cutstrong.add((constraint >= 0));
+				model.add(cutstrong[cutstrong.getSize()-1]);
 				constraint.end();
 			}
 		}
@@ -184,9 +221,9 @@ Pump::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArr
 
 
 int 
-Pump::solve(const BCP_vec<BCP_var*>& vars,  double * xy, double & val){
-	
-	create_model(vars);
+Pump::solve(  const BCP_vec<BCP_var*>& vars,  double * xy, double & val){
+	reset( vars);
+	create_model( vars);
 	//cplex.exportModel("t.lp");
 	cplex.solve();
 	
@@ -208,16 +245,17 @@ Pump::solve(const BCP_vec<BCP_var*>& vars,  double * xy, double & val){
 	cplex.getValues(y_,y);
 	while(cut(vars, y_,x_)){
 		cplex.solve();
-		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
+		std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
 		cplex.getValues(y_,y);
 		cplex.getValues(x_,x);
 	}
 	//std::cout<<"final pump "<<cplex.getObjValue()<<std::endl;
 
-	val = getSolution(  xy,  x_, y_ );
+	val = getSolution(  xy, x_, y_ );
 	
 	x_.end(); 
 	y_.end();
+	clear();
 	return 0;
 	
 }
@@ -225,34 +263,33 @@ Pump::solve(const BCP_vec<BCP_var*>& vars,  double * xy, double & val){
 //-------------------------------------------------------------------------------------------
 
 double 
-Pump::getSolution(  double * xy, const IloNumArray & x_, const IloNumArray & y_ ){
+Pump::getSolution(  double * xy,  const IloNumArray & x_, const IloNumArray & y_ ){
 	
-	int arc;
-	double flow;
+ 	double flow;
 	double solvalue=0;
 	double val;
-	for(int a=0;a<sznz;++a){
-		arc = ytopo[a].fst;
-		flow = 0.0;
+	for(int a=0;a<narcs;++a){
+ 		if(topo[a]==0) continue;
+ 		flow = 0.0;
 		for (int k = 0; k < ndemands; ++k){
 			val = x_[a*ndemands+k];
-			xy[narcs+k*narcs+arc] = val;
-			solvalue+=data->arcs[arc].c[k]*val;
+			xy[narcs+k*narcs+a] = val;
+			solvalue+=data->arcs[a].c[k]*val;
 			flow += val;
 		}
-		if(a<szunfix){
+		if(topo[a]!=2){
 			val = y_[a];
 			if(val>1e-10){
-				xy[arc] = 1.0;
- 				solvalue+=data->arcs[arc].f;
+				xy[a] = 1.0;
+ 				solvalue+=data->arcs[a].f;
 			}
 		}else if(flow>1e-10){
- 			xy[arc] = 1.0;
-			solvalue+=data->arcs[arc].f;
+ 			xy[a] = 1.0;
+			solvalue+=data->arcs[a].f;
 		} 
 	}
 	
-	clear();
+	
 	//std::cout<<"sol value: "<<solvalue<<std::endl;
 	return solvalue;
 }
@@ -264,11 +301,8 @@ Pump::getSolution(  double * xy, const IloNumArray & x_, const IloNumArray & y_ 
 
 void 
 Pump::clear(){
-	cplex.clearModel();
-	x.endElements();
-	y.endElements();
-	if(model)delete model;
-	model=0;
+	fobj.end();
+	unfx.clear();
 }
 
 
@@ -277,12 +311,17 @@ Pump::clear(){
 Pump::~Pump() {
 
 	try {
-		clear();
+		cutstrong.endElements();
+		x.endElements();
+		y.endElements();
+		cplex.clearModel();
+		model.end();
 		cplex.end();
-		env.end();
-		
-		ytopo.clear();
+		fobj.end();
 
+		env.end();
+		unfx.clear();
+		topo.clear();
 	} catch (IloException& e) {
 		std::cerr << "ERROR: " << e.getMessage() << std::endl;
 	} catch (...) {

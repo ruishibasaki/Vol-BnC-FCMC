@@ -14,33 +14,39 @@ class Pump{
 public:
 	IloEnv env;
 	IloCplex cplex;
-	IloModel * model;
+	IloModel model;
 	
 	IloNumVarArray x;
 	IloNumVarArray y;
 	
+	IloObjective fobj;
+	IloRangeArray cutstrong;
+	 
 	double factorxy, factorp;
 	double alpha;
 	//--------------------------
 	
 	const Data * data;
 	int nnodes, ndemands, narcs;
-	int sznz, szunfix;
-	std::deque<Pair2> ytopo;
+	int szunfix, maxunfix;
+ 	std::deque<int> unfx;
+ 	std::vector<int> topo;
 
 	//--------------------------
-	Pump(): cplex(env), x(env), y(env){data =0; model =0;}
+	Pump(): cplex(env), x(env), y(env), model(env), fobj(env), cutstrong(env) {data =0;  }
 	void set_data(const Data * d, double alph_init );
+	void initialize(const Data * d, double alph_init);
 	void set_parameters();
 	
 	//--------------------------
-	void reset( int szunfix_, std::deque<Pair2>& topo );
-	void create_model(const BCP_vec<BCP_var*>& vars);
+	int make_topo(int * fixd, int& closed,  const double * x  , const BCP_vec<BCP_var*>& vars);
+	void reset(  const BCP_vec<BCP_var*>& vars);
+	void create_model( const BCP_vec<BCP_var*>& vars);
 	
 	//--------------------------
-	int solve(const BCP_vec<BCP_var*>& vars,   double * xy, double & val );
+	int solve( const BCP_vec<BCP_var*>& vars,  double * xy, double & val);
 	int cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArray & x_);
-	double getSolution(  double * xy, const IloNumArray & x_, const IloNumArray & y_ );
+	double getSolution(  double * xy,   const IloNumArray & x_, const IloNumArray & y_ );
 
 	
 	void clear();

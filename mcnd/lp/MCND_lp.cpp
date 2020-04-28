@@ -29,7 +29,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     
     ss_manager.initialize(&data);
     cover_manager.initialize(&data, 20);
-    pump_heur.set_data(&data, 0.5);
+    pump_heur.initialize(&data, 0.5);
     lpfeaschecker.initialize(&data);
     flwconnect.initialize(&data);
     localc_manager.initialize(&data, 50);
@@ -538,40 +538,20 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
 
     const double * x = lpres.x();
     int *fixd = new int [data.narcs];
-    std::deque<Pair2> topo;
-     
+      
     int closed=0;
-    int unfixed=0;
-    int cont=0;
-    for (int a=data.narcs; a--;){
-        if(vars[a]->lb()==1.0){
-            topo.push_back(Pair2(a, 1));
-        }else if(vars[a]->ub()==1.0){
-            if(x[a]>=0.9){ 
-            	topo.push_back(Pair2(a, 1));
-            }else if(x[a]>=0.1){
-            	if(x[a]>0.3){
-            		topo.push_front(Pair2(a, 1));
-            	}else{
-            		topo.push_front(Pair2(a, 0));
-            	} 
-            	++unfixed;
-            }else{fixd[closed++]=a; }//std::cout<<"cand: "<<a<<" "<<x[a]<<std::endl;}
-        	++cont;
-        }else fixd[closed++]=a; 
-    }
-    std::cout<<"try heuristic "<<unfixed<<" ?> "<<data.narcs*0.1<<" "<<(lp_mode & LP_HeuristicRunned)<<std::endl;
+     int cont= pump_heur.make_topo(fixd, closed, x, vars);
+    
+    std::cout<<"try heuristic "<<pump_heur.szunfix<<" ?> "<<pump_heur.maxunfix<<" "<<(lp_mode & LP_HeuristicRunned)<<std::endl;
     if(cont>0){
-    	if(lp_mode & LP_HeuristicRunned /*|| num_nodes%10*/ || unfixed>data.narcs*0.1){ 
-    		topo.clear(); delete []fixd;  return 0;}
+    	if(lp_mode & LP_HeuristicRunned /*|| num_nodes%10*/ || pump_heur.szunfix>pump_heur.maxunfix){ 
+    	 	delete []fixd;  return 0;}
 	}
     
 	//
 
     MCND_solution* sol = new MCND_solution(data.narcs+data.narcs*data.ndemands);
-    pump_heur.reset( unfixed, topo);
-    int retval = pump_heur.solve(vars, sol->xy, sol->cost);
-    topo.clear();
+    int retval = pump_heur.solve( vars, sol->xy, sol->cost);
     lp_mode |= LP_HeuristicRunned;
     if(retval>=0){
     	delete []fixd;
