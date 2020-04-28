@@ -453,25 +453,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
 
 int
 OsiVolSolverInterface::removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector& dstaru,  VOL_dvector& dualu){
-	/*
-	Cover* vic1 = cover_manager->covers.begin;
- 	for(int i=0;i<cover_manager->num_actv;++i){
- 		std::cout<<"cover: "<<i<<" id: "<< actv[vic1->id_vi]<<" -> "<<pstarv[actv[vic1->id_vi]]<<" "<<dstaru[actv[vic1->id_vi]]<<" "<<dualu[actv[vic1->id_vi]]<<std::endl;			
-		vic1 = vic1->next;
-	}
-	
-	LocalCut* vilc1 = localc_manager->locals.begin;
- 	for(int i=0;i<localc_manager->num_actv;++i){
- 		std::cout<<"local: "<<i<<" id: "<< actv[vilc1->id_vi]<<" -> "<<pstarv[actv[vilc1->id_vi]]<<" "<<dstaru[actv[vilc1->id_vi]]<<" "<<dualu[actv[vilc1->id_vi]]<<std::endl;			
-		vilc1 = vilc1->next;
-	}
-	
-	GlobalCut* vigc1 = globalc_manager->globals.begin;
- 	for(int i=0;i<globalc_manager->num_actv;++i){
- 		std::cout<<"global: "<<i<<" id: "<< actv[vigc1->id_vi]<<" -> "<<pstarv[actv[vigc1->id_vi]]<<" "<<dstaru[actv[vigc1->id_vi]]<<" "<<dualu[actv[vigc1->id_vi]]<<std::endl;			 				
-		vigc1 = vigc1->next;
-	}*/
-	
+
 	int oldsz  = actvSSz;
     cover_manager->covers.desactvCover(cover_manager->lim_to_remv, actv, actvSSz, cover_manager->num_actv, pstarv.v, dstaru.v, dualu.v);
     localc_manager->locals.desactvLocalc(localc_manager->lim_to_remv, actv, actvSSz, localc_manager->num_actv, pstarv.v, dstaru.v, dualu.v);
@@ -479,8 +461,7 @@ OsiVolSolverInterface::removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector
 
     if(oldsz == actvSSz) return 0;
     	
-    int fidx = nnodes*ndemands;
-	int id;
+ 	int id;
 	int sz = cover_manager->num_actv;
 	int sz2 = sz+localc_manager->num_actv;
 	int sz3 = sz2+globalc_manager->num_actv;
@@ -548,7 +529,7 @@ OsiVolSolverInterface::removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector
 		vigc = vigc->next;
 	}
 	collect.clear();
-	if(fidx+sz3 != actvSSz){ std::cout<<"cont: "<<fidx+sz3<<" sz: "<<actvSSz<<std::endl; abort();}
+	if(fsize+sz3 != actvSSz){ std::cout<<"cont: "<<fsize+sz3<<" sz: "<<actvSSz<<std::endl; abort();}
 	//abort();
     return 0;
 }
@@ -1394,8 +1375,10 @@ OsiVolSolverInterface::initialize(OsiVolAuxInfo & osidata){
     
     CoinFillN(rowub, maxvi, 0.0);
     CoinFillN(rowlb, maxvi, 0.0);
-    CoinFillN(dual, ncol, 0.0);
-    CoinFillN(lhs_, ncol, 0.0);
+    CoinFillN(dual, maxvi, 0.0);
+    CoinFillN(lhs_, maxvi, 0.0);
+    CoinFillN(actv, maxvi, -1);
+    
 	CoinFillN(colub, ncol, OsiVolInfinity);
 	CoinFillN(collb, ncol, 0.0);
     CoinFillN(rc_, ncol, 0.0);

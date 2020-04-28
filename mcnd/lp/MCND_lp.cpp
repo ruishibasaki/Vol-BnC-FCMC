@@ -107,7 +107,8 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     cut_varfix_and_updt( vars, cuts, var_changed_pos, var_new_bd);
     
     //for (int a=var_changed_pos.size(); a--;){
-	//	std::cout<<"changebd: "<<var_changed_pos[a]<<" ("<<vars[var_changed_pos[a]]->lb()<<" , "<<vars[var_changed_pos[a]]->ub()<<std::endl;
+	//	std::cout<<"changebd: "<<var_changed_pos[a]<<" ("<<vars[var_changed_pos[a]]->lb()<<" , "<<vars[var_changed_pos[a]]->ub()<<") new: ("<<
+	//	var_new_bd[a*2]<<" , "<<var_new_bd[a*2+1]<<") "<<std::endl;
 	//}
 }
 
@@ -548,7 +549,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
         }else if(vars[a]->ub()==1.0){
             if(x[a]>=0.9){ 
             	topo.push_back(Pair2(a, 1));
-            }else if(x[a]>=0.3){
+            }else if(x[a]>=0.1){
             	if(x[a]>0.3){
             		topo.push_front(Pair2(a, 1));
             	}else{
@@ -559,13 +560,13 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
         	++cont;
         }else fixd[closed++]=a; 
     }
-    
+    std::cout<<"try heuristic "<<unfixed<<" ?> "<<data.narcs*0.1<<" "<<(lp_mode & LP_HeuristicRunned)<<std::endl;
     if(cont>0){
-    	if(lp_mode & LP_HeuristicRunned /*|| num_nodes%10*/ || unfixed>=data.narcs*0.1){ 
+    	if(lp_mode & LP_HeuristicRunned /*|| num_nodes%10*/ || unfixed>data.narcs*0.1){ 
     		topo.clear(); delete []fixd;  return 0;}
 	}
     
-	//std::cout<<"try heuristic "<<std::endl;
+	//
 
     MCND_solution* sol = new MCND_solution(data.narcs+data.narcs*data.ndemands);
     pump_heur.reset( unfixed, topo);
@@ -587,7 +588,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     		getOsiVolBabSolver()->add_external_localc( 0, sol->xy, data.narcs, 2);
     	}
     }else{
-    	//std::cout<<"MCND_lp::generate_heuristic_solution::add_external_localc type 0"<<std::endl;
+    	std::cout<<"MCND_lp::generate_heuristic_solution::add_external_localc type 0"<<std::endl;
 		if(getOsiVolBabSolver()->add_external_localc(fixd, 0, closed, 0))
 			lp_mode |= LP_CutAddedFromHeuristic;
 		delete []fixd;

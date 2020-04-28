@@ -294,24 +294,23 @@ CoverManager::form_c1(std::deque<Pair2> & lift_down, std::deque<Trio1> & ss_,
     std::deque<Trio1> aux;
     std::stable_sort(ss_.begin(),ss_.end(),compTrio1());//decreasing order
     //std::cout<<"form_c1: "<<std::endl;
-    arc = ss_.front().fst;
-    id_arc = arc_map[arc];
-    while(!ss_.empty() && ystar[id_arc]>=0.9){
+    
+    while(!ss_.empty()){
+    	arc = ss_.front().fst;
         capa = ss_.front().trd;
+        id_arc = arc_map[arc];
+        if(ystar[id_arc]<0.9) break;
+        
+        //std::cout<<"delta "<<delta<<" "<<capa<<std::endl;
         if(delta-capa<=0){
             aux.push_back(Trio1(arc, double(ystar[id_arc]), capa));
             ss_.pop_front();
-            arc = ss_.front().fst;
-            id_arc = arc_map[arc];
             continue;
-            //break;
         }
+
         lift_down.push_back(Pair2(arc, double(ystar[id_arc])));
         delta-= capa;
         ss_.pop_front();
-        //std::cout<<"n/c "<<arc<<" :("<<data->arcs[arc].i<<"-"<<data->arcs[arc].j<<") capa: "<<capa<<" y*: "<<ystar[arc]<<std::endl;
-        arc = ss_.front().fst;
-        id_arc = arc_map[arc];
     }
     //std::cout<<"stop : delta =  "<<delta<<std::endl;
     ss_.insert(ss_.end(), aux.begin(), aux.end());

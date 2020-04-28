@@ -89,7 +89,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     		set_bd(arc, 0.0, 0.0,  changed_pos, new_bd);
                     		conn_arcfix=true;
                     		yfxd[arc]=0;
-							//std::cout<<"fix "<<arc<<" to 0"<<std::endl;
+							std::cout<<"connfix "<<arc<<" to 0"<<std::endl;
                     	}else if(vars[arc]->lb()>0 || yfxd[arc]==1){ 
                     		/*std::cout<<"FlowConnect conflict2 "<<arc<<" "<<vars[arc]->lb()<<std::endl;*/ 
                     		return false;}
@@ -108,7 +108,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
                     	conn_arcfix=true;
                     	yfxd[arc_unique]=1;
-						//std::cout<<"fix "<<arc_unique<<" to 1"<<std::endl;
+						std::cout<<"connfix "<<arc_unique<<" to 1"<<std::endl;
                 	} 
                 }else if(comm_sat==0){
                 	//std::cout<<"FlowConnect conflict4"<<std::endl;  
@@ -134,7 +134,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
                     	conn_arcfix=true;
                     	yfxd[arc_unique]=1;
-						//std::cout<<"fix "<<arc_unique<<" to 1"<<std::endl;
+						std::cout<<"connfix "<<arc_unique<<" to 1"<<std::endl;
                 	} 
                 }else if(comm_sat==0){
                     //std::cout<<"FlowConnect conflict6"<<std::endl;  
@@ -154,6 +154,7 @@ FlowConnect::check_connectivity(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& cha
     int i, j;
     for(int arc=narcs;arc--;){
     	if(vars[arc]->ub()<0.5 || yfxd[arc] ==0) continue;
+    	else if(vars[arc]->lb()>0.5) yfxd[arc]=1;
     	//std::cout<<"arc: "<<arc<<std::endl;
         const Arc& a = data->arcs[arc];
         adjf[a.i-1].push_back(a.j-1);
@@ -168,7 +169,7 @@ FlowConnect::check_connectivity(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& cha
             BFS(false, i, adjb, labelb, Kd[i]);
         }
     }
-    if(!translate_results(vars, changed_pos, new_bd, conn_arcfix,yfxd)){ std::cout<<"check_connectivity::false"<<std::endl; return false;}
+    if(!translate_results(vars, changed_pos, new_bd, conn_arcfix,yfxd)){ /*std::cout<<"check_connectivity::false"<<std::endl;*/ return false;}
     
     reset();
     return true;

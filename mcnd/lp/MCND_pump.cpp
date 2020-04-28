@@ -43,8 +43,7 @@ Pump::reset( int szunfix_, std::deque<Pair2>& topo ){
 	int arc;
 	double norm=0;
 	
-	if(szunfix_==0) alpha= 1.0;
-	else alpha= 0.5; 
+	alpha = szunfix_/double(data->narcs);
 	
 	for(int a=szunfix;a--;){
 		arc = topo[a].fst;
@@ -59,8 +58,8 @@ Pump::reset( int szunfix_, std::deque<Pair2>& topo ){
 		factorp=0;
 	}else{
 		norm = sqrt(norm);
-		factorxy = alpha/norm;
-		factorp = (1.0 - alpha)/(sqrt(double(szunfix)));
+		factorxy = (1.0 - alpha)/norm;
+		factorp = alpha/(sqrt(double(szunfix)));
 	}
 }
 

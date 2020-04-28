@@ -85,7 +85,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		//std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd
+		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<std::endl;
 		///*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
         candidates.pop_front();		
 		vpos[0] = arc;
@@ -141,14 +141,14 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		if(vars[a]->lb()==0.0 && vars[a]->ub()==1.0){
 			//std::cout<<"penalty test: "<<a<<" "<<gij<<" lbs: "<<lb<<" "<<LBi<<std::endl;
 			if(gij>0 && (lb+gij)>=upper_bound()){
-				//std::cout<<a<<" WILL FIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
+				std::cout<<a<<" LOGFIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0; 
 				
 			}else if(gij<0 && (lb-gij)>=upper_bound()){
-				//std::cout<<a<<" WILL FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
+				std::cout<<a<<" LOGFIX FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
