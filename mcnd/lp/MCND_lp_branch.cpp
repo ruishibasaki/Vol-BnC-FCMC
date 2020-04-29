@@ -65,10 +65,14 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 				/*/if(min(ninsp[a].fst, ninsp[a].snd) >= data.narcs*0.1){
 					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
 					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
-				}else{*/
+				}*/
+				if(pump_heur.branch_candidates[a]>0){
+					psc0 = psc1 = pump_heur.branch_candidates[a];
+				}
+				else{
 					psc0 =  psol[a];
 					psc1 =  (1.0-psol[a]);
-				//} 
+				} 
 				/*if(has_sol){
 					psc0 = abs(best_sol.xy[a] - psol[a]);
 					psc1 = abs(best_sol.xy[a] - psol[a]);
@@ -101,7 +105,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 		++ncands;
 	}
 	candidates.clear();
-	
+	pump_heur.branch_candidates.assign(data.narcs, -1);
 	
 	//std::cout<<"do branch "<<ncands<<" force: "<<force_branch<<std::endl;
     if(ncands){
@@ -158,7 +162,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
 	}
 	
-	cut_varfix_and_updt( vars, cuts, changed_pos, new_bd);
+	if(!cut_varfix_and_updt( vars, cuts, changed_pos, new_bd)) return;
 
 	for(int a=data.narcs; a--;){
 		gij = rcsol[a];
@@ -380,7 +384,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		//std::cout<<"cancel branching "<<std::endl;
 		return;
 	}
-	//std::cout<<"branching variable: "<<var_branch<<std::endl;
+	std::cout<<"branching variable: "<<var_branch<<std::endl;
 	
 	if(to_logical_fix.size()) lp_mode |= LP_LogicalFixed;
 	strong_branch_var_logicfix(best->candidate());

@@ -29,7 +29,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     
     ss_manager.initialize(&data);
     cover_manager.initialize(&data, 20);
-    pump_heur.initialize(&data, 0.5);
+    pump_heur.initialize(&data, &best_sol, 0.5);
     lpfeaschecker.initialize(&data);
     flwconnect.initialize(&data);
     localc_manager.initialize(&data, 50);
@@ -40,7 +40,6 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     AppVolData.cover_manager = &cover_manager;
     AppVolData.localc_manager = &localc_manager;
     AppVolData.globalc_manager = &globalc_manager;
-    srand(10);
 
      
 }
@@ -544,9 +543,9 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     
     std::cout<<"try heuristic "<<pump_heur.szunfix<<" ?> "<<pump_heur.maxunfix<<" "<<(lp_mode & LP_HeuristicRunned)<<std::endl;
     if(cont>0){
-    	if(lp_mode & LP_HeuristicRunned /*|| num_nodes%10*/ || pump_heur.szunfix>pump_heur.maxunfix){ 
+    	if(lp_mode & LP_HeuristicRunned /*|| num_nodes%10*/){ 
     	 	delete []fixd;  return 0;}
-	}
+	}else if(cont<0){ delete []fixd;  return 0;}
     
 	//
 
@@ -632,7 +631,7 @@ MCND_lp::~MCND_lp(){
 	ninsp.clear(); 
 	psdcost.clear();
 	mapd.clear();
-    for(int i=track.size();i--;){
+   for(int i=track.size();i--;){
     	delete track[i];
     }
     track.clear();

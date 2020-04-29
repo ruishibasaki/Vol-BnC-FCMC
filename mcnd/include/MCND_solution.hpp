@@ -26,7 +26,7 @@ public:
 		for(int i= sz;i--;)xy[i]=0;}
 	
 	
-    MCND_solution(const int sz, const double c, double* sol) :
+   MCND_solution(const int sz, const double c, double* sol) :
 		size(sz),
 		cost(c), 
 		xy(sol) {}

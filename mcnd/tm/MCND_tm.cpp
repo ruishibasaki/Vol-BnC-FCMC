@@ -14,6 +14,7 @@
 
 int main(int argc, char* argv[])
 {
+	srand(11);
     MCND_initialize mcnd_init;
     return bcp_main(argc, argv, &mcnd_init);
 }
