@@ -4,6 +4,7 @@
 #include <ilcplex/ilocplex.h>
 
 #include "MCND_data.hpp"
+#include "MCND_solution.hpp"
 #include <vector>
 #include <deque>
 
@@ -31,11 +32,14 @@ public:
     
     void set_parameters();
     void initialize(const Data* d);
-    int solve_opt(const BCP_vec<BCP_var*>& vars, const double * topo);
+    void apply_bounds(const BCP_vec<BCP_var*>& vars);
+    
+    int solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double * topo, int * fixd, 
+    				int& closed, MCND_solution*& mipsol, double fathmval, double betsolv);
     int solve_feas(const double *collb, const double * colub);
     int solve();
     int getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double & solvalue, double &fathmval);
-
+	double compute_fathmval();
 };
 
 #endif 

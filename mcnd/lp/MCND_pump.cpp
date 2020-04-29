@@ -140,7 +140,7 @@ Pump::make_topo(int * fixd, int& closed,  const double * x ,const BCP_vec<BCP_va
         	topo[a]=0;
         }
     }
-    if(szunfix > maxunfix){
+    if(szunfix > maxunfix || cont>0){
     	return -1;
     }
     unsigned int* seqtopo = new unsigned int[sizeOfIdSeq];

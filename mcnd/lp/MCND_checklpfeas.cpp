@@ -81,14 +81,29 @@ LPFeasChecker::initialize(const Data* d){
 }
 
 //---------------------------------------------------------------------------
+
+void 
+LPFeasChecker::apply_bounds(const BCP_vec<BCP_var*>& vars){
+	 for(int a=0;a<narcs;++a){
+		if(vars[a]->ub()<=0.5){  continue; }
+		for(int k=0;k<ndemands;++k){
+			x[a*ndemands+k].setUB(vars[narcs+k*narcs+a]->ub()); 
+		}
+	}
+}
+
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 int
-LPFeasChecker::solve_opt(const BCP_vec<BCP_var*>& vars, const double * topo) {
+LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double * topo, 
+						int * fixd, int& closed, MCND_solution*& mipsol, double fathmval, double betsolv) {
     IloNum ub;
-    
     if(topo){
     	for(int a=0;a<narcs;++a){
-    		if(vars[a]->ub()<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
-			}else if(vars[a]->lb()<=0.5 && topo[a]<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
+    		if(vars[a]->ub()<=0.5 || topo[a]<=0.5){
+    			ub = 0.0; 
+    			fixd[++closed]=a;
 			}else{ ub = IloInfinity;}
 		
 			for(int k=0;k<ndemands;++k){
@@ -97,17 +112,41 @@ LPFeasChecker::solve_opt(const BCP_vec<BCP_var*>& vars, const double * topo) {
 		}
     }else{
 		for(int a=0;a<narcs;++a){
-			if(vars[a]->ub()<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
+			if(vars[a]->ub()<=0.5){ 
+				ub = 0.0; 
+				fixd[++closed]=a;
 			}else{ ub = IloInfinity;}
 		
 			for(int k=0;k<ndemands;++k){
-				x[a*ndemands+k].setUB(ub);
+				x[a*ndemands+k].setUB(ub); //fmin(ub,vars[narcs+k*narcs+a]->ub())
 			}
 		}
     }
     cplex.getObjective().setExpr(fobj2);
-	return solve();
-
+	int ret= solve();
+	if(ret<0) return -1;
+	
+	double fthmv = fathmval;
+	mipsol = new MCND_solution(narcs+narcs*ndemands);
+	ret = getSolution(  vars, mipsol->xy, mipsol->cost, fthmv);
+	if(fthmv >= betsolv){
+		delete mipsol;
+		return 0;
+	}else if(ret<0) return 2;
+	if(unfix==0) return 1;
+	
+	apply_bounds(vars);
+	ret= solve();
+	if(ret<0){
+		delete mipsol;
+		return -2;
+	} 
+	fthmv = fathmval + compute_fathmval();
+	if(fthmv >= betsolv){
+		delete mipsol;
+		return 0;
+	}
+	return 1;	
 }
 
 
@@ -172,6 +211,9 @@ LPFeasChecker::getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double& 
 			solvalue+=cij;
 			fathmval+=cij;
 			flow += val;
+			if(val> vars[narcs+k*narcs+a]->ub()+1e-4){
+				std::cout<<"atencao var: "<<narcs+k*narcs+a<<" val: "<<val<<" ub: "<< vars[narcs+k*narcs+a]->ub()<<std::endl;
+			}	
 		}
 		if(flow>1e-10){
 			sol[a] = 1.0;
@@ -180,9 +222,31 @@ LPFeasChecker::getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double& 
 		}//else if(vars[a]->lb()>=0.5){//std::cout<<"LPFeasChecker::getSolution FATHOM"<<std::endl; ret = -1;
 		//else std::cout<<"solclosed: "<<a<<std::endl;
 	}
-	
- 	//std::cout<<"feasibiliy integer sol value: "<<solvalue<<std::endl;
+	x_.end();
+ 	std::cout<<"feasibiliy integer sol value: "<<solvalue<<std::endl;
 	return ret;
+}
+
+//---------------------------------------------------------------------------
+
+double 
+LPFeasChecker::compute_fathmval(){
+ 	double val;
+	double cij;
+	double fathmval=0;
+	IloNumArray x_(env);
+	cplex.getValues(x_,x);
+	for(int a=0;a<narcs;++a){
+ 		for (int k = 0; k < ndemands; ++k){
+			val = x_[a*ndemands+k];
+ 			cij = data->arcs[a].c[k]*val;
+ 			fathmval+=cij;
+
+		}
+	}
+	x_.end();
+ 	//std::cout<<"feasibiliy integer sol value: "<<solvalue<<std::endl;
+	return fathmval;
 }
 
 //---------------------------------------------------------------------------

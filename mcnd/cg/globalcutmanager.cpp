@@ -77,7 +77,7 @@ GlobalCutManager::clean_collection(){
 //------------------------------------------------------------------------------------------
 
 int
-GlobalCutManager::globalc_generation_main( const double * ystar, const double * closed, int cont0, int curr_id){
+GlobalCutManager::globalc_generation_main( const double * ystar, const int * closed, int cont0, int curr_id){
     int opnd=0;
     int size;
     int * vars_;

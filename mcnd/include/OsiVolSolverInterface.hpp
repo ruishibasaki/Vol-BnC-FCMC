@@ -460,7 +460,7 @@ public:
 	void rebuild_collections();
     void add_external_cover(const std::deque<Pair2>& c);
     int add_external_localc( const int * y, const double * sol, int sz, int type);
-    int add_external_globalc( const double * y, int cont0);
+    int add_external_globalc( const int * y, int cont0);
     void direct_solve(const std::deque<int>& topo, const CoinWarmStart* warmstart);
     
     

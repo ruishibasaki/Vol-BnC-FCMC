@@ -163,20 +163,24 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	}
 	
 	if(!cut_varfix_and_updt( vars, cuts, changed_pos, new_bd)) return;
-
+	
+	double tt, bd, dk;
+	int id;
+	Arc * item;
 	for(int a=data.narcs; a--;){
-		gij = rcsol[a];
 		if(yfix[a]==0){ if(vars[a]->ub()==1.0)lp_mode |= LP_TestConnectivity; continue;}
-		Arc * item  =  &data.arcs[a];
-		double tt=0;
+		item  =  &data.arcs[a];
+		gij = rcsol[a];
 		for (int k=data.ndemands; k--;){
-			int id = data.narcs+k*data.narcs+a;
+			id = data.narcs+k*data.narcs+a;
 			if(vars[id]->ub()==0.0) continue;
-			ckij = item->c[k] - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
+			dk = data.d_k[k].quantity;
+			ckij = item->c[k]*dk - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
 			if(ckij>1e-4){
 				tt = ((gij > 0)&& (yfix[a]<1)) ? (lb+ gij) : lb;
-				if(tt + ckij*vars[id]->ub() > (upper_bound()+1e-4) ){
-					double bd = (upper_bound() - tt)/ckij;
+				if(tt + ckij*vars[id]->ub()/dk > (upper_bound()+1e-4) ){
+					bd = (upper_bound() - tt)/ckij;
+					bd*=dk;
 					if(bd<1e-8)bd=0.0;
 					if(bd > vars[id]->ub()){ std::cout<<"flow logical fix enlarged ub "<<bd<<" "<<vars[id]->ub()<<std::endl; abort();}
 					else if(vars[id]->ub()-bd <= 1e-4) continue;
