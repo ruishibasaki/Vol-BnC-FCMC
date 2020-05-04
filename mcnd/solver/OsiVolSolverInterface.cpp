@@ -839,7 +839,7 @@ int
 OsiVolSolverInterface::add_external_localc( const int * y, const double * sol, int sz, int type){ 
     if(numrows_>=maxNumrows_) return 0;
 
-	int ret;
+	int ret=0;
 	switch(type){
 		case 0:{
 			ret = localc_manager->localc0_generation_main(solution,  y, sz, numrows_);

@@ -66,13 +66,13 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
 					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
 				}*/
-				if(pump_heur.branch_candidates[a]>0){
-					psc0 = psc1 = pump_heur.branch_candidates[a];
-				}
-				else{
+				//if(pump_heur.branch_candidates[a]>0){
+				//	psc0 = psc1 = pump_heur.branch_candidates[a];
+				//}
+				//else{
 					psc0 =  psol[a];
 					psc1 =  (1.0-psol[a]);
-				} 
+				//} 
 				/*if(has_sol){
 					psc0 = abs(best_sol.xy[a] - psol[a]);
 					psc1 = abs(best_sol.xy[a] - psol[a]);
@@ -195,7 +195,10 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	}
 	
 	
-	if(changed_pos.size()>0) lp_mode |= LP_LogicalFixed;
+	if(changed_pos.size()>0){
+		lp_mode |= LP_LogicalFixed;
+		lp_mode &= ~LP_HeuristicRunned;
+	} 
 	if(lp_mode & LP_TestConnectivity){
 		lp_mode &= ~LP_TestConnectivity;
 		if(!verify_feasibility( changed_pos, new_bd, changed_pos.size())){

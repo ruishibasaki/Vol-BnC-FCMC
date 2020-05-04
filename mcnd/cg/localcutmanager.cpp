@@ -40,7 +40,7 @@ LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double 
         put=true;
         infeas=false;
         //if(vi->type==0)std::cout<<"try: type "<<vi->type<<" "<<vi->prgbl<<std::endl;
-
+		//if(vi->type==2) put=false;
         if(recheck_collct) put = vi->check_updt_Viol(topo, infeas);
         if(infeas) return -1;
 
@@ -94,6 +94,7 @@ LocalCutManager::localc0_generation_main( const double * ystar,  const int * clo
 	vars_ = new int[sz];
 	for(int a=sz;a--;){
 		 vars_[a]=closed[a];
+		 //std::cout<<"closed: "<<closed[a]<<std::endl;
 	}
 	
     int added=0;
@@ -247,7 +248,7 @@ LocalCutManager::check_fixable(std::list<Pair2>& rc_, std::vector<int>& T, doubl
 		rc_val = rc_.front().snd;
 		rc_.pop_front();
  		if(lb+rc_val>=ub){
- 			//std::cout<<"fixable "<<arc<<" to "<<fixto<<std::endl;
+ 			std::cout<<"fixable "<<arc<<" to "<<fixto<<std::endl; abort();
 			fixbl_arcs[arc]= fixto;
 		}else{
 		 	T.push_back(arc); 

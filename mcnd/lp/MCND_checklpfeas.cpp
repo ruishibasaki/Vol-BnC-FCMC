@@ -84,7 +84,7 @@ LPFeasChecker::initialize(const Data* d){
 
 void 
 LPFeasChecker::apply_bounds(const BCP_vec<BCP_var*>& vars){
-	 for(int a=0;a<narcs;++a){
+	for(int a=0;a<narcs;++a){
 		if(vars[a]->ub()<=0.5){  continue; }
 		for(int k=0;k<ndemands;++k){
 			x[a*ndemands+k].setUB(vars[narcs+k*narcs+a]->ub()); 
@@ -126,14 +126,15 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 	int ret= solve();
 	if(ret<0) return -1;
 	
+	bool bd_sat = true;
 	double fthmv = fathmval;
 	mipsol = new MCND_solution(narcs+narcs*ndemands);
-	ret = getSolution(  vars, mipsol->xy, mipsol->cost, fthmv);
+	ret = getSolution(  vars, mipsol->xy, mipsol->cost, fthmv, bd_sat);
 	if(fthmv >= betsolv){
 		delete mipsol;
 		return 0;
 	}else if(ret<0) return 2;
-	if(unfix==0) return 1;
+	if(unfix==0 || bd_sat) return 1;
 	
 	apply_bounds(vars);
 	ret= solve();
@@ -193,7 +194,7 @@ int LPFeasChecker::solve(){
 
 
 int 
-LPFeasChecker::getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double& solvalue, double &fathmval){
+LPFeasChecker::getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double& solvalue, double &fathmval, bool& bd_sat){
  	double flow;
 	double val;
 	double cij;
@@ -212,6 +213,7 @@ LPFeasChecker::getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double& 
 			fathmval+=cij;
 			flow += val;
 			if(val> vars[narcs+k*narcs+a]->ub()+1e-4){
+				bd_sat=false;
 				std::cout<<"atencao var: "<<narcs+k*narcs+a<<" val: "<<val<<" ub: "<< vars[narcs+k*narcs+a]->ub()<<std::endl;
 			}	
 		}
@@ -257,7 +259,9 @@ LPFeasChecker::~LPFeasChecker() {
 		cplex.clearModel();
 
 		x.end();
-         
+        fobj1.end();
+        fobj2.end();
+        
         model.end();
 		cplex.end();
 		env.end();
