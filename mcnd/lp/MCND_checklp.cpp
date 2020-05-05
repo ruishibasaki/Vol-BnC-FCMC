@@ -59,6 +59,11 @@ LPChecker::initialize(const Data* d, const MCND_solution* best_sol_, const Cover
              obj += data->arcs[a].c[k]*x[a*ndemands+k];
         }
     }
+    for (int k = 0; k < ndemands; ++k){
+		xextra.add(IloNumVar(env, 0.0, data->d_k[k].quantity));
+		obj += 1e8*xextra[k];
+	}
+	
     fobj = IloMinimize(env, obj);
     model.add(fobj);
     obj.end();
@@ -85,8 +90,10 @@ LPChecker::initialize(const Data* d, const MCND_solution* best_sol_, const Cover
             }
             
             if( i == data->d_k[k].D){
+            	constraint += xextra[k];
                 constraint -= data->d_k[k].quantity;
             }else if( i ==  data->d_k[k].O){
+            	constraint -= xextra[k];
                 constraint += data->d_k[k].quantity;
             }
             model.add(constraint == 0);
@@ -109,6 +116,25 @@ LPChecker::make_model(){
 	
 		for(int k=0;k<ndemands;++k){
 			x[a*ndemands+k].setUB(ub);
+		}
+	}
+}
+
+
+//-------------------------------------------------------------------------------------------
+
+void
+LPChecker::remake_model(){
+	double ub;
+	int arc;
+	for(int a=0;a<szunfixd;++a){
+    	arc = unfx[a];
+		if(topo[arc]<=0.5){
+			ub = 0.0; 
+ 		}else{ ub = IloInfinity;}
+	
+		for(int k=0;k<ndemands;++k){
+			x[arc*ndemands+k].setUB(ub);
 		}
 	}
 }
@@ -153,8 +179,7 @@ LPChecker::make_topo(  const double * x , const BCP_vec<BCP_var*>& vars){
          	topo[a]=0;
         }
     }
-	check_feas(seqtopo);
-    if(check_tabu(seqtopo)){
+   if(check_tabu(seqtopo)){
     	try_perturbation(seqtopo);
     	if(check_tabu(seqtopo)){
     		delete [] seqtopo;
@@ -219,64 +244,6 @@ LPChecker::try_perturbation(unsigned int* seqtopo){
 
 }
 
-//-------------------------------------------------------------------------------------------
-
-void
-LPChecker::check_feas(unsigned int* seqtopo){
-	/*int arc=0;
-	bool feas;
-	GlobalCut* gloc = globalcs->begin;
-	for(int i = globalcs->sizeOfCollection; i--;){
-		//std::cout<<"gloc_updt "<<gloc->serial_nmbr<<" "<<gloc->purgbl<<std::endl;
- 		feas =false;
-		for(int a=gloc->size;a--;){
-			arc = gloc->vars[a];
-			if(topo[arc]>0.5){
-				feas =true;
-				break;
-			}	
-		}
-		if(!feas){ std::cout<<"LPChecker::check_feas not"<<std::endl; }
-		gloc = gloc->next;
-	}
-	
-	Cover* cov = covers->begin;
-	for(int i = covers->sizeOfCollection; i--;){
-		//std::cout<<"gloc_updt "<<gloc->serial_nmbr<<" "<<gloc->purgbl<<std::endl;
-		feas =false;
-		double sum=0;
-		double comp= cov->get_rhs();
-		int sz = cov->get_total_sz();
-		for(int a=0;a<sz;++a){
-			sum+= cov->gamma_at(a)*topo[cov->at(a)];
-			if(sum>=comp){
-				feas =true;
-				break;
-			}
-		}
-		if(!feas){ std::cout<<"LPChecker::check_feas not"<<std::endl; }
-		cov = cov->next;
-	}
-	
-	LocalCut* loc = localcs->begin;
-	for(int i = localcs->sizeOfCollection; i--;){
-		//std::cout<<"gloc_updt "<<gloc->serial_nmbr<<" "<<gloc->purgbl<<std::endl;
-		feas =false;
-		double sum=0;
-		double comp= cov->get_rhs();
-		int sz = cov->get_total_sz();
-		for(int a=0;a<sz;++a){
-			sum+= cov->gamma_at(a)*topo[cov->at(a)];
-			if(sum>=comp){
-				feas =true;
-				break;
-			}
-		}
-		if(!feas){ std::cout<<"LPChecker::check_feas not"<<std::endl; }
-		cov = cov->next;
-	}*/
-	
-}
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -288,28 +255,51 @@ LPChecker::solve(int& closed, int*& fixd0, MCND_solution*& mipsol){
 	make_model();
 	cplex.solve();
 	
+	int ret;
 	if(cplex.getStatus() == IloAlgorithm::Optimal){
-		getSolution(mipsol);
-        std::cout<<"LPChecker: "<<cplex.getObjValue()<<std::endl;
-		return 0;
+        ret = check_feas(true);
+        if(ret<0){
+        	fixd0 = new int[narcs];
+			closed=0;
+			for(int a=0;a<narcs;++a){
+				if(topo[a]==0){
+					fixd0[closed++] = a;
+					//std::cout<<"chekclosed: "<<a<<std::endl;
+				}
+			}
+        	if(ret==-1){
+				remake_model();
+				cplex.solve();
+				if(cplex.getStatus() == IloAlgorithm::Optimal){
+					ret = check_feas(false);
+					if(ret<0) return -2;
+				   
+				    //std::cout<<"LPChecker: "<<cplex.getObjValue()<<std::endl;
+        			getSolution(mipsol);
+        			return 0;
+        		}else return -3;
+			}else if(ret==-2) return -2;
+        }
+        //std::cout<<"LPChecker: "<<cplex.getObjValue()<<std::endl;
+        getSolution(mipsol);
+		return 1; 
 	}
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){	 
 		fixd0 = new int[narcs];
 		closed=0;
 		for(int a=0;a<narcs;++a){
- 			if(topo[a]==0){
- 				fixd0[closed++] = a;
- 				//std::cout<<"chekclosed: "<<a<<std::endl;
- 			}
- 		}
-		return -1;
-	} 
-	else return -3;
+			if(topo[a]==0){
+				fixd0[closed++] = a;
+				//std::cout<<"chekclosed: "<<a<<std::endl;
+			}
+		}
+ 		std::cout<<"LPChecker::solve::cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl; abort();
+		return -3;
+	}else return -3;
 	
 }
 
-//---------------------------------------------------------------------------
-
+//-------------------------------------------------------------------------------------------
 
 int 
 LPChecker::getSolution(MCND_solution*& mipsol){
@@ -351,6 +341,118 @@ LPChecker::getSolution(MCND_solution*& mipsol){
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 
+int
+LPChecker::check_feas(bool restore){
+	int ret=0;
+	double val;
+	bool feas=true;
+	std::list<Pair2> unrouted;
+	IloNumArray x_(env);
+	cplex.getValues(x_,xextra);
+	for (int k = 0; k < ndemands; ++k){
+		val = x_[k];
+		if(val>1e-8){ 
+			feas=false; 
+			unrouted.push_back(Pair2(k, val));
+			//std::cout<<"comm: "<<k<<" val: "<<val<<std::endl;
+		}
+	}
+	if(!feas){
+		if(restore){
+			unrouted.sort(compPair2());
+			ret = final_feas(unrouted, x_);
+			if(ret < 0) return -2;
+			else return -1;
+		}else return -2;
+	}
+  	return 0;
+}
+
+//---------------------------------------------------------------------------
+
+
+int
+LPChecker::final_feas( std::list<Pair2>& heap,  const IloNumArray & xextrasol){
+     
+    IloNumArray xsol(env);
+	cplex.getValues(xsol,x);
+    //std::vector<double> primal(narcs*ndemands,0.0);
+    std::vector<int> grid(nnodes*nnodes,-1);
+    std::vector<double> wij(narcs,0.0);
+    std::vector<double> uij(narcs,0.0);
+    std::vector<Pair1> preced(nnodes);
+    int arc;
+    int k=0;
+    double epsP=0.0;
+    
+    for(int a=0;a<narcs;++a){
+        if(topo[a]==1){
+        	uij[a] = data->arcs[a].capa;
+            for (int k = 0; k < ndemands; ++k)
+                uij[a] -= xsol[a*ndemands+k];
+        }
+    }
+
+    //------- main loop ----------
+    while(!heap.empty()){
+        k = heap.front().fst;
+        epsP =  heap.front().snd;
+        //std::cout<<"k "<<k<<" "<<epsP<<" : "<<data->d_k[k].O<<" , "<<data->d_k[k].D<<std::endl;
+       for(int a=0;a<narcs;++a){
+            if(epsP <= uij[a]){
+                //wij[a]= 1e-30;
+                //std::cout<<"arc: "<<a<<" : "<<data->arcs[a].i<<" , "<<data->arcs[a].j<<std::endl;
+                grid[(data->arcs[a].i-1)*nnodes+data->arcs[a].j-1]= a;
+                if(topo[a]==0) wij[a]= data->arcs[a].c[k]*epsP + data->arcs[a].f*epsP/uij[a];
+                else wij[a] = data->arcs[a].c[k]*epsP;
+                
+            }else grid[(data->arcs[a].i-1)*nnodes+data->arcs[a].j-1]=-1;
+        }
+        dijkstra(data->d_k[k].O, data->d_k[k].D, grid, preced, wij);//find path
+        
+        //path retrival
+        int i,j;
+        int contnodes=1;
+        j=data->d_k[k].D;
+        while (j != data->d_k[k].O){
+            i = preced[j-1].node;
+            arc = preced[j-1].pos;
+             
+            if(arc<0){
+                //std::cout<<"ERROR 0/0: infeasible heuristic solution !!!!! "<<"commdoity "<<k<<" node: "<<i<<" "<<arc<<"/"<<narcs<<std::endl;
+                return -1; //no feasible solution found
+            }else if (uij[arc]<=1e-10 || contnodes>nnodes) { //check if impossible path
+                //std::cout<<"ERROR 0/1: infeasible heuristic solution !!!!! "<<"commdoity "<<k<<" node: "<<i<<" "<<arc<<"/"<<narcs<<std::endl;
+                return -1; //no feasible solution found
+            }
+            
+            if(topo[arc]==0)topo[arc]=1;
+            //primal[k*narcs+arcij] += epsP;
+            uij[arc]-=epsP;
+            // if(dmand==31)std::cout<<data->arcs[arcij].i<<"-"<<data->arcs[arcij].j<<std::endl;
+            if(uij[arc]<1e-8){//arc is saturated
+                wij[arc] = 1e30; //block
+                grid[(i-1)*nnodes+j-1]=-1;
+            }
+            j = i;
+            contnodes++;
+        }
+        heap.pop_front();
+    }
+    
+    grid.clear();
+    wij.clear();
+    uij.clear();
+    preced.clear();
+    return 1;
+}
+
+
+
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+
 LPChecker::~LPChecker() {
     
     try {
@@ -363,6 +465,7 @@ LPChecker::~LPChecker() {
 		topo.clear();
 		
         x.endElements();
+        xextra.endElements();
  		cplex.clearModel();
 		model.end();
 		cplex.end();

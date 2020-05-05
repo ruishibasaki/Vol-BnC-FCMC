@@ -11,6 +11,7 @@
 #include "MCND_solution.hpp"
 #include "UtilsMethods.hpp"
 #include <vector>
+#include <list>
 #include <algorithm>
 
 
@@ -24,7 +25,8 @@ public:
     IloObjective fobj;
  
     IloNumVarArray x;
-    
+    IloNumVarArray xextra;
+
 	std::vector<int> unfx;
  	std::vector<int> topo;
  	std::vector<unsigned int *> tabu;
@@ -43,7 +45,7 @@ public:
     const MCND_solution* best_sol;
     // construtores
 	//--------------------------
-    inline LPChecker():model(env), cplex(env), x(env), fobj(env){ data =0; best_sol=0; };
+    inline LPChecker():model(env), cplex(env), x(env), fobj(env), xextra(env){ data =0; best_sol=0; };
     virtual ~LPChecker();
     
     //--------------------------
@@ -52,14 +54,19 @@ public:
     void initialize(const Data* d, const MCND_solution* best_sol_, const CoverCollection* cover_man_,
     				const LocalCutCollection* localc_man_, const GlobalCutCollection* globalc_man_);
     void make_model();
+    void remake_model();
 	//--------------------------
 	bool check_tabu(unsigned int* seqtopo);
 	void try_perturbation(unsigned int* seqtopo);
-	void check_feas(unsigned int* seqtopo);
+	
 	//--------------------------
 	int solve(int& closed, int*& fixd0, MCND_solution*& mipsol);
     int make_topo(  const double * x , const BCP_vec<BCP_var*>& vars);
 	int getSolution(MCND_solution*& mipsol);
+	//--------------------------
+
+	int check_feas(bool restore);
+	int final_feas( std::list<Pair2>& heap,  const IloNumArray & xextrasol);
 };
 
 #endif 
