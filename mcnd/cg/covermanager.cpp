@@ -777,7 +777,7 @@ CoverManager::compute_cover_sg( const double * x, const int * actvS, int actvSSz
             //if(c->C[a]==74)std::cout<<"in c: "<<c->C[a]<<" : "<<y[c->C[a]]<<std::endl;
             //std::cout<<i<<" inc: "<<cover->C[a]<<" : "<<x[cover->C[a]]<<std::endl;
         }
-		if(index>=actvSSz){ std::cout<<"localindex: "<<index<<"/"<<actvSSz<<std::endl;  abort();}
+		if(index>=actvSSz){ std::cout<<"coverindex: "<<index<<"/"<<actvSSz<<std::endl;  abort();}
         if(v[index]<=0){
             ++vi->n_nviol;
             if(vi->n_nviol>=lim_to_remv && vi->n_zerom>0) v[index]=0;

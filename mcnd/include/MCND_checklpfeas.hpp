@@ -38,7 +38,7 @@ public:
     				int& closed, MCND_solution*& mipsol, double fathmval, double betsolv);
     int solve_feas(const double *collb, const double * colub);
     int solve();
-    int getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double & solvalue, double &fathmval);
+    int getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double & solvalue, double &fathmval, bool& bd_sat );
 	double compute_fathmval();
 };
 

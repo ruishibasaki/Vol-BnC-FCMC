@@ -140,7 +140,7 @@ Pump::make_topo(int * fixd, int& closed,  const double * x ,const BCP_vec<BCP_va
         	topo[a]=0;
         }
     }
-    if(szunfix > maxunfix || cont>0){
+    if(szunfix > maxunfix ){
     	return -1;
     }
     unsigned int* seqtopo = new unsigned int[sizeOfIdSeq];
@@ -426,6 +426,7 @@ Pump::~Pump() {
 			if(tabu[i]!=0) delete [] tabu[i];
 		}
 		tabu.clear();
+        delete [] map;
 	} catch (IloException& e) {
 		std::cerr << "ERROR: " << e.getMessage() << std::endl;
 	} catch (...) {

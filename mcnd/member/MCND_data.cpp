@@ -152,7 +152,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
 bool 
 FlowConnect::check_connectivity(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, bool& conn_arcfix, int * yfxd){
     int i, j;
-    for(int arc=narcs;arc--;){
+    for(int arc=narcs; arc--;){
     	if(vars[arc]->ub()<0.5 || yfxd[arc] ==0) continue;
     	else if(vars[arc]->lb()>0.5) yfxd[arc]=1;
     	//std::cout<<"arc: "<<arc<<std::endl;

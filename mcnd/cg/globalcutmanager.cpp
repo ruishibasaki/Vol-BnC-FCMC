@@ -232,12 +232,13 @@ GlobalCutManager::compute_cover_sg( const double * x, const int * actvS, int act
             if(id_arc<0) continue;
             v[index] -=  x[id_arc];
         } 
-		if(index>=actvSSz){ std::cout<<"localindex: "<<index<<"/"<<actvSSz<<std::endl; abort(); }
+		if(index>=actvSSz){ std::cout<<"globalindex: "<<index<<"/"<<actvSSz<<std::endl; abort(); }
         if(v[index]<=0){
             ++vi->n_nviol;
             if(vi->n_nviol>=lim_to_remv && vi->n_zerom>0) v[index]=0;
         }else vi->n_nviol=0;
-        //if(vi->serial_nmbr == 87){ vi->print(); std::cout<<"global87: "<<v[index]<<std::endl;}
+    	
+    	//if(v[index]>0){ std::cout<<"global: "<<vi->serial_nmbr<<" = "<<v[index]<<std::endl;}
          vi = vi->next;
     }    
     return 0;

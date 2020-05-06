@@ -123,8 +123,8 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    p.par.set_entry(BCP_tm_par::QualityRatioToAllowDiving_NoUB, -1.0);
    p.par.set_entry(BCP_tm_par::RemoveExploredBranches, true);
    p.par.set_entry(BCP_tm_par::MessagePassingIsSerial, true);
-
-   p.par.set_entry(BCP_tm_par::MaxRunTime, 5*3600.0);
+	time_lim = 5*3600.0;
+   p.par.set_entry(BCP_tm_par::MaxRunTime, time_lim);
 
    tm->t_start = clock();
    return tm; 
@@ -137,33 +137,33 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
 	
    MCND_lp* lp = new MCND_lp;
     
-    p.par.set_entry(BCP_lp_par::LpVerb_AddedCutCount, true);
+    p.par.set_entry(BCP_lp_par::LpVerb_AddedCutCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_AddedVarCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ChildrenInfo, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ColumnGenerationInfo, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_CutsToCutPoolCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_VarsToVarPoolCount, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_FathomInfo, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_FathomInfo, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_IterationCount, true);
 	p.par.set_entry(BCP_lp_par::LpVerb_RelaxedSolution, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_FinalRelaxedSolution, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_LpMatrixSize, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_LpSolutionValue, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_MatrixCompression, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_MatrixCompression, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_NodeTime, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolvePositions, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolveResult, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ProcessedNodeIndex, true);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportCutGenTimeout, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportVarGenTimeout, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_ReportLocalCutPoolSize, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_ReportLocalCutPoolSize, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportLocalVarPoolSize, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_RepricingResult, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_RowEffectivenessCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_VarTightening, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_StrongBranchPositions, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_StrongBranchResult, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_GeneratedCutCount, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_GeneratedCutCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_GeneratedVarCount, false);
    
    p.par.set_entry(BCP_lp_par::DoReducedCostFixingAtZero ,false);
