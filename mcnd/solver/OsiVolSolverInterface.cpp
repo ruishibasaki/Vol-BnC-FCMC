@@ -874,7 +874,7 @@ OsiVolSolverInterface::add_external_localc( const int * y, const double * sol, i
 int 
 OsiVolSolverInterface::add_external_globalc( const int * y, int cont0){
 	
-     
+	if(cont0==0) return 0;     
  	int ret = globalc_manager->globalc_generation_main(solution , y, cont0, numrows_);
  
 	if(numrows_>=maxNumrows_) return 0;

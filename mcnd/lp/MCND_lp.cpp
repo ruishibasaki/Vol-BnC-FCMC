@@ -557,7 +557,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
      	if(retval==0){
      		std::cout<<"MCND_lp::generate_heuristic_solution::add_external_globalc1 type 0"<<std::endl;
 			getOsiVolBabSolver()->add_external_globalc( fixd0, closed);
-			if(fixd0) delete fixd0;
+			if(fixd0) delete [] fixd0;
      	}
     	if(upper_bound() > sol->cost){
     		has_sol =true;
@@ -578,7 +578,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
 		//if(getOsiVolBabSolver()->add_external_localc(fixd0, 0, closed, 0))
 			//lp_mode |= LP_CutAddedFromHeuristic;
 		getOsiVolBabSolver()->add_external_globalc( fixd0, closed);
-		if(fixd0) delete fixd0;
+		if(fixd0) delete [] fixd0;
     }
    
     return 0;

@@ -103,7 +103,7 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
     	for(int a=0;a<narcs;++a){
     		if(vars[a]->ub()<=0.5 || topo[a]<=0.5){
     			ub = 0.0; 
-    			fixd[++closed]=a;
+    			fixd[closed++]=a;
 			}else{ ub = IloInfinity;}
 		
 			for(int k=0;k<ndemands;++k){
@@ -114,7 +114,7 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 		for(int a=0;a<narcs;++a){
 			if(vars[a]->ub()<=0.5){ 
 				ub = 0.0; 
-				fixd[++closed]=a;
+				fixd[closed++]=a;
 			}else{ ub = IloInfinity;}
 		
 			for(int k=0;k<ndemands;++k){

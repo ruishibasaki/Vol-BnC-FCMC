@@ -458,7 +458,7 @@ LPChecker::~LPChecker() {
     try {
     	delete [] map;
     	for(int i=tabusz;i--;){
-			if(tabu[i]) delete tabu[i];
+			if(tabu[i]) delete [] tabu[i];
 		}
 		tabu.clear();
 		unfx.clear();
