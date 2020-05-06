@@ -222,7 +222,7 @@ MCND_tm::display_node_information(BCP_tree& search_tree,
 	if(Best_LB<lower_bound())
 		Best_LB=lower_bound();
 	
-	//std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
+	std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
 				   
 }
 

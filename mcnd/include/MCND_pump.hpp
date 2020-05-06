@@ -27,41 +27,38 @@ public:
 	IloObjective fobj;
 	IloRangeArray cutstrong;
 	 
-	double factorxy, factorp;
-	double alpha;
-	//--------------------------
+	double factorx;
+ 	//--------------------------
 	
 	const Data * data;
 	const MCND_solution* best_sol;
 
 	int nnodes, ndemands, narcs;
 	int szunfix, maxunfix;
-	int tern;
+	int tern, tabusz;
  	std::deque<int> unfx;
  	std::vector<int> topo;
  	std::vector<unsigned int *> tabu;
-    std::vector<double> branch_candidates;
-
+ 
 	//--------------------------
 	Pump(): cplex(env), x(env), y(env), model(env), fobj(env), cutstrong(env) {data =0;  }
-	void set_data(const Data * d, double alph_init );
-	void initialize(const Data * d, const MCND_solution* best_sol_, double alph_init);
+	void set_data(const Data * d);
+	void initialize(const Data * d, const MCND_solution* best_sol_);
 	void set_parameters();
 	
 	//--------------------------
-	int make_topo(int * fixd, int& closed,  const double * x  , const BCP_vec<BCP_var*>& vars);
+	int make_topo( const double * x  , const BCP_vec<BCP_var*>& vars);
 	bool check_tabu(unsigned int* seqtopo);
 	void try_perturbation(unsigned int* seqtopo);
 	//--------------------------
 
-	void reset(  const BCP_vec<BCP_var*>& vars);
-	void create_model( const BCP_vec<BCP_var*>& vars);
-	
+ 	void create_model(  );
+	void check_feas_model();
 	//--------------------------
-	int solve( const BCP_vec<BCP_var*>& vars,  double * xy, double & val );
+	int solve(int *& fixd, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_solution*& mipsol);
 	int cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArray & x_);
-	double getSolution(   double * xy,  const IloNumArray & x_, const IloNumArray & y_ );
-
+	double getSolution(  const IloNumArray & x_, MCND_solution*& mipsol );
+	void get_closed(int*& fixd, int& closed, bool onlyx);
 	
 	void clear();
 	~Pump(); //x.endElements(); 

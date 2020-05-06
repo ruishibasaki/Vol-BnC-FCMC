@@ -105,8 +105,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 		++ncands;
 	}
 	candidates.clear();
-	pump_heur.branch_candidates.assign(data.narcs, -1);
-	
+ 	
 	//std::cout<<"do branch "<<ncands<<" force: "<<force_branch<<std::endl;
     if(ncands){
      	lp_mode |= LP_StrongBranch;
@@ -138,6 +137,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
     const double * rcsol = lpres.dj();
     double lb = lpres.objval();
     double gij, ckij;
+    bool arcfx=false;
      
     std::fill(yfix,yfix+data.narcs, -1);
  	for (int a=data.narcs; a--;){
@@ -168,7 +168,8 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	int id;
 	Arc * item;
 	for(int a=data.narcs; a--;){
-		if(yfix[a]==0){ if(vars[a]->ub()==1.0)lp_mode |= LP_TestConnectivity; continue;}
+		if(yfix[a]==0){ if(vars[a]->ub()==1.0){lp_mode |= LP_TestConnectivity; arcfx=true;}continue;}
+		else if(yfix[a]==1 && vars[a]->lb()==0.0){ arcfx=true;}
 		item  =  &data.arcs[a];
 		gij = rcsol[a];
 		for (int k=data.ndemands; k--;){
@@ -194,11 +195,13 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		}
 	}
 	
-	
-	if(changed_pos.size()>0){
-		lp_mode |= LP_LogicalFixed;
-		lp_mode &= ~LP_HeuristicRunned;
-	} 
+	if(arcfx){
+		lp_mode |= LP_LogicalFixed;	
+		lp_mode |= LP_TestFeasibility;
+	}
+	//if(changed_pos.size()>0){
+	//	lp_mode |= LP_LogicalFixed;
+	//} 
 	if(lp_mode & LP_TestConnectivity){
 		lp_mode &= ~LP_TestConnectivity;
 		if(!verify_feasibility( changed_pos, new_bd, changed_pos.size())){

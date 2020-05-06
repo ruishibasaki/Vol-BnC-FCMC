@@ -31,11 +31,12 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     localc_manager.initialize(&data, 50);
     globalc_manager.initialize(&data, 50);
     ss_manager.initialize(&data);
-    pump_heur.initialize(&data, &best_sol, 0.5);
+    
+    pump_heur.initialize(&data, &best_sol);
     lpfeaschecker.initialize(&data);
     flwconnect.initialize(&data);
     
-    topo_heur.initialize(&data, &best_sol, &cover_manager.covers, &localc_manager.locals, &globalc_manager.globals);
+    //topo_heur.initialize(&data, &best_sol, &cover_manager.covers, &localc_manager.locals, &globalc_manager.globals);
     
     AppVolData.data = &data;
     AppVolData.ss_manager = &ss_manager;
@@ -106,7 +107,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     } 
     
     cut_varfix_and_updt( vars, cuts, var_changed_pos, var_new_bd);
-    
+    lp_mode |= LP_TestFeasibility;
     //for (int a=var_changed_pos.size(); a--;){
 	//	std::cout<<"changebd: "<<var_changed_pos[a]<<" ("<<vars[var_changed_pos[a]]->lb()<<" , "<<vars[var_changed_pos[a]]->ub()<<") new: ("<<
 	//	var_new_bd[a*2]<<" , "<<var_new_bd[a*2+1]<<") "<<std::endl;
@@ -453,8 +454,9 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
                           const BCP_vec<BCP_cut*>& cuts){
      if(lp_mode & LP_StrongBranch || 
     	lp_mode & LP_ForceNodeAbort ||
-    	lp_mode & LP_HeuristicRunned) return 0;
+    	!(lp_mode & LP_TestFeasibility)) return 0;
  	
+ 	lp_mode &= ~LP_TestFeasibility;
 
 	const double *sol = lp_result.x();
 	int *fixd = new int [data.narcs];  
@@ -482,8 +484,8 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     	delete []fixd;
     	return 0;
     }
- 	lp_mode |= LP_HeuristicRunned;
-	if(ret<=0){
+ 
+ 	if(ret<=0){
 		if(ret==-1){
 			std::cout<<"MCND_lp::test_feasibility::add_external_globalc type 0"<<std::endl;
 			getOsiVolBabSolver()->add_external_globalc( fixd, closed);
@@ -540,7 +542,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     const double * x = lpres.x();
     int * fixd0 = 0;
     int closed=0;
-	int cont= topo_heur.make_topo( x, vars);
+	int cont= pump_heur.make_topo( x, vars);
     
     //
     if(cont>0 && current_iteration()>1){
@@ -548,7 +550,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
 	}else if(cont<0){   return 0;}
     
 	std::cout<<"try heuristic "<<cont<<" "<<(lp_mode & LP_HeuristicRunned)<<std::endl;
-    int retval = topo_heur.solve(closed, fixd0, sol); 
+    int retval = pump_heur.solve( fixd0, closed, vars, sol); 
     lp_mode |= LP_HeuristicRunned;
     if(retval>=0){
      	std::cout<<"heuristic sol: "<<sol->cost<<std::endl;

@@ -130,14 +130,18 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 	double fthmv = fathmval;
 	mipsol = new MCND_solution(narcs+narcs*ndemands);
 	ret = getSolution(  vars, mipsol->xy, mipsol->cost, fthmv, bd_sat);
+	if(topo || unfix==0){
+		return 1;
+	}
 	if(fthmv >= betsolv){
 		delete mipsol;
 		return 0;
 	}else if(ret<0) return 2;
-	if(unfix==0 || bd_sat) return 1;
+	if(bd_sat) return 1;
 	
 	apply_bounds(vars);
 	ret= solve();
+	std:cout<<"test_feasibility::resolve"<<std::endl;
 	if(ret<0){
 		delete mipsol;
 		return -2;

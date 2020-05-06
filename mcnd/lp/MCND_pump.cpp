@@ -7,18 +7,18 @@ ILOSTLBEGIN
 
 
 void
-Pump::set_data(const Data * d, double alph_init){
+Pump::set_data(const Data * d){
 	
 	data = d;
 	nnodes = data->nnodes;
 	ndemands = data->ndemands;
 	narcs = data->narcs;
-	alpha = alph_init;
+ 	unfx.resize(narcs);
 	topo.resize(narcs);
 	tabu.resize(1000,0);
-	branch_candidates.resize(narcs);
-	
-	tern=0;
+ 	
+	tabusz = tern=0;
+	szunfix=0;
 	maxunfix = narcs*0.1;
 	set_parameters();
 	
@@ -30,6 +30,13 @@ Pump::set_data(const Data * d, double alph_init){
         map[i].fst = i/sizeOfInt;
         map[i].snd = i%sizeOfInt;
     }
+    double norm=0;
+    for(int a=narcs;a--;){
+		for (int k = 0; k<ndemands;++k)
+			norm+=pow(data->arcs[a].c[k],2);
+	}
+	norm = sqrt(norm);
+	factorx = 1.0/norm;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -48,8 +55,8 @@ void Pump::set_parameters() {
 //---------------------------------------------------------------------------
 
 void
-Pump::initialize(const Data * d,  const MCND_solution* best_sol_, double alph_init){
-    set_data(d, alph_init);
+Pump::initialize(const Data * d,  const MCND_solution* best_sol_){
+    set_data(d);
     best_sol = best_sol_;
     IloExpr obj(env);
     //x = IloNumVarArray(env);
@@ -57,10 +64,10 @@ Pump::initialize(const Data * d,  const MCND_solution* best_sol_, double alph_in
     for(int a=0;a<narcs;++a){
         for (int k = 0; k < ndemands; ++k){
             x.add(IloNumVar(env, 0.0, IloInfinity));
-            obj += x[a*ndemands+k];
+            obj += data->arcs[a].c[k]*x[a*ndemands+k];
          }
          y.add(IloNumVar(env, 0.0, 1.0));
-         obj+= y[a];
+         obj+=  data->arcs[a].f*y[a];
     }
     fobj = IloMinimize(env, obj);
     model.add(fobj);
@@ -105,46 +112,50 @@ Pump::initialize(const Data * d,  const MCND_solution* best_sol_, double alph_in
 //-------------------------------------------------------------------------------------------
 
 int
-Pump::make_topo(int * fixd, int& closed,  const double * x ,const BCP_vec<BCP_var*>& vars){
+Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
+	unsigned int* seqtopo = new unsigned int[sizeOfIdSeq];
+	std::fill(seqtopo, seqtopo+sizeOfIdSeq, 0);
+	Pair2* maptitem=0;
+	int rnd=0;
 	int cont=0;
-	closed = 0;
-	szunfix=0;
-	
+ 	szunfix=0;
 	for(int a=narcs; a--;){
+		maptitem = &map[a];
         if(vars[a]->lb()==1.0){
-            topo[a]=2;
+            topo[a]=-2;
+            setBit(seqtopo, maptitem->fst, maptitem->snd);
         }else if(vars[a]->ub()==1.0){
             if(x[a]>=0.9){ 
-            	topo[a]=2;
+            	topo[a]=-2;
+            	setBit(seqtopo, maptitem->fst, maptitem->snd);
             }else if(x[a]>=0.1){
-            	if(rand()%2==1){
-            		if(best_sol->xy[a]==1){
-            			topo[a]=-1;
-            		}else{
-            			topo[a]=1;
-            		}
-            	}else if(x[a]>0.5){
-            		topo[a]=-1;
-            	}else{
-            		topo[a]=1;
-            	} 
-            	++szunfix;
-            	unfx.push_back(a);
+            	rnd = rand()%2;
+				if(rnd==1){
+					if(best_sol->xy[a]>0.5){
+						topo[a]=-1;
+						setBit(seqtopo, maptitem->fst, maptitem->snd);
+					}else{
+						topo[a]=1;
+					}
+				}else{
+					rnd = ((rand()%100)/100.0 <= x[a]) ? 1 : 0;
+					if(rnd){
+						topo[a]=-1;
+						setBit(seqtopo, maptitem->fst, maptitem->snd);
+					}else{
+						topo[a]=1;
+					}
+				}		 
+				unfx[szunfix++] = a;   
             }else{
-            	fixd[closed++]=a; 
-            	topo[a]=0;
+             	topo[a]=0;
             }//std::cout<<"cand: "<<a<<" "<<x[a]<<std::endl;}
         	++cont;
         }else{ 
-        	fixd[closed++]=a;  
-        	topo[a]=0;
+         	topo[a]=0;
         }
     }
-    if(szunfix > maxunfix ){
-    	return -1;
-    }
-    unsigned int* seqtopo = new unsigned int[sizeOfIdSeq];
-	std::fill(seqtopo, seqtopo+sizeOfIdSeq, 0);
+    
     if(check_tabu(seqtopo)){
     	try_perturbation(seqtopo);
     	if(check_tabu(seqtopo)){
@@ -164,14 +175,7 @@ Pump::check_tabu(unsigned int* seqtopo){
 	bool equal;
 	Pair2* maptitem=0;
 
-	for(int a=narcs; a--;){
-		maptitem = &map[a];
-		if(topo[a]==2 || topo[a]==-1){
-			setBit(seqtopo, maptitem->fst, maptitem->snd);
-		}
-	}
-
-	for(int i=tern;i--;){
+	for(int i=tabusz;i--;){
 		titem = tabu[i];
 		equal=true;
 		for(int id=0;id<sizeOfIdSeq;++id){
@@ -188,6 +192,9 @@ Pump::check_tabu(unsigned int* seqtopo){
     unsigned int*& tabuitem = tabu[tern];
 	if(tabuitem) { delete [] tabuitem;}
 	tabuitem = seqtopo;
+	if(tabusz<tabu.size())++tabusz;
+	++tern;
+
 	
     return false;
 }
@@ -199,14 +206,15 @@ Pump::try_perturbation(unsigned int* seqtopo){
 	int arc;
 	Pair2* maptitem=0;
 	std::cout<<"Pump::try_perturbation"<<std::endl;
+	std::random_shuffle(unfx.begin(), unfx.begin()+szunfix);
  	for(int a=0;a<szunfix;++a){
 		arc = unfx[a];
 		std::cout<<"arc: "<<arc<<std::endl;
-		if(best_sol->xy[arc]==0 && topo[arc]==-1){
+		if(topo[arc]==-1){
 			topo[arc]=1;
 			maptitem = &map[arc];
 			clearBit(seqtopo, maptitem->fst, maptitem->snd);
-		}else if(best_sol->xy[arc]==1 && topo[arc]==1){
+		}else if(topo[arc]==1){
 			topo[arc]=-1;
 			maptitem = &map[arc];
 			setBit(seqtopo, maptitem->fst, maptitem->snd);
@@ -220,32 +228,7 @@ Pump::try_perturbation(unsigned int* seqtopo){
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 
-void  
-Pump::reset( const BCP_vec<BCP_var*>& vars){
-	int arc;
-	double norm=0;
-	alpha = szunfix/double(maxunfix);
-	
-	if(szunfix ==0 ){
-		factorxy=1;
-		factorp=0;
-	}else{
-		for(int a=narcs;a--;){
-			if(topo[a]==0) continue;
- 			if(topo[a]!=2) norm+= pow(data->arcs[a].f,2);
-			//std::cout<<data->arcs[arc].f<<std::endl;
-			for (int k = 0; k<ndemands;++k)
-				norm+=pow(data->arcs[a].c[k],2);
-		}
-		norm = sqrt(norm);
-		factorxy = (1.0 - alpha)/norm;
-		factorp = alpha/(sqrt(double(szunfix)));
-	}
-}
-
-//-------------------------------------------------------------------------------------------
-
-void Pump::create_model( const BCP_vec<BCP_var*>& vars) {	
+void Pump::create_model( ) {	
 	Pair2 item;
 	int arc;
 	double c;
@@ -253,31 +236,45 @@ void Pump::create_model( const BCP_vec<BCP_var*>& vars) {
 	IloExpr obj(env);
 	for(int a=narcs ; a--; ){
 		if(topo[a]==0){
-			//std::cout<<"out: "<<a<<std::endl;
-			y[a].setUB(0.0);
-			y[a].setLB(0.0);
 			continue;
 		} 
 		for (int k = ndemands; k-- ;){
-			//x[a*ndemands+k].setUB(vars[narcs+k*narcs+a]->ub());
-			obj += factorxy*data->arcs[a].c[k]*x[a*ndemands+k];
+ 			obj += factorx*data->arcs[a].c[k]*x[a*ndemands+k];
 		}
-		if(topo[a] == 2){
+		if(topo[a] == -2){
+			continue;
+		}
+			
+		y[a].setUB(1.0);
+		y[a].setLB(0.0);
+		 
+		obj += 2*topo[a]*y[a];
+	}
+
+    cplex.getObjective().setExpr(IloMinimize(env, obj));
+	obj.end();
+	
+}
+
+//-------------------------------------------------------------------------------------------
+
+void Pump::check_feas_model() {	
+	Pair2 item;
+	int arc;
+	double c;
+	
+	IloExpr obj(env);
+	for(int a=narcs ; a--; ){
+		if(topo[a]<0){
+			//std::cout<<"out: "<<a<<std::endl;
 			y[a].setUB(1.0);
 			y[a].setLB(1.0);
 		}else{
-			y[a].setUB(1.0);
+			y[a].setUB(0.0);
 			y[a].setLB(0.0);
-			if(topo[a] == -1) c = factorxy*data->arcs[a].f - factorp;
-			else if(topo[a] == 1) c = factorxy*data->arcs[a].f  + factorp;
-			obj += c*y[a];
-		}
+		} 
 	}
-
-	fobj = IloMinimize(env, obj);
-    cplex.getObjective().setExpr(fobj);
-	obj.end();
-	
+    cplex.getObjective().setExpr(fobj);	
 }
 
 //-------------------------------------------------------------------------------------------
@@ -293,7 +290,7 @@ Pump::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArr
 	for(int a=0;a<szunfix;++a){
 		arc = unfx[a];
 		for (int k = 0; k < ndemands; ++k){
-			ub = vars[narcs+k*narcs+arc]->ub();
+			ub = data->arcs[arc].b[k];
 			if(x_[arc*ndemands+k] - ub*y_[arc]> 1e-10 ){
 				IloExpr constraint(env);
 				constraint -= x[arc*ndemands+k];
@@ -316,26 +313,43 @@ Pump::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArr
 
 
 int 
-Pump::solve(  const BCP_vec<BCP_var*>& vars,  double * xy, double & val){
-	reset( vars);
-	create_model( vars);
+Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_solution*& mipsol){
+	bool feas=true;
+	
+	check_feas_model();
+	cplex.solve();
+	if(cplex.getStatus() == IloAlgorithm::Infeasible){
+		//std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl;
+		feas=false;
+	} 
+	if(feas){
+		IloNumArray x_(env);
+		cplex.getValues(x_,x);
+		getSolution(  x_, mipsol );
+		x_.end(); 
+		clear();
+		return 1;
+	} 
+	std::cout<<"trypump? "<<szunfix<<" "<<maxunfix<<std::endl;
+	if(szunfix > maxunfix ){
+		get_closed(fixd0, closed, true);
+		clear();
+    	return -1;
+    }
+ 	create_model();
 	//cplex.exportModel("t.lp");
 	cplex.solve();
 	
 	
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		//std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl;
+		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl;
+		get_closed(fixd0, closed, false);
 		clear();
 		return -1;
-	}else if(cplex.getStatus() == IloAlgorithm::Unbounded){
-			//std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Unbounded"<<std::endl;
-		clear();
-		return -2;
-	}
+	} 
 	
 	IloNumArray x_(env);
 	IloNumArray y_(env);
-
 	cplex.getValues(x_,x);
 	cplex.getValues(y_,y);
 	while(cut(vars, y_,x_)){
@@ -344,10 +358,11 @@ Pump::solve(  const BCP_vec<BCP_var*>& vars,  double * xy, double & val){
 		cplex.getValues(y_,y);
 		cplex.getValues(x_,x);
 	}
-	//std::cout<<"final pump "<<cplex.getObjValue()<<std::endl;
+	std::cout<<"final pump "<<cplex.getObjValue()<<std::endl;
 
-	val = getSolution( xy, x_, y_ );
-	
+	getSolution( x_, mipsol );
+	get_closed(fixd0, closed, true);
+ 	
 	x_.end(); 
 	y_.end();
 	clear();
@@ -358,41 +373,52 @@ Pump::solve(  const BCP_vec<BCP_var*>& vars,  double * xy, double & val){
 //-------------------------------------------------------------------------------------------
 
 double 
-Pump::getSolution( double * xy,  const IloNumArray & x_, const IloNumArray & y_ ){
-	
- 	double flow;
-	double solvalue=0;
+Pump::getSolution(const IloNumArray& x_, MCND_solution*& mipsol ){
+	double flow;
 	double val;
+	double cij;
+ 	
+	mipsol = new MCND_solution(narcs+narcs*ndemands);
+	mipsol->cost =0;
 	for(int a=0;a<narcs;++a){
- 		if(topo[a]==0) continue;
- 		flow = 0.0;
- 		branch_candidates[a]=-1;
-		for (int k = 0; k < ndemands; ++k){
-			val = x_[a*ndemands+k];
-			xy[narcs+k*narcs+a] = val;
-			solvalue+=data->arcs[a].c[k]*val;
-			flow += val;
-		}
-		if(topo[a]!=2){
-			val = y_[a];
-			std::cout<<"heurarc: "<<a<<" val: "<<val<<" topo: "<<topo[a]<<std::endl;
-			if(val>1e-10){
-				xy[a] = 1.0;
- 				solvalue+=data->arcs[a].f;
+ 		if(topo[a]==0){
+ 			mipsol->xy[a] = 0.0;
+ 			for (int k = 0; k < ndemands; ++k)
+				mipsol->xy[narcs+k*narcs+a] = 0.0;
+ 		}else{
+ 			flow = 0.0;
+ 			for (int k = 0; k < ndemands; ++k){
+				val = x_[a*ndemands+k];
+				cij = data->arcs[a].c[k]*val;
+				mipsol->xy[narcs+k*narcs+a] = val;
+				mipsol->cost += cij;
+				flow += val;
 			}
-			if(topo[a]==-1 && val < 0.9)  branch_candidates[a]= 1.0-val;
-			else if(topo[a]==1 && val > 0.1) branch_candidates[a] = val;
-		}else if(flow>1e-10){
- 			xy[a] = 1.0;
-			solvalue+=data->arcs[a].f;
-		} 
+			if(flow>1e-10){
+				mipsol->xy[a] = 1.0;
+				mipsol->cost += data->arcs[a].f;
+			}
+ 		} 
 	}
-	
-	
-	//std::cout<<"sol value: "<<solvalue<<std::endl;
-	return solvalue;
+  	//std::cout<<"feasibiliy integer sol value: "<<mipsol->cost<<std::endl;
+	return 1;
 }
 
+//-------------------------------------------------------------------------------------------
+
+void 
+Pump::get_closed(int*& fixd0, int& closed, bool onlyx){
+	fixd0 = new int[narcs];
+	closed=0;
+	for(int a=0;a<narcs;++a){
+		if(onlyx && topo[a]>=0){
+			fixd0[closed++] = a;
+			//std::cout<<"chekclosed: "<<a<<std::endl;
+		}else if(topo[a]==0){
+			fixd0[closed++] = a;
+		}
+	}
+}
 
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
@@ -400,7 +426,7 @@ Pump::getSolution( double * xy,  const IloNumArray & x_, const IloNumArray & y_ 
 
 void 
 Pump::clear(){
-	fobj.end();
+	//fobj.end();
 	unfx.clear();
 }
 
@@ -421,8 +447,7 @@ Pump::~Pump() {
 		env.end();
 		unfx.clear();
 		topo.clear();
-		branch_candidates.clear();
-		for(int i=tabu.size() ; i--; ){
+ 		for(int i=tabu.size() ; i--; ){
 			if(tabu[i]!=0) delete [] tabu[i];
 		}
 		tabu.clear();

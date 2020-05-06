@@ -21,7 +21,7 @@
 #include "MCND_solution.hpp"
 #include "MCND_branch_score.hpp"
 #include "MCND_pump.hpp"
-#include "MCND_checklp.hpp"
+//#include "MCND_checklp.hpp"
 #include "MCND_checklpfeas.hpp"
 
 
@@ -47,8 +47,10 @@ enum LP_Mode{
    LP_StrongBranch = 128,
   /** Make less iterations.*/
    LP_ReducedRun = 256,
-   /** Make less iterations.*/
-   LP_tighterBounds = 512
+   /** Tighter bounds.*/
+   LP_tighterBounds = 512,
+   /**test connectivity due to Logical fix.*/
+   LP_TestFeasibility = 1024
 };
 
 
@@ -64,7 +66,7 @@ public:
     GlobalCutManager globalc_manager;
 
     LPFeasChecker lpfeaschecker;
-    LPChecker topo_heur;
+    //LPChecker topo_heur;
     FlowConnect flwconnect;
     Pump pump_heur;
     

@@ -123,8 +123,8 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    p.par.set_entry(BCP_tm_par::QualityRatioToAllowDiving_NoUB, -1.0);
    p.par.set_entry(BCP_tm_par::RemoveExploredBranches, true);
    p.par.set_entry(BCP_tm_par::MessagePassingIsSerial, true);
-	time_lim = 5*3600.0;
-   p.par.set_entry(BCP_tm_par::MaxRunTime, time_lim);
+	tm->time_lim = 5*3600.0;
+   p.par.set_entry(BCP_tm_par::MaxRunTime, tm->time_lim);
 
    tm->t_start = clock();
    return tm; 
@@ -143,7 +143,7 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
 	p.par.set_entry(BCP_lp_par::LpVerb_ColumnGenerationInfo, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_CutsToCutPoolCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_VarsToVarPoolCount, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_FathomInfo, false);
+	p.par.set_entry(BCP_lp_par::LpVerb_FathomInfo, true);
 	p.par.set_entry(BCP_lp_par::LpVerb_IterationCount, true);
 	p.par.set_entry(BCP_lp_par::LpVerb_RelaxedSolution, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_FinalRelaxedSolution, false);
