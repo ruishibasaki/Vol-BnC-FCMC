@@ -119,7 +119,7 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
 	int rnd=0;
 	int cont=0;
  	szunfix=0;
-	for(int a=narcs; a--;){
+ 	for(int a=narcs; a--;){
 		maptitem = &map[a];
         if(vars[a]->lb()==1.0){
             topo[a]=-2;
@@ -155,7 +155,10 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
          	topo[a]=0;
         }
     }
-    
+    if(cont==0){
+    	delete [] seqtopo;
+    	return cont;
+    }else return -1;
     if(check_tabu(seqtopo)){
     	try_perturbation(seqtopo);
     	if(check_tabu(seqtopo)){
@@ -209,7 +212,7 @@ Pump::try_perturbation(unsigned int* seqtopo){
 	std::random_shuffle(unfx.begin(), unfx.begin()+szunfix);
  	for(int a=0;a<szunfix;++a){
 		arc = unfx[a];
-		std::cout<<"arc: "<<arc<<std::endl;
+		//std::cout<<"arc: "<<arc<<std::endl;
 		if(topo[arc]==-1){
 			topo[arc]=1;
 			maptitem = &map[arc];
@@ -327,14 +330,12 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		cplex.getValues(x_,x);
 		getSolution(  x_, mipsol );
 		x_.end(); 
-		clear();
-		return 1;
+ 		return 1;
 	} 
 	std::cout<<"trypump? "<<szunfix<<" "<<maxunfix<<std::endl;
 	if(szunfix > maxunfix ){
 		get_closed(fixd0, closed, true);
-		clear();
-    	return -1;
+     	return -1;
     }
  	create_model();
 	//cplex.exportModel("t.lp");
@@ -344,8 +345,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
 		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl;
 		get_closed(fixd0, closed, false);
-		clear();
-		return -1;
+ 		return -1;
 	} 
 	
 	IloNumArray x_(env);
@@ -365,8 +365,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
  	
 	x_.end(); 
 	y_.end();
-	clear();
-	return 0;
+ 	return 0;
 	
 }
 
@@ -422,15 +421,6 @@ Pump::get_closed(int*& fixd0, int& closed, bool onlyx){
 
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------
-
-void 
-Pump::clear(){
-	//fobj.end();
-	unfx.clear();
-}
-
-
 //-------------------------------------------------------------------------------------------
 
 Pump::~Pump() {

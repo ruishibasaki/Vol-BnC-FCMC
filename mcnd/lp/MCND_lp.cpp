@@ -100,7 +100,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     	if(!flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, testconn, yfix)){
 			var_changed_pos.clear();
 			var_new_bd.clear();
-			//std::cout<<"fathom node flwconnect.check_connectivity"<<std::endl;
+			std::cout<<"MCND_lp::initialize_new_search_tree_node::flwconnect.check_connectivity NOT"<<std::endl;
 			lp_mode |= LP_ForceNodeAbort;
 			return;
 		}	
@@ -420,6 +420,7 @@ MCND_lp::process_lp_result(const BCP_lp_result& lpres,
 	getLpProblemPointer()->user_has_lp_result_processing = false;
 	if((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
     	lp_mode |= LP_ForceNodeAbort;
+    	std::cout<<"MCND_lp::process_lp_result:: BCP_ProvenPrimalInf"<<std::endl;
     	return;
 	}else if(lp_mode & LP_ForceNodeAbort) return;
 	
@@ -476,10 +477,11 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     MCND_solution* mipsol;
     if(getOsiVolBabSolver()->getViolation()==0 && integer) {
     	ret = lpfeaschecker.solve_opt(cont, vars, sol, fixd, closed, mipsol, fathmval, upper_bound());
+    	std::cout<<"MCND_lp::test_feasibility intger && no violation"<<std::endl;
     	lp_mode |= LP_ForceNodeAbort ;
     }else if(cont<=data.narcs*0.1 || integer){ 
     	ret = lpfeaschecker.solve_opt(cont, vars, 0, fixd, closed, mipsol, fathmval, upper_bound());
-    	if(cont ==0){ lp_mode |= LP_ForceNodeAbort;}
+    	if(cont ==0){ lp_mode |= LP_ForceNodeAbort; std::cout<<"MCND_lp::test_feasibility allfixed"<<std::endl;}
     }else {
     	delete []fixd;
     	return 0;
@@ -490,6 +492,7 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 			std::cout<<"MCND_lp::test_feasibility::add_external_globalc type 0"<<std::endl;
 			getOsiVolBabSolver()->add_external_globalc( fixd, closed);
 		}
+		std::cout<<"MCND_lp::test_feasibility NOT"<<std::endl;
 		lp_mode |= LP_ForceNodeAbort;
 		delete []fixd;
     	return 0;
@@ -536,7 +539,8 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
                                      const BCP_vec<BCP_var*>& vars,
                                      const BCP_vec<BCP_cut*>& cuts){
     //if(current_level() >100000){ lp_mode=LP_Normal;   return 0;}
-    if(lp_mode & LP_ForceNodeAbort || lp_mode & LP_HeuristicRunned ) return 0;
+    //return 0;
+    if(lp_mode & LP_ForceNodeAbort  ) return 0;
     
 	MCND_solution* sol=0;
     const double * x = lpres.x();
@@ -544,10 +548,10 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     int closed=0;
 	int cont= pump_heur.make_topo( x, vars);
     
-    //
-    if(cont>0 && current_iteration()>1){
+	if(cont!=0) return 0;
+    /*if(cont>0 && current_iteration()>1){
     	return 0;
-	}else if(cont<0){   return 0;}
+	}else if(cont<0){   return 0;}*/
     
 	std::cout<<"try heuristic "<<cont<<" "<<(lp_mode & LP_HeuristicRunned)<<std::endl;
     int retval = pump_heur.solve( fixd0, closed, vars, sol); 

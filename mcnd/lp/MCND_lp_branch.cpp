@@ -28,7 +28,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 
     //return BCP_DoNotBranch_Fathomed;
 
-    /*if(current_level() == 2){
+    /*if(current_level() == 0){
         return BCP_DoNotBranch_Fathomed;
 	}*/
 	lp_mode &= ~LP_LogicalFixed;
@@ -111,7 +111,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
      	lp_mode |= LP_StrongBranch;
      	return BCP_DoBranch;
     }else{
-    	//std::cout<<"NO CAND"<<std::endl;
+    	std::cout<<"NO CAND"<<std::endl;
     	//lp_mode = LP_Normal;
     	return BCP_DoNotBranch_Fathomed;
 	}
@@ -205,6 +205,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	if(lp_mode & LP_TestConnectivity){
 		lp_mode &= ~LP_TestConnectivity;
 		if(!verify_feasibility( changed_pos, new_bd, changed_pos.size())){
+			std::cout<<"MCND_lp::logical_fixing::verify_feasibility NOT"<<std::endl;
 			lp_mode |= LP_ForceNodeAbort;
 		}
  	}
@@ -233,7 +234,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			MCND_Cut * cut = dynamic_cast<MCND_Cut*>(cuts[i]);
 			if(cut->purgbl()) continue;
 			if(!cut->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
-				//std::cout<<"insatisfeasible: "<<std::endl; cut->print();
+				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; cut->print();
 				var_changed_pos.clear();
 				var_new_bd.clear();
 				lp_mode |= LP_ForceNodeAbort;
@@ -252,7 +253,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			//std::cout<<"gloc_updt "<<gloc->serial_nmbr<<" "<<gloc->purgbl<<std::endl;
 			if(gloc->purgbl) continue;
 			if(!gloc->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
-				//std::cout<<"insatisfeasible: "<<std::endl; gloc->print();
+				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; gloc->print();
 				var_changed_pos.clear();
 				var_new_bd.clear();
 				lp_mode |= LP_ForceNodeAbort;
@@ -271,7 +272,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			if(!flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, conn_arcfix, yfix)){
 				var_changed_pos.clear();
 				var_new_bd.clear();
-				//std::cout<<"fathom node flwconnect.check_connectivity"<<std::endl;
+				std::cout<<"MCND_lp::cut_varfix_and_updt::flwconnect.check_connectivity NOT"<<std::endl;
 				lp_mode |= LP_ForceNodeAbort;
 				return false;
 			}	
@@ -318,6 +319,7 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
 	 
 	if(infeas==2){
 		//std::cout<<"OPOR"<<std::endl; //abort();
+		std::cout<<"MCND_lp::compare_branching_candidates:: BOTH INFEAS OR TOO HIGHT"<<std::endl;
 		to_logical_fix.clear();
 		lp_mode |= LP_ForceNodeAbort ;
 		return BCP_NewPresolvedIsBetter_BranchOnIt;
@@ -502,7 +504,7 @@ MCND_lp::strong_branch_var_logicfix(BCP_lp_branching_object* candidate){
 	while(!to_logical_fix.empty()){
 		p = &to_logical_fix.back();
 		if(p->fst != cand){
-			//std::cout<<"FIX: "<<p->fst<<" to "<<p->snd<<std::endl;
+			std::cout<<"branchfix: "<<p->fst<<" to "<<p->snd<<std::endl;
 			extra_vars->push_back(p->fst);
 			++added;
 			for(int i=4;i--;)bd_extra_vars->push_back(p->snd);

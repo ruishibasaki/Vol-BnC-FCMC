@@ -60,7 +60,6 @@ public:
 	double getSolution(  const IloNumArray & x_, MCND_solution*& mipsol );
 	void get_closed(int*& fixd, int& closed, bool onlyx);
 	
-	void clear();
 	~Pump(); //x.endElements(); 
 };
 

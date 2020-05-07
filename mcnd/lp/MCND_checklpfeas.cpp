@@ -134,6 +134,7 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 		return 1;
 	}
 	if(fthmv >= betsolv){
+		std::cout<<"test_feasibility::fthmv >= betsolv"<<std::endl;
 		delete mipsol;
 		return 0;
 	}else if(ret<0) return 2;
@@ -221,10 +222,10 @@ LPFeasChecker::getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double& 
 				std::cout<<"atencao var: "<<narcs+k*narcs+a<<" val: "<<val<<" ub: "<< vars[narcs+k*narcs+a]->ub()<<std::endl;
 			}	
 		}
-		if(flow>1e-10){
+		if(flow>1e-4){
 			sol[a] = 1.0;
 			solvalue+=data->arcs[a].f;
-			if(vars[a]->lb()<0.5 &&  vars[a]->ub()>0.5) ++ret;
+			if(vars[a]->lb()<0.5 &&  vars[a]->ub()>0.5){ ++ret; }//std::cout<<"sola: "<<a<<" flow: "<<flow<<std::endl;}
 		}//else if(vars[a]->lb()>=0.5){//std::cout<<"LPFeasChecker::getSolution FATHOM"<<std::endl; ret = -1;
 		//else std::cout<<"solclosed: "<<a<<std::endl;
 	}
