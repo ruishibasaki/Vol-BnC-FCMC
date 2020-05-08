@@ -157,7 +157,7 @@ public:
     bool check_updt_Viol(const double *y, bool & infeas);
 
     //implemetn map
-    inline Cover(int M, int sz, int id_vi_, int serial_nmbr_):size(sz), Lftd(0), next(0), prev(0){
+    inline Cover(int M, int sz, int id_vi_, int serial_nmbr_):size(sz), Lftd(0), next(0), prev(0), owner(0){
         C = new int[sz];
         id_seq = new unsigned int[M];
         for(;M--;)id_seq[M]=0;

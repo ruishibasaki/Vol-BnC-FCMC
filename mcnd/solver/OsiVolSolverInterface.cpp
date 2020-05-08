@@ -367,7 +367,7 @@ OsiVolSolverInterface::resolve(){
     //std::cout<<"re solve "<<szunfxd<<" dsize: "<<volprob_->active_size<<" maxdsz: "<<maxNumrows_<<std::endl;
     // Set the dual starting point
     retval = volprob_->solve(*this, true);
-    
+   
     //std::cout<<std::setprecision(10)<<"result: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<std::endl;
     if(volprob_->value< min_lower_bound && in_strong_branch){
      	volprob_->value = min_lower_bound;
@@ -750,12 +750,11 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
             x[basex + a] = flow/data->d_k[comm].quantity;
             fillUp += flow;
             kpsack += rc[basex + a] * x[basex + a];
-            heap.pop_back();
             //std::cout<<"in"<<std::endl;
         }else{
             x[basex + a] = 0.0;
-            heap.pop_back();
         }
+        heap.pop_back();
     }
     return kpsack;
 }

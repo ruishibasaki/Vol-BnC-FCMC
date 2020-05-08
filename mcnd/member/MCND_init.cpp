@@ -160,12 +160,12 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportLocalVarPoolSize, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_RepricingResult, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_RowEffectivenessCount, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_VarTightening, false);
+	p.par.set_entry(BCP_lp_par::LpVerb_VarTightening, true);
 	p.par.set_entry(BCP_lp_par::LpVerb_StrongBranchPositions, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_StrongBranchResult, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_GeneratedCutCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_GeneratedVarCount, false);
-   
+    
    p.par.set_entry(BCP_lp_par::DoReducedCostFixingAtZero ,false);
    p.par.set_entry(BCP_lp_par::DoReducedCostFixingAtAnything, false);
    p.par.set_entry(BCP_lp_par::ReportWhenDefaultIsExecuted, false);

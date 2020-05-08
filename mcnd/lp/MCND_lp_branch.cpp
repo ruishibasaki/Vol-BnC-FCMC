@@ -244,6 +244,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			//else cut->mark_unpurgbl();
 			if(contfixed < int(var_changed_pos.size())){
 				contfixed = int(var_changed_pos.size());
+				lp_mode |= LP_LogicalFixed;	
 				i = getLpProblemPointer()->core->cutnum();
 			}
 		}
@@ -263,6 +264,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			//else cut->mark_unpurgbl();
 			if(contfixed < int(var_changed_pos.size())){
 				contfixed = int(var_changed_pos.size());
+				lp_mode |= LP_LogicalFixed;	
 				i = globalc_manager.globals.sizeOfCollection;
 				gloc = globalc_manager.globals.begin;
 			}else gloc = gloc->next;
@@ -278,6 +280,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			}	
 		} 
 		if(!conn_arcfix) break;
+		else lp_mode |= LP_LogicalFixed;	
     }
     return true;
 }

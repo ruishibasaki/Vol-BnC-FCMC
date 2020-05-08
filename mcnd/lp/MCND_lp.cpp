@@ -97,6 +97,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 
     }else LBi=0;
     if(testconn ){
+    	testconn = false;
     	if(!flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, testconn, yfix)){
 			var_changed_pos.clear();
 			var_new_bd.clear();
@@ -107,7 +108,9 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     } 
     
     cut_varfix_and_updt( vars, cuts, var_changed_pos, var_new_bd);
+    
     lp_mode |= LP_TestFeasibility;
+    if(testconn)lp_mode |= LP_LogicalFixed;
     //for (int a=var_changed_pos.size(); a--;){
 	//	std::cout<<"changebd: "<<var_changed_pos[a]<<" ("<<vars[var_changed_pos[a]]->lb()<<" , "<<vars[var_changed_pos[a]]->ub()<<") new: ("<<
 	//	var_new_bd[a*2]<<" , "<<var_new_bd[a*2+1]<<") "<<std::endl;
