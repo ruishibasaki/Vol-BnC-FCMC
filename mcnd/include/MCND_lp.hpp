@@ -21,7 +21,7 @@
 #include "MCND_solution.hpp"
 #include "MCND_branch_score.hpp"
 #include "MCND_pump.hpp"
-//#include "MCND_checklp.hpp"
+#include "MCND_checklp.hpp"
 #include "MCND_checklpfeas.hpp"
 
 
@@ -66,7 +66,7 @@ public:
     GlobalCutManager globalc_manager;
 
     LPFeasChecker lpfeaschecker;
-    //LPChecker topo_heur;
+    LPChecker topo_heur;
     FlowConnect flwconnect;
     Pump pump_heur;
     

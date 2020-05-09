@@ -36,7 +36,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     lpfeaschecker.initialize(&data);
     flwconnect.initialize(&data);
     
-    //topo_heur.initialize(&data, &best_sol, &cover_manager.covers, &localc_manager.locals, &globalc_manager.globals);
+	topo_heur.initialize(&data, &best_sol, &cover_manager.covers, &localc_manager.locals, &globalc_manager.globals);
     
     AppVolData.data = &data;
     AppVolData.ss_manager = &ss_manager;
@@ -425,6 +425,10 @@ MCND_lp::process_lp_result(const BCP_lp_result& lpres,
     	lp_mode |= LP_ForceNodeAbort;
     	std::cout<<"MCND_lp::process_lp_result:: BCP_ProvenPrimalInf"<<std::endl;
     	return;
+	}else if((lpres.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
+    	lp_mode |= LP_ForceNodeAbort;
+    	std::cout<<"MCND_lp::process_lp_result:: BCP_PrimalObjLimReached"<<std::endl;
+    	return;
 	}else if(lp_mode & LP_ForceNodeAbort) return;
 	
 	/*if(current_level()==0){
@@ -543,21 +547,21 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
                                      const BCP_vec<BCP_cut*>& cuts){
     //if(current_level() >100000){ lp_mode=LP_Normal;   return 0;}
     //return 0;
-    if(lp_mode & LP_ForceNodeAbort  ) return 0;
+    if(lp_mode & LP_ForceNodeAbort ) return 0;
     
 	MCND_solution* sol=0;
     const double * x = lpres.x();
     int * fixd0 = 0;
     int closed=0;
-	int cont= pump_heur.make_topo( x, vars);
+	int cont= topo_heur.make_topo( x, vars);
     
-	if(cont!=0) return 0;
-    /*if(cont>0 && current_iteration()>1){
+	//if(cont!=0) return 0;
+    if(cont>0 && (current_iteration()>1 || lp_mode & LP_HeuristicRunned)){
     	return 0;
-	}else if(cont<0){   return 0;}*/
+	}else if(cont<0){   return 0;}
     
 	std::cout<<"try heuristic "<<cont<<" "<<(lp_mode & LP_HeuristicRunned)<<std::endl;
-    int retval = pump_heur.solve( fixd0, closed, vars, sol); 
+    int retval = topo_heur.solve(  closed, fixd0, sol); 
     lp_mode |= LP_HeuristicRunned;
     if(retval>=0){
      	std::cout<<"heuristic sol: "<<sol->cost<<std::endl;
@@ -580,7 +584,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     			lp_mode |= LP_CutAddedFromHeuristic;
     		delete sol;
     	}
-    }else{
+    }else if(retval>=-3){
     	std::cout<<"MCND_lp::generate_heuristic_solution::add_external_globalc type 0"<<std::endl;
 		//if(getOsiVolBabSolver()->add_external_localc(fixd0, 0, closed, 0))
 			//lp_mode |= LP_CutAddedFromHeuristic;
