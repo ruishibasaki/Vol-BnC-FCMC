@@ -490,7 +490,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     //std::cout<<"first vole iter: "<<dual.lcost<<std::endl;
     
     // set target for the lagrangian value
-    double target = readjust_target(-DBL_MAX/2, dual.lcost);
+    double target = readjust_target(-10, dual.lcost);
     // find primal violation
     //primal.find_max_viol(dual_lb, dual_ub); // this may be left out for speed
     
@@ -723,7 +723,7 @@ VOL_problem::readjust_target(const double oldtarget, const double lcost) const
     if (lcost >= target - VolAbs(target) * 0.05) {
         if (VolAbs(lcost) < 10.0) {
             target = 10.0;
-        }else if(lcost >= target){
+        }else if(lcost >= target && target>0){
             target = VolMax(lcost + 0.05 * VolAbs(lcost), lcost + 0.75*(lcost - VolAbs(target)));
             //std::cout<<"  >=  **** readjusting target!!! new target = "<<target<<" , old: "<<oldtarget<<" lcost:  "<<lcost<<std::endl;
         } else {
