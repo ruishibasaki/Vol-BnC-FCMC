@@ -425,6 +425,10 @@ MCND_lp::process_lp_result(const BCP_lp_result& lpres,
     	lp_mode |= LP_ForceNodeAbort;
     	std::cout<<"MCND_lp::process_lp_result:: BCP_ProvenPrimalInf"<<std::endl;
     	return;
+	}else if((lpres.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
+    	lp_mode |= LP_ForceNodeAbort;
+    	std::cout<<"MCND_lp::process_lp_result:: BCP_PrimalObjLimReached"<<std::endl;
+    	return;
 	}else if(lp_mode & LP_ForceNodeAbort) return;
 	
 	/*if(current_level()==0){

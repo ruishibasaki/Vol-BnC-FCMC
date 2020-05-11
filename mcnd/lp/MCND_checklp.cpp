@@ -145,32 +145,26 @@ LPChecker::remake_model(){
 
 int
 LPChecker::make_topo(  const double * x , const BCP_vec<BCP_var*>& vars){
-  	unsigned int* seqtopo = new unsigned int[sizeOfIdSeq];
-	std::fill(seqtopo, seqtopo+sizeOfIdSeq, 0);
-	Pair2* maptitem=0;
+  	
 	szunfixd=0;
 	int rnd;
 	int val;
 	for(int a=narcs; a--;){
-		maptitem = &map[a];
-        if(vars[a]->lb()==1.0){
+         if(vars[a]->lb()==1.0){
             topo[a]=1;
-            setBit(seqtopo, maptitem->fst, maptitem->snd);
-        }else if(vars[a]->ub()==1.0){
+         }else if(vars[a]->ub()==1.0){
 			rnd = rand()%2;
 			if(rnd==1){
 				if(best_sol->xy[a]>0.5){
 					topo[a]=1;
-					setBit(seqtopo, maptitem->fst, maptitem->snd);
-				}else{
+ 				}else{
 					topo[a]=0;
 				}
 			}else{
 				rnd = ((rand()%100)/100.0 <= x[a]) ? 1 : 0;
 				if(rnd){
 					topo[a]=1;
-					setBit(seqtopo, maptitem->fst, maptitem->snd);
-				}else{
+ 				}else{
 					topo[a]=0;
 				}
 			}		 
@@ -178,13 +172,6 @@ LPChecker::make_topo(  const double * x , const BCP_vec<BCP_var*>& vars){
         }else{ 
          	topo[a]=0;
         }
-    }
-   if(check_tabu(seqtopo)){
-    	try_perturbation(seqtopo);
-    	if(check_tabu(seqtopo)){
-    		delete [] seqtopo;
-     		return -1;
-     	}
     }
 	
     return szunfixd;
@@ -251,7 +238,23 @@ LPChecker::try_perturbation(unsigned int* seqtopo){
 
 int
 LPChecker::solve(int& closed, int*& fixd0, MCND_solution*& mipsol){
-	
+	unsigned int* seqtopo = new unsigned int[sizeOfIdSeq];
+	std::fill(seqtopo, seqtopo+sizeOfIdSeq, 0);
+	Pair2* maptitem=0;
+	for(int a=narcs; a--;){
+        if(topo[a]==1.0){
+        	maptitem = &map[a];
+            setBit(seqtopo, maptitem->fst, maptitem->snd);
+        } 
+    }
+	if(check_tabu(seqtopo)){
+    	try_perturbation(seqtopo);
+    	if(check_tabu(seqtopo)){
+    		delete [] seqtopo;
+     		return -4;
+     	}
+    }
+    
 	make_model();
 	cplex.solve();
 	
@@ -295,7 +298,8 @@ LPChecker::solve(int& closed, int*& fixd0, MCND_solution*& mipsol){
 		}
  		std::cout<<"LPChecker::solve::cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl; abort();
 		return -3;
-	}else return -3;
+	}
+	return -4;
 	
 }
 
