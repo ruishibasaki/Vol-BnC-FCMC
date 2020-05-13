@@ -58,6 +58,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     const double * rcsol = lpres.dj();
 
     int max_cand = 5 ;
+    //if(no_gap_reduct >3) max_cand=1;
     if(candidates.empty()){
 		for (int a=data.narcs; a--;) {
 			//if(psol[a]==0) continue;

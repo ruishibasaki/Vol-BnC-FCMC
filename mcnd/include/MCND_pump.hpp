@@ -48,6 +48,7 @@ public:
 	
 	//--------------------------
 	int make_topo( const double * x  , const BCP_vec<BCP_var*>& vars);
+	int validate_topology( );
 	bool check_tabu(unsigned int* seqtopo);
 	void try_perturbation(unsigned int* seqtopo);
 	//--------------------------

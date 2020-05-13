@@ -60,6 +60,14 @@ MCND_lp::initialize_solver_interface(){
     
 }
 
+//-------------------------------------------------------------------------------------------
+
+void 
+MCND_lp::process_message(BCP_buffer& buf){
+	buf.unpack(lower_bound);
+}
+
+
 //#############################################################################
 //#############################################################################
 //#############################################################################
@@ -78,6 +86,14 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     //std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
     ++num_nodes;
     lp_mode = LP_Normal;
+    if(has_sol){
+    	std::cout<<"nomgap: "<<nomgap<<" and "<<(upper_bound()-lower_bound)<<std::endl;
+    	 if((nomgap - (upper_bound()-lower_bound))/nomgap < 0.001){
+			no_gap_reduct += 1;
+		}else no_gap_reduct=0;
+		nomgap = (upper_bound()-lower_bound);
+    }
+    
     std::fill(yfix,yfix+data.narcs, -1);
     has_sol = getLpProblemPointer()->has_ub();
    
@@ -555,7 +571,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     int closed=0;
 	int cont= pump_heur.make_topo( x, vars);
     
-	if(cont!=0) return 0;
+	if(cont!=0) return 0; //pump_heur.validate_topology();
     /*if(cont>0 && current_iteration()>1){
     	return 0;
 	}else if(cont<0){   return 0;}*/

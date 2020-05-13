@@ -113,36 +113,28 @@ Pump::initialize(const Data * d,  const MCND_solution* best_sol_){
 
 int
 Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
-	unsigned int* seqtopo = new unsigned int[sizeOfIdSeq];
-	std::fill(seqtopo, seqtopo+sizeOfIdSeq, 0);
-	Pair2* maptitem=0;
 	int rnd=0;
 	int cont=0;
  	szunfix=0;
  	for(int a=narcs; a--;){
-		maptitem = &map[a];
         if(vars[a]->lb()==1.0){
             topo[a]=-2;
-            setBit(seqtopo, maptitem->fst, maptitem->snd);
-        }else if(vars[a]->ub()==1.0){
+         }else if(vars[a]->ub()==1.0){
             if(x[a]>=0.9){ 
             	topo[a]=-2;
-            	setBit(seqtopo, maptitem->fst, maptitem->snd);
-            }else if(x[a]>=0.1){
+             }else if(x[a]>=0.1){
             	rnd = rand()%2;
 				if(rnd==1){
 					if(best_sol->xy[a]>0.5){
 						topo[a]=-1;
-						setBit(seqtopo, maptitem->fst, maptitem->snd);
-					}else{
+ 					}else{
 						topo[a]=1;
 					}
 				}else{
 					rnd = ((rand()%100)/100.0 <= x[a]) ? 1 : 0;
 					if(rnd){
 						topo[a]=-1;
-						setBit(seqtopo, maptitem->fst, maptitem->snd);
-					}else{
+ 					}else{
 						topo[a]=1;
 					}
 				}		 
@@ -156,9 +148,25 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
         }
     }
     if(cont==0){
-    	delete [] seqtopo;
-    	return cont;
+     	return cont;
     }else return -1;
+    
+}
+
+//-------------------------------------------------------------------------------------------
+
+int
+Pump::validate_topology( ){
+	unsigned int* seqtopo = new unsigned int[sizeOfIdSeq];
+	std::fill(seqtopo, seqtopo+sizeOfIdSeq, 0);
+	Pair2* maptitem=0;
+ 	for(int a=narcs; a--;){
+		maptitem = &map[a];
+        if(topo[a]<0.0){
+             setBit(seqtopo, maptitem->fst, maptitem->snd);
+        }
+    }
+     
     if(check_tabu(seqtopo)){
     	try_perturbation(seqtopo);
     	if(check_tabu(seqtopo)){
@@ -166,8 +174,7 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
      		return -1;
      	}
     }
-    
-    return cont;
+    return 1;
 }
 
 //-------------------------------------------------------------------------------------------

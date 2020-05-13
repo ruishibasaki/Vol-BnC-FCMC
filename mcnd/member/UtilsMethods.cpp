@@ -155,6 +155,7 @@ double read_init_sol(std::string fname, std::string instance, double * xy) {
         ss.clear();
     }
     file.close();
+    if(xy==0) return val;
     instance_inline = "../results/heursolutions/sol"+instance_inline.substr(instance_inline.find("/")+1); 
     std::cout<<"file: "<<instance_inline<<std::endl;
     file.open(instance_inline.c_str());

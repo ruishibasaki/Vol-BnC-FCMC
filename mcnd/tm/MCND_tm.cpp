@@ -188,6 +188,7 @@ MCND_tm::createSearchType(const char * type){
 
 void
 MCND_tm::process_message(BCP_buffer& buf){
+
 	if(Best_LB<lower_bound())
 		Best_LB=lower_bound();
 }
@@ -222,8 +223,11 @@ MCND_tm::display_node_information(BCP_tree& search_tree,
 	if(Best_LB<lower_bound())
 		Best_LB=lower_bound();
 	
+	BCP_buffer buf;
+	buf.pack(lower_bound());
 	std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
-				   
+	broadcast_message(BCP_ProcessType_LP,buf);
+	buf.clear();
 }
 
 //-----------------------------------------------------------------------------
