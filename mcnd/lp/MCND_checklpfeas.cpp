@@ -16,7 +16,7 @@ void LPFeasChecker::set_parameters() {
     cplex.setOut(env.getNullStream());
     //cplex.setParam(IloCplex::DataCheck, CPX_DATACHECK_ASSIST);
     cplex.setParam(IloCplex::TiLim, 3600.0); // Time limit in seconds
-    
+    //cplex.setParam(IloCplex::Param::Simplex::Limits::Iterations	);
 }
 
 //---------------------------------------------------------------------------
@@ -80,16 +80,30 @@ LPFeasChecker::initialize(const Data* d){
     cplex.extract(model);
 }
 
+
 //---------------------------------------------------------------------------
 
 void 
 LPFeasChecker::apply_bounds(const BCP_vec<BCP_var*>& vars){
-	for(int a=0;a<narcs;++a){
+	 for(int a=0;a<narcs;++a){
 		if(vars[a]->ub()<=0.5){  continue; }
 		for(int k=0;k<ndemands;++k){
 			x[a*ndemands+k].setUB(vars[narcs+k*narcs+a]->ub()); 
 		}
 	}
+}
+
+//---------------------------------------------------------------------------
+
+void 
+LPFeasChecker::apply_bounds(const double * colub){
+	for(int a=0;a<narcs;++a){
+		if(colub[a]<=0.5){  continue; }
+		for(int k=0;k<ndemands;++k){
+			x[a*ndemands+k].setUB(colub[narcs+k*narcs+a]); 
+		}
+	}
+	
 }
 
 //---------------------------------------------------------------------------
@@ -135,7 +149,7 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 	}
 	if(fthmv >= betsolv){
 		std::cout<<"test_feasibility::fthmv >= betsolv"<<std::endl;
-		delete mipsol;
+		//delete mipsol;
 		return 0;
 	}else if(ret<0) return 2;
 	if(bd_sat) return 1;
@@ -149,7 +163,7 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 	} 
 	fthmv = fathmval + compute_fathmval();
 	if(fthmv >= betsolv){
-		delete mipsol;
+		//delete mipsol;
 		return 0;
 	}
 	return 1;	
@@ -158,21 +172,43 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 
 //---------------------------------------------------------------------------
 
-int LPFeasChecker::solve_feas(const double *collb, const double * colub){
+int LPFeasChecker::solve_feas(const double *collb, const double * colub, bool feas_status){
     IloNum ub;
     for(int a=0;a<narcs;++a){
-        if(colub[a]<=0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
+        if(colub[a]<0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
         }else{ ub = IloInfinity;}
-        
         for(int k=0;k<ndemands;++k){
-        	if(ub>0)
-            	x[a*ndemands+k].setUB(colub[narcs+k*narcs+a]);
-            else x[a*ndemands+k].setUB(0.0);
+            x[a*ndemands+k].setUB(ub);
         }
     }
     
 	cplex.getObjective().setExpr(fobj1);
-	return solve();
+	int ret = solve();
+	if(ret<0) return -1;
+	if(feas_status==false) return -2;
+	
+	bool bd_sat=true;
+	IloNumArray x_(env);
+	cplex.getValues(x_,x);
+	double val;
+	for(int a=0;a<narcs;++a){
+ 		for (int k = 0; k < ndemands; ++k){
+			val = x_[a*ndemands+k];
+			if(val > colub[narcs+k*narcs+a]+1e-4){
+				bd_sat=false;
+				//std::cout<<"solve_feas::atencao var: "<<narcs+k*narcs+a<<" val: "<<val<<" ub: "<< colub[narcs+k*narcs+a]<<std::endl;
+			}	
+		}
+	}
+	x_.end();
+	if(bd_sat) return 0;
+	
+	apply_bounds(colub);
+	ret= solve();
+	if(ret<0){
+		return -2;
+	}
+	return 0;
 }
 
 //---------------------------------------------------------------------------
@@ -219,7 +255,7 @@ LPFeasChecker::getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double& 
 			flow += val;
 			if(val> vars[narcs+k*narcs+a]->ub()+1e-4){
 				bd_sat=false;
-				std::cout<<"atencao var: "<<narcs+k*narcs+a<<" val: "<<val<<" ub: "<< vars[narcs+k*narcs+a]->ub()<<std::endl;
+				//std::cout<<"atencao var: "<<narcs+k*narcs+a<<" val: "<<val<<" ub: "<< vars[narcs+k*narcs+a]->ub()<<std::endl;
 			}	
 		}
 		if(flow>1e-4){
@@ -230,7 +266,7 @@ LPFeasChecker::getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double& 
 		//else std::cout<<"solclosed: "<<a<<std::endl;
 	}
 	x_.end();
- 	std::cout<<"feasibiliy integer sol value: "<<solvalue<<std::endl;
+ 	std::cout<<"LPFeasChecker::getSolution::feasibiliy integer sol value: "<<solvalue<<std::endl;
 	return ret;
 }
 

@@ -39,6 +39,7 @@ public:
     //  main methods
     //-------------------------------------------------------------------------------------------
     int globalc_generation_main( const double * ystar, const int * closed, int cont0, int curr_id);
+    int globalc_generation_main2(const double * colub, const int * topo);
     int make_globalcut(const double * ystar, int sz,  int* vars_,  int curr_id);
      
     //-------------------------------------------------------------------------------------------

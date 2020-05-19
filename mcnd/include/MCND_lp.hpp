@@ -21,7 +21,7 @@
 #include "MCND_solution.hpp"
 #include "MCND_branch_score.hpp"
 #include "MCND_pump.hpp"
-//#include "MCND_checklp.hpp"
+//#include "MCND_topoheur.hpp"
 #include "MCND_checklpfeas.hpp"
 
 
@@ -66,7 +66,7 @@ public:
     GlobalCutManager globalc_manager;
 
     LPFeasChecker lpfeaschecker;
-    //LPChecker topo_heur;
+    //TopoHeur topo_heur;
     FlowConnect flwconnect;
     Pump pump_heur;
     
@@ -286,7 +286,7 @@ public:
     
     //--------------------------------------------------------------------------
     int verify_children_feasibility(BCP_lp_branching_object * candidate, bool& feas0, bool& feas1 );
-	bool verify_feasibility(const BCP_vec<int> & vars_chngd, const BCP_vec<double> & chngd_bd, int nvars);
+	bool verify_feasibility(const BCP_vec<int> & vars_chngd, const BCP_vec<double> & chngd_bd, int nvars, bool feas_status);
 	void strong_branch_var_logicfix(BCP_lp_branching_object * candidate);    
 };
 

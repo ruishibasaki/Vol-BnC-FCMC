@@ -20,8 +20,8 @@ protected:
 
 class MCND_Cut : public BCP_cut_algo{
 public:
-	int type;
-	MCND_Cut(): BCP_cut_algo(0, 1e40) {type =0; }
+	int cut_type;
+	MCND_Cut(): BCP_cut_algo(0, 1e40) {cut_type =0; }
 	virtual ~MCND_Cut(){};
 	
 	virtual void pack(BCP_buffer& buf) const =0;

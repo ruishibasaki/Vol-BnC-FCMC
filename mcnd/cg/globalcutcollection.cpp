@@ -40,7 +40,6 @@ GlobalCutCollection::createNewGlobalCut(int sz,  int* vars_, int id_vi, int seri
 		newC->addArc(map[arc].fst, map[arc].snd);	 
 	}
     
-    vars_=0;
     return newC;
 }
 

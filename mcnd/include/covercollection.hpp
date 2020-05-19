@@ -192,8 +192,8 @@ class CoverCut : public MCND_Cut{
 	
 public:
 	
-	inline CoverCut(Cover* c): cover(c){type =1;}
-	inline CoverCut():cover(0){type =1;}
+	inline CoverCut(Cover* c): cover(c){cut_type =1;}
+	inline CoverCut():cover(0){cut_type =1;}
 	inline ~CoverCut(){}
 
 	

@@ -33,10 +33,11 @@ public:
     void set_parameters();
     void initialize(const Data* d);
     void apply_bounds(const BCP_vec<BCP_var*>& vars);
-    
+    void apply_bounds(const double * colub);
+
     int solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double * topo, int * fixd, 
     				int& closed, MCND_solution*& mipsol, double fathmval, double betsolv);
-    int solve_feas(const double *collb, const double * colub);
+    int solve_feas(const double *collb, const double * colub, bool feas_status);
     int solve();
     int getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double & solvalue, double &fathmval, bool& bd_sat );
 	double compute_fathmval();

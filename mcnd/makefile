@@ -34,7 +34,7 @@ suffix_lp = \
 suffix_lp_cplex = \
 	MCND_checklpfeas \
 	MCND_pump \
-	MCND_checklp
+	MCND_topoheur
 	
 suffix_member =\
 	UtilsMethods	\

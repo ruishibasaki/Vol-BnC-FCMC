@@ -163,8 +163,8 @@ class LocalCCut : public MCND_Cut {
 	
 public:
 	
-	inline LocalCCut(LocalCut* c): localc(c){ type = 2;}
-	inline LocalCCut(): localc(0){ type =2;}
+	inline LocalCCut(LocalCut* c): localc(c){ cut_type = 2;}
+	inline LocalCCut(): localc(0){ cut_type =2;}
 	inline ~LocalCCut(){}
 
 	

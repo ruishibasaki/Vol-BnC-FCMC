@@ -317,7 +317,7 @@ OsiVolSolverInterface::set_start(){
     	if(volprob_->parm.maxsgriters>250)
     		volprob_->parm.maxsgriters=250;
 		translate_hotstart();
-    }else volprob_->parm.maxsgriters=500;
+    }else volprob_->parm.maxsgriters=1000;
 }
 
 //-----------------------------------------------------------------------
@@ -421,7 +421,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     
     if(mode == 0) return 0;
     
-    if( /*(mode == 1) &&*/ iter>0 && iter%intvlVI==0){
+    if( (mode == 1) && iter>0 && iter%intvlVI==0){
         translate_primal(xstar);
         int num_new_sets=ss_manager->cutset_generation_main( yhit, VItopo, false);
         VIub=-1e31;

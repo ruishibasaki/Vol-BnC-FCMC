@@ -1,4 +1,4 @@
-#include "MCND_checklp.hpp"
+#include "MCND_topoheur.hpp"
 
 
 
@@ -8,7 +8,7 @@ ILOSTLBEGIN
 //---------------------------------------------------------------------------
 
 void 
-LPChecker::set_parameters() {
+TopoHeur::set_parameters() {
 	cplex.setParam(IloCplex::Threads,1);
     //cplex->setParam(IloCplex::RootAlg, 2);
     //cplex->setParam(IloCplex::NodeAlg, 3);
@@ -32,7 +32,7 @@ LPChecker::set_parameters() {
 //---------------------------------------------------------------------------
 
 void
-LPChecker::initialize(const Data* d, const MCND_solution* best_sol_, const CoverCollection* cover_man_,
+TopoHeur::initialize(const Data* d, const MCND_solution* best_sol_, const CoverCollection* cover_man_,
     				const LocalCutCollection* localc_man_, const GlobalCutCollection* globalc_man_ ){
     data = d;
     best_sol = best_sol_;
@@ -107,7 +107,7 @@ LPChecker::initialize(const Data* d, const MCND_solution* best_sol_, const Cover
 //-------------------------------------------------------------------------------------------
 
 void
-LPChecker::make_model(){
+TopoHeur::make_model(){
 	double ub;
 	for(int a=0;a<narcs;++a){
 		if(topo[a]<=0.5){
@@ -124,7 +124,7 @@ LPChecker::make_model(){
 //-------------------------------------------------------------------------------------------
 
 void
-LPChecker::remake_model(){
+TopoHeur::remake_model(){
 	double ub;
 	int arc;
 	for(int a=0;a<szunfixd;++a){
@@ -144,7 +144,7 @@ LPChecker::remake_model(){
 //-------------------------------------------------------------------------------------------
 
 int
-LPChecker::make_topo(  const double * x , const BCP_vec<BCP_var*>& vars){
+TopoHeur::make_topo(  const double * x , const BCP_vec<BCP_var*>& vars){
   	
 	szunfixd=0;
 	int rnd;
@@ -180,7 +180,7 @@ LPChecker::make_topo(  const double * x , const BCP_vec<BCP_var*>& vars){
 //-------------------------------------------------------------------------------------------
 
 bool
-LPChecker::check_tabu(unsigned int* seqtopo){
+TopoHeur::check_tabu(unsigned int* seqtopo){
 	unsigned int* titem;
 	bool equal;
 
@@ -211,10 +211,10 @@ LPChecker::check_tabu(unsigned int* seqtopo){
 //-------------------------------------------------------------------------------------------
 
 void
-LPChecker::try_perturbation(unsigned int* seqtopo){
+TopoHeur::try_perturbation(unsigned int* seqtopo){
 	int arc;
 	Pair2* maptitem=0;
-	std::cout<<"LPChecker::try_perturbation"<<std::endl;
+	std::cout<<"TopoHeur::try_perturbation"<<std::endl;
 	std::random_shuffle(unfx.begin(), unfx.begin()+szunfixd);
  	for(int a=0;a<szunfixd;++a){
 		arc = unfx[a];
@@ -237,7 +237,7 @@ LPChecker::try_perturbation(unsigned int* seqtopo){
 //---------------------------------------------------------------------------
 
 int
-LPChecker::solve(int& closed, int*& fixd0, MCND_solution*& mipsol){
+TopoHeur::solve(int& closed, int*& fixd0, MCND_solution*& mipsol){
 	unsigned int* seqtopo = new unsigned int[sizeOfIdSeq];
 	std::fill(seqtopo, seqtopo+sizeOfIdSeq, 0);
 	Pair2* maptitem=0;
@@ -277,13 +277,13 @@ LPChecker::solve(int& closed, int*& fixd0, MCND_solution*& mipsol){
 					ret = check_feas(false);
 					if(ret<0) return -2;
 				   
-				    //std::cout<<"LPChecker: "<<cplex.getObjValue()<<std::endl;
+				    //std::cout<<"TopoHeur: "<<cplex.getObjValue()<<std::endl;
         			getSolution(mipsol);
         			return 0;
         		}else return -3;
 			}else if(ret==-2) return -2;
         }
-        //std::cout<<"LPChecker: "<<cplex.getObjValue()<<std::endl;
+        //std::cout<<"TopoHeur: "<<cplex.getObjValue()<<std::endl;
         getSolution(mipsol);
 		return 1; 
 	}
@@ -296,7 +296,7 @@ LPChecker::solve(int& closed, int*& fixd0, MCND_solution*& mipsol){
 				//std::cout<<"chekclosed: "<<a<<std::endl;
 			}
 		}
- 		std::cout<<"LPChecker::solve::cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl; abort();
+ 		std::cout<<"TopoHeur::solve::cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl; abort();
 		return -3;
 	}
 	return -4;
@@ -306,7 +306,7 @@ LPChecker::solve(int& closed, int*& fixd0, MCND_solution*& mipsol){
 //-------------------------------------------------------------------------------------------
 
 int 
-LPChecker::getSolution(MCND_solution*& mipsol){
+TopoHeur::getSolution(MCND_solution*& mipsol){
  	double flow;
 	double val;
 	double cij;
@@ -346,7 +346,7 @@ LPChecker::getSolution(MCND_solution*& mipsol){
 //-------------------------------------------------------------------------------------------
 
 int
-LPChecker::check_feas(bool restore){
+TopoHeur::check_feas(bool restore){
 	int ret=0;
 	double val;
 	bool feas=true;
@@ -376,7 +376,7 @@ LPChecker::check_feas(bool restore){
 
 
 int
-LPChecker::final_feas( std::list<Pair2>& heap,  const IloNumArray & xextrasol){
+TopoHeur::final_feas( std::list<Pair2>& heap,  const IloNumArray & xextrasol){
      
     IloNumArray xsol(env);
 	cplex.getValues(xsol,x);
@@ -457,7 +457,7 @@ LPChecker::final_feas( std::list<Pair2>& heap,  const IloNumArray & xextrasol){
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 
-LPChecker::~LPChecker() {
+TopoHeur::~TopoHeur() {
     
     try {
     	delete [] map;

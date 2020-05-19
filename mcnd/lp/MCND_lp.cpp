@@ -114,7 +114,9 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     }else LBi=0;
     if(testconn ){
     	testconn = false;
-    	if(!flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, testconn, yfix)){
+    	int ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, testconn, yfix);
+    	if(ret<0){
+			if(ret==-1){ globalc_manager.globalc_generation_main2(0, yfix); }
 			var_changed_pos.clear();
 			var_new_bd.clear();
 			std::cout<<"MCND_lp::initialize_new_search_tree_node::flwconnect.check_connectivity NOT"<<std::endl;
@@ -150,7 +152,7 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
   	if (cutnum > core_rownum){
   		for(int i=core_rownum; i<cutnum;++i){
   			MCND_Cut * mcnd_cut = dynamic_cast<MCND_Cut*>(cuts[i]);
-  			switch(mcnd_cut->type){
+  			switch(mcnd_cut->cut_type){
   				case 1:{
 					CoverCut * cut = dynamic_cast<CoverCut*>(mcnd_cut);
 					//std::cout<<"collec: "<<i<<" "<<cut->get_cover()->serial_nmbr<<std::endl;
@@ -189,7 +191,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     lp->setDblParam(OsiPrimalTolerance, 1e-4);
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = AppVolData.volprob.parm;
-    vollp->mode=1;
+    
     vollp->has_sol = has_sol;
     vollp->recheck_collct=false;
     vollp->upper_bound = LBi >0 ? fmin(upper_bound(), LBi*5) : upper_bound();
@@ -211,8 +213,9 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
 		par.alphafactor=0.3;
 		par.alphaint=10;
 
-     	AppVolData.intvlVI = 200; /*vollp->mode=2;*/
-    }
+     	AppVolData.intvlVI = 200; 
+     	vollp->mode=2;
+    }else vollp->mode=1;
 	
 	if(lp_mode & LP_LogicalFixed){
 		vollp->recheck_collct=true;  
@@ -374,7 +377,7 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 		//std::cout<<"cut: "<<cut->type<<" "<<cut->id_vi()<<" "<<cut->purgbl()<<std::endl;
  		if ( cut->purgbl() /*|| (cut->check_viol(lpres.x())==0 && lpres.pi()[cut->id_vi()]==0)*/) {
 			//std::cout<<"out / dual: "<<" id: "<<cut->id_vi()<<" srnb: "<<cut->serial_nmbr()<<std::endl;
-			switch(cut->type){
+			switch(cut->cut_type){
 				case 1:{ cover_manager.purgbl.push_back((dynamic_cast<CoverCut *>(cut))->get_cover()); break;}
 				case 2:{ localc_manager.purgbl.push_back((dynamic_cast<LocalCCut *>(cut))->get_localc()); break;}
 			}
@@ -409,7 +412,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
     
 
     const int tc = lpres.termcode();
-    //std::cout<<"compute lower bound: "<<std::endl;
+    std::cout<<"compute lower bound: "<<lpres.objval()<<std::endl;
     //if((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
     	//std::cout<<"compute_lower_bound aborted"<<std::endl;
 		//abort();
@@ -510,7 +513,7 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     	return 0;
     }
  
- 	if(ret<=0){
+ 	if(ret<0){
 		if(ret==-1){
 			std::cout<<"MCND_lp::test_feasibility::add_external_globalc type 0"<<std::endl;
 			getOsiVolBabSolver()->add_external_globalc( fixd, closed);
@@ -519,7 +522,7 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 		lp_mode |= LP_ForceNodeAbort;
 		delete []fixd;
     	return 0;
-	}else if(ret==2){lp_mode |= LP_ForceNodeAbort;}
+	}else if(ret==0 || ret==2){lp_mode |= LP_ForceNodeAbort;}
 	delete []fixd;
 	
 	 

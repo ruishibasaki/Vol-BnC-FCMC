@@ -203,13 +203,13 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	//if(changed_pos.size()>0){
 	//	lp_mode |= LP_LogicalFixed;
 	//} 
-	if(lp_mode & LP_TestConnectivity){
+	/*if(lp_mode & LP_TestConnectivity){
 		lp_mode &= ~LP_TestConnectivity;
 		if(!verify_feasibility( changed_pos, new_bd, changed_pos.size())){
 			std::cout<<"MCND_lp::logical_fixing::verify_feasibility NOT"<<std::endl;
 			lp_mode |= LP_ForceNodeAbort;
 		}
- 	}
+ 	}*/
 
 }
 
@@ -236,6 +236,9 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			if(cut->purgbl()) continue;
 			if(!cut->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
 				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; cut->print();
+				if(cut->cut_type==1){
+					globalc_manager.globalc_generation_main2(0, yfix);
+				}
 				var_changed_pos.clear();
 				var_new_bd.clear();
 				lp_mode |= LP_ForceNodeAbort;
@@ -256,6 +259,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			if(gloc->purgbl) continue;
 			if(!gloc->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
 				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; gloc->print();
+				globalc_manager.globalc_generation_main2(0, yfix);
 				var_changed_pos.clear();
 				var_new_bd.clear();
 				lp_mode |= LP_ForceNodeAbort;
@@ -272,7 +276,9 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 		}
 		
 		if(zrofx){
-			if(!flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, conn_arcfix, yfix)){
+			int ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, conn_arcfix, yfix);
+			if(ret<0){
+				if(ret==-1){ globalc_manager.globalc_generation_main2(0, yfix); }
 				var_changed_pos.clear();
 				var_new_bd.clear();
 				std::cout<<"MCND_lp::cut_varfix_and_updt::flwconnect.check_connectivity NOT"<<std::endl;
@@ -328,7 +334,7 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
 		lp_mode |= LP_ForceNodeAbort ;
 		return BCP_NewPresolvedIsBetter_BranchOnIt;
 	}
-	 if(oldobj==0){
+	if(oldobj==0){
     	return BCP_NewPresolvedIsBetter;
     }
     
@@ -416,7 +422,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	bool feas1 = !((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
 		(child1.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf);
 		
-	int ret = verify_children_feasibility( best->candidate(),  feas0, feas1 );
+	verify_children_feasibility( best->candidate(),  feas0, feas1 );
 	
 	double ybar_branch = child0.x()[var_branch];
     double diff0 = (child0.objval() - LBi);
@@ -454,7 +460,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 //========================================================================================
 
 bool 
-MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, const BCP_vec<double> & chngd_bd, int nvars){
+MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, const BCP_vec<double> & chngd_bd, int nvars, bool feas_status){
 	OsiVolSolverInterface* lpsolver = getOsiVolBabSolver();
 	
 	for(int n=nvars;n--;){
@@ -464,7 +470,10 @@ MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, const BCP_vec<doubl
 	const double * collb = lpsolver->getColLower();
     const double * colub = lpsolver->getColUpper();
     
-    int ret = lpfeaschecker.solve_feas(collb, colub);
+    int ret = lpfeaschecker.solve_feas(collb, colub, feas_status);
+    if(ret == -1){
+    	globalc_manager.globalc_generation_main2(colub, 0);
+    }
     if(ret<0) return false;
     else return true;
 }
@@ -474,23 +483,23 @@ MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, const BCP_vec<doubl
 
 int 
 MCND_lp::verify_children_feasibility(BCP_lp_branching_object * candidate, bool& feas0, bool& feas1 ){
-	int ret = 0;
-	const BCP_vec< int >& vars = *candidate->forced_var_pos;
+ 	const BCP_vec< int >& vars = *candidate->forced_var_pos;
 	const BCP_vec< double >& vars_bd = *candidate->forced_var_bd;
-	if(feas0){
-		candidate->apply_child_bd(getOsiVolBabSolver(), 0);
-		//std::cout<<"testfeas 0"<<std::endl;
-		feas0 = verify_feasibility(vars,vars_bd,0);
-		ret +=1;
-	}
-	if(!feas1) return ret;
 	
-	if(lp_mode & LP_TestConnectivity){
- 		candidate->apply_child_bd(getOsiVolBabSolver(), 1);
-		feas1 = verify_feasibility(vars,vars_bd,0);
-		ret +=2;
-	}	
-	return ret;
+	if( (lp_mode & LP_TestConnectivity) /*feas1 &&*/){
+		candidate->apply_child_bd(getOsiVolBabSolver(), 1);
+		feas1 = verify_feasibility(vars,vars_bd,0, feas1);
+		if(!feas1){
+			feas0 = false;
+			return 0;
+		}
+	}
+	//std::cout<<"0bracj"<<std::endl;
+ 	//if(feas0){
+		candidate->apply_child_bd(getOsiVolBabSolver(), 0);
+		feas0 = verify_feasibility(vars,vars_bd,0, feas0);
+ 	//}
+	return 0;
 }
 
 

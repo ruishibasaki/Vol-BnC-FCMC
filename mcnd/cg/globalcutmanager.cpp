@@ -77,19 +77,49 @@ GlobalCutManager::clean_collection(){
 //------------------------------------------------------------------------------------------
 
 int
+GlobalCutManager::globalc_generation_main2( const double * colub, const int * topo){
+    int clsd=0;
+	
+	int * closed_arcs = new int[data->narcs];
+	if(colub !=0 ){
+		for(int a=data->narcs;a--;){
+			if(colub[a]<0.5) 
+				closed_arcs[clsd++]=a;
+		}
+	}else if(topo !=0 ){
+		for(int a=data->narcs;a--;){
+			if(topo[a]==0) 
+				closed_arcs[clsd++]=a;
+		}
+	}else{
+	 	delete [] closed_arcs;
+		return 0;
+	} 
+	
+	int * vars_ =  new int[clsd];
+	for(int a=clsd;a--;){
+ 		 vars_[a] = closed_arcs[a];
+	}
+ 	delete [] closed_arcs;
+    int added=0;
+	added += make_globalcut( 0, clsd, vars_, 0);	
+ 	//if(added)std::cout<<"GlobalCutManager::globalc_generation_main2 added global serial_num: "<<ttgend-1<<std::endl;
+ 	return added;
+}
+ 
+//-------------------------------------------------------------------------------------------
+
+int
 GlobalCutManager::globalc_generation_main( const double * ystar, const int * closed, int cont0, int curr_id){
-    int opnd=0;
-    int size;
     int * vars_;
 	 
 	vars_ = new int[cont0];
 	for(int a=cont0;a--;){
 		 vars_[a]=closed[a];
 	}
-	size = cont0;
 	
     int added=0;
-	added += make_globalcut( ystar, size, vars_, curr_id);	
+	added += make_globalcut( ystar, cont0, vars_, curr_id);	
  
  	return added;
 }

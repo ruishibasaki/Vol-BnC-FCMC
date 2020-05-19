@@ -15,7 +15,7 @@
 #include <algorithm>
 
 
-class LPChecker{
+class TopoHeur{
 
 public:
     IloEnv env;
@@ -45,8 +45,8 @@ public:
     const MCND_solution* best_sol;
     // construtores
 	//--------------------------
-    inline LPChecker():model(env), cplex(env), x(env), fobj(env), xextra(env){ data =0; best_sol=0; };
-    virtual ~LPChecker();
+    inline TopoHeur():model(env), cplex(env), x(env), fobj(env), xextra(env){ data =0; best_sol=0; };
+    virtual ~TopoHeur();
     
     //--------------------------
 

@@ -41,7 +41,7 @@ void
 MCND_packer::pack_cut_algo(const BCP_cut_algo* cut, BCP_buffer& buf){
 	//std::cout<<"pack_cut_algo:"<<std::endl;
 	const MCND_Cut * c = dynamic_cast<const MCND_Cut *>(cut);
-	buf.pack(c->type);
+	buf.pack(c->cut_type);
 	c->pack(buf);
 }
 
@@ -124,7 +124,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    p.par.set_entry(BCP_tm_par::QualityRatioToAllowDiving_NoUB, -1.0);
    p.par.set_entry(BCP_tm_par::RemoveExploredBranches, true);
    p.par.set_entry(BCP_tm_par::MessagePassingIsSerial, true);
-	tm->time_lim = 1*3600.0;
+	tm->time_lim = 5*3600.0;
    p.par.set_entry(BCP_tm_par::MaxRunTime, tm->time_lim);
 
    tm->t_start = clock();

@@ -59,14 +59,14 @@ FlowConnect::set_bd(int id, double lb, double ub, BCP_vec<int>& changed_pos, BCP
 
 //-------------------------------------------------------------------------------
 
-bool
+int
 FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd,bool& conn_arcfix, int * yfxd){
     std::list<int>::const_iterator it;
     int arc, i,j, id;
     int nk, comm;
     int arc_unique;
     int comm_sat = 0;
-
+	int ret =1;
     std::vector<int>count_closed(narcs,0);
     for(int n=nnodes;n--;){
         //std::cout<<"node "<<n+1<<std::endl;
@@ -83,7 +83,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     id = narcs+k*narcs+arc;
                     if(vars[id]->ub()>0 && vars[id]->lb()==0)
                     	set_bd(id, 0.0, 0.0,  changed_pos, new_bd);
-                    else if(vars[id]->lb()>0){ /*std::cout<<"FlowConnect conflict1"<<std::endl; */return false;}
+                    else if(vars[id]->lb()>0){ /*std::cout<<"FlowConnect conflict1"<<std::endl; */ret= -2;}
                     if(++count_closed[arc] == ndemands){
                     	if(yfxd[arc]==-1 && vars[arc]->ub()>0.5){
                     		set_bd(arc, 0.0, 0.0,  changed_pos, new_bd);
@@ -92,7 +92,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
 							std::cout<<"connfix "<<arc<<" to 0"<<std::endl;
                     	}else if(vars[arc]->lb()>0 || yfxd[arc]==1){ 
                     		/*std::cout<<"FlowConnect conflict2 "<<arc<<" "<<vars[arc]->lb()<<std::endl;*/ 
-                    		return false;}
+                    		ret= -2;}
                     }
                 }
             }
@@ -101,7 +101,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	id = narcs+k*narcs+arc_unique;
                 	double dk = data->d_k[k].quantity;
                 	//std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
-                	if(vars[id]->ub() < dk){ /*std::cout<<"FlowConnect conflict3"<<std::endl;*/ return false;}
+                	if(vars[id]->ub() < dk){ /*std::cout<<"FlowConnect conflict3"<<std::endl;*/ ret= -2;}
                 	else if(vars[id]->lb() < dk) set_bd(id, dk, dk,  changed_pos, new_bd);
                 	if(vars[arc_unique]->lb() < 0.5 && yfxd[arc_unique]==-1){
                 		set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
@@ -112,7 +112,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	} 
                 }else if(comm_sat==0){
                 	//std::cout<<"FlowConnect conflict4"<<std::endl;  
-                    return false;
+                    return -1;
                 }
             }else if(n == (data->d_k[k].D-1)){
                 comm_sat = 0;
@@ -121,13 +121,14 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     if(labelf[k*narcs+arc] && labelb[k*narcs+arc]){
                         ++comm_sat;
                         arc_unique = arc;
+                        if(comm_sat>1) break;
                     } 
                 }
                 if(comm_sat==1){
                 	int id = narcs+k*narcs+arc_unique;
                 	double dk = data->d_k[k].quantity;
                 	//std::cout<<vars[id]->ub()<<" "<<dk<<std::endl;
-                	if(vars[id]->ub() < dk){ /*std::cout<<"FlowConnect conflict5"<<std::endl;*/ return false;}
+                	if(vars[id]->ub() < dk){ /*std::cout<<"FlowConnect conflict5"<<std::endl;*/ ret= -2;}
                 	else if(vars[id]->lb() < dk) set_bd(id, dk, dk,  changed_pos, new_bd);
                 	if(vars[arc_unique]->lb() < 0.5 && yfxd[arc_unique]==-1){
                 		set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
@@ -138,23 +139,27 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	} 
                 }else if(comm_sat==0){
                     //std::cout<<"FlowConnect conflict6"<<std::endl;  
-                    return false;
+                    return -1;
                 }
             }
         }
         
     }
-    return true;
+    return ret;
 }
 
 //-------------------------------------------------------------------------------
 
-bool 
+int 
 FlowConnect::check_connectivity(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, bool& conn_arcfix, int * yfxd){
     int i, j;
     for(int arc=narcs; arc--;){
-    	if(vars[arc]->ub()<0.5 || yfxd[arc] ==0) continue;
-    	else if(vars[arc]->lb()>0.5) yfxd[arc]=1;
+    	if(vars[arc]->ub()<0.5){
+    		yfxd[arc] =0;
+    		continue;
+    	}else if( yfxd[arc] ==0){
+    		continue;
+    	}else if(vars[arc]->lb()>0.5) yfxd[arc]=1;
     	//std::cout<<"arc: "<<arc<<std::endl;
         const Arc& a = data->arcs[arc];
         adjf[a.i-1].push_back(a.j-1);
@@ -169,10 +174,10 @@ FlowConnect::check_connectivity(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& cha
             BFS(false, i, adjb, labelb, Kd[i]);
         }
     }
-    if(!translate_results(vars, changed_pos, new_bd, conn_arcfix,yfxd)){ /*std::cout<<"check_connectivity::false"<<std::endl;*/ return false;}
+    int ret =  translate_results(vars, changed_pos, new_bd, conn_arcfix,yfxd);
     
     reset();
-    return true;
+    return ret;
 }
 
 //-------------------------------------------------------------------------------
