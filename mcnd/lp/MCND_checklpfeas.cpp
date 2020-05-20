@@ -32,7 +32,6 @@ LPFeasChecker::initialize(const Data* d){
     
     IloExpr obj1(env);
     IloExpr obj2(env);
-    x = IloNumVarArray(env);
     for(int a=0;a<narcs;++a){
         for (int k = 0; k < ndemands; ++k){
             x.add(IloNumVar(env, 0.0, IloInfinity));

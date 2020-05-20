@@ -169,7 +169,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	int id;
 	Arc * item;
 	for(int a=data.narcs; a--;){
-		if(yfix[a]==0){ if(vars[a]->ub()==1.0){lp_mode |= LP_TestConnectivity; arcfx=true;}continue;}
+		if(yfix[a]==0){ if(vars[a]->ub()==1.0){lp_mode |= LP_TestConnectivity; arcfx=true;} continue;}
 		else if(yfix[a]==1 && vars[a]->lb()==0.0){ arcfx=true;}
 		item  =  &data.arcs[a];
 		gij = rcsol[a];
@@ -179,7 +179,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			dk = data.d_k[k].quantity;
 			ckij = item->c[k]*dk - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
 			if(ckij>1e-4){
-				tt = ((gij > 0)&& (yfix[a]<1)) ? (lb+ gij) : lb;
+				tt = ((gij > 0)&& (vars[a]->lb()==0.0)) ? (lb+ gij) : lb;
 				if(tt + ckij*vars[id]->ub()/dk > (upper_bound()+1e-4) ){
 					bd = (upper_bound() - tt)/ckij;
 					bd*=dk;

@@ -58,8 +58,7 @@ MCND_tm::unpack_feasible_solution(BCP_buffer& buf)
 void
 MCND_tm::initialize_core(BCP_vec<BCP_var_core*>& vars,
 		       BCP_vec<BCP_cut_core*>& cuts,
-		       BCP_lp_relax*& matrix)
-{
+		       BCP_lp_relax*& matrix){
   //std::cout<<"tm_init_CORE "<<vars.size()<<" "<<cuts.size()<<std::endl;
   int narcs=data.narcs;
   int ndemands=data.ndemands;

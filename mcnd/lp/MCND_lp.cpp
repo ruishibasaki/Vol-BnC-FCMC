@@ -35,7 +35,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     pump_heur.initialize(&data, &best_sol);
     lpfeaschecker.initialize(&data);
     flwconnect.initialize(&data);
-    
+    lpchecker.initialize(&data, &cover_manager.covers, &localc_manager.locals, &globalc_manager.globals);
     //topo_heur.initialize(&data, &best_sol, &cover_manager.covers, &localc_manager.locals, &globalc_manager.globals);
     
     AppVolData.data = &data;
@@ -86,6 +86,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     //std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
     ++num_nodes;
     lp_mode = LP_Normal;
+    lpchecker.clean();
     if(has_sol){
     	std::cout<<"nomgap: "<<nomgap<<" and "<<(upper_bound()-lower_bound)<<std::endl;
     	 if((nomgap - (upper_bound()-lower_bound))/nomgap < 0.001){
@@ -413,13 +414,19 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     const int tc = lpres.termcode();
     std::cout<<"compute lower bound: "<<lpres.objval()<<std::endl;
+    LBi = std::max(lpres.objval(),LBi);
+
+    double ub = upper_bound();
+
+    if((ub  - LBi)/ub < 0.02){
+    	lpchecker.solve(ub, vars, LBi);
+    }
     //if((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
     	//std::cout<<"compute_lower_bound aborted"<<std::endl;
 		//abort();
 	//}
 	 
     //std::cout<<"compute lower bound: "<<(tc & BCP_ProvenOptimal)<<" "<<(tc & BCP_PrimalObjLimReached)<<std::endl;
-    LBi = std::max(lpres.objval(),LBi);
     
     return LBi;
     

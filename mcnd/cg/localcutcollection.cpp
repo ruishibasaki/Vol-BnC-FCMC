@@ -528,7 +528,7 @@ LocalCut::check_updt_Viol(const double *y, bool & infeas) {
 
 double
 LocalCut::coef_at(int pos) const{
-    if(pos >= size) return -1;
+    if(pos >= size) return 0;
     if(coef) return coef[pos];
     return 1.0;
 }

@@ -151,7 +151,7 @@ public:
     virtual const double * getRowActivity() const {//std::cout<<"get ractiv"<<std::endl;
         return lhs_; }
     
-    virtual double getObjValue() const {
+    virtual double getObjValue() const { //std::cout<<"get getObjValue "<<std::endl;
         if(retval==-1 || volprob_->value<0 ){
             return getInfinity();
         }else{
@@ -247,7 +247,8 @@ public:
     
     virtual void setColSolution(const double * colsol){}
     virtual void setRowPrice(const double * rowprice){}
-    
+    double * setRowPrice(){return dual;}
+
     //-------------------------------------------------------------------------
     /**@name Methods to expand a problem.<br>
      Note that if a column is added then by default it will correspond to a

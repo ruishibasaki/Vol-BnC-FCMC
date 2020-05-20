@@ -23,6 +23,7 @@
 #include "MCND_pump.hpp"
 //#include "MCND_topoheur.hpp"
 #include "MCND_checklpfeas.hpp"
+#include "MCND_checklp.hpp"
 
 
 class OsiVolSolverInterface;
@@ -66,6 +67,7 @@ public:
     GlobalCutManager globalc_manager;
 
     LPFeasChecker lpfeaschecker;
+    LPChecker lpchecker;
     //TopoHeur topo_heur;
     FlowConnect flwconnect;
     Pump pump_heur;
