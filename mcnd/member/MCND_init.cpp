@@ -150,7 +150,7 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
 	p.par.set_entry(BCP_lp_par::LpVerb_FinalRelaxedSolution, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_LpMatrixSize, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_LpSolutionValue, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_MatrixCompression, false);
+	p.par.set_entry(BCP_lp_par::LpVerb_MatrixCompression, true);
 	p.par.set_entry(BCP_lp_par::LpVerb_NodeTime, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolvePositions, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolveResult, false);

@@ -86,7 +86,6 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     //std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
     ++num_nodes;
     lp_mode = LP_Normal;
-    lpchecker.clean();
     if(has_sol){
     	std::cout<<"nomgap: "<<nomgap<<" and "<<(upper_bound()-lower_bound)<<std::endl;
     	 if((nomgap - (upper_bound()-lower_bound))/nomgap < 0.001){
@@ -237,8 +236,8 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     	//std::cout<<"aqui2"<<std::endl;
     	//std::cout<<"LP_CutAddedFromHeuristic"<<std::endl;
     }
-    if(vollp->mode>=0 && !in_strong_branching) lp_mode |= LP_Solved;
-    else lp_mode &= ~LP_Solved;
+    if(vollp->mode>=0 && !in_strong_branching) lp_mode |= LP_tighterBounds;
+    else lp_mode &= ~LP_tighterBounds;
     vollp->in_strong_branch = in_strong_branching;
 	//std::cout<<"modify_lp_parameters "<<vollp->mode<<std::endl;
    
@@ -413,14 +412,20 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
     
 
     const int tc = lpres.termcode();
-    std::cout<<"compute lower bound: "<<lpres.objval()<<std::endl;
     LBi = std::max(lpres.objval(),LBi);
+    if(lp_mode & LP_ForceNodeAbort) return LBi;
 
     double ub = upper_bound();
 
-    if((ub  - LBi)/ub < 0.02){
-    	lpchecker.solve(ub, vars, LBi);
-    }
+    if((ub  - LBi)/ub < 0.02 && !(lp_mode & LP_OptSolved) && current_iteration()==1){
+    	int ret  = lpchecker.solve(ub, vars, LBi);
+    	if(ret<0){
+    		lp_mode |= LP_ForceNodeAbort;
+    		std::cout<<"MCND_lp::compute_lower_bound:: compute opt lower bound: INFEASIBLE"<<std::endl;
+    	}else{
+    		lp_mode |= LP_OptSolved;
+    	} 
+    }else lp_mode &=  ~LP_OptSolved;
     //if((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
     	//std::cout<<"compute_lower_bound aborted"<<std::endl;
 		//abort();
@@ -457,14 +462,15 @@ MCND_lp::process_lp_result(const BCP_lp_result& lpres,
     	return;
 	}else if(lp_mode & LP_ForceNodeAbort) return;
 	
+	std::cout<<"process_lp_result:: "<<lpres.objval()<<std::endl;
 	/*if(current_level()==0){
 		for (int a=data.narcs; a--;)
 			std::cout<<"sol y_"<<a<<" "<<lpres.x()[a]<<std::endl;
 	}*/
-	if(!(lp_mode & LP_Solved)) return;
+	//if(!(lp_mode & LP_Solved)) return;
 	
 	//std::cout<<"process_lp_result"<<std::endl;
-	lp_mode |= LP_tighterBounds;
+	/*lp_mode |= LP_tighterBounds;
     const double *y_vol = lpres.x();
     double val;
     for (int a=data.narcs; a--;) {
@@ -474,7 +480,7 @@ MCND_lp::process_lp_result(const BCP_lp_result& lpres,
 			if(val>1e-8) --tabu[a];
 			else if(val<=1e-8) ++tabu[a];
 		}
-	}
+	}*/
     return;
 }
 

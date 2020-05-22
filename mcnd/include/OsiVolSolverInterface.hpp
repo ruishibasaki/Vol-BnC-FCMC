@@ -451,7 +451,6 @@ private:
     void translate_hotstart();
     void translate_sol();
     void translate_dualsol();
-    void translate_dualws();
     void set_start();
     void map_topology();
     void map_duals();
@@ -463,7 +462,8 @@ public:
     int add_external_localc( const int * y, const double * sol, int sz, int type);
     int add_external_globalc( const int * y, int cont0);
     void direct_solve(const std::deque<int>& topo, const CoinWarmStart* warmstart);
-    
+    void reset_dualsol(const std::map<int, double>& dual_map);
+
     
     const Data * data;
     int narcs, ndemands, nnodes;

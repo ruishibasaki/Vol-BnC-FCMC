@@ -367,11 +367,12 @@ OsiVolSolverInterface::resolve(){
     //std::cout<<"re solve "<<szunfxd<<" dsize: "<<volprob_->active_size<<" maxdsz: "<<maxNumrows_<<std::endl;
     // Set the dual starting point
     retval = volprob_->solve(*this, true);
-   
-    //std::cout<<std::setprecision(10)<<"result: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<std::endl;
+    //std::cout<<std::setprecision(10)<<"volresult: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<std::endl;
+
     if(volprob_->value< min_lower_bound && in_strong_branch){
      	volprob_->value = min_lower_bound;
     }
+
     translate_sol();
     if(mode ==3){
 		unmarkHotStart();
@@ -987,25 +988,28 @@ OsiVolSolverInterface::translate_dualsol(){
 //-----------------------------------------------------------------------
 
 void 
-OsiVolSolverInterface::translate_dualws(){
-	if(!HotStartSet) return;
-	int idx;
-	for(int i=ndemands*nnodes; i-- ;){
+OsiVolSolverInterface::reset_dualsol(const std::map<int, double>& dual_map){
+ 	int idx;
+ 	int fx =  ndemands*nnodes;
+ 	std::map<int, double>::const_iterator it;
+	for(int i=fx; i-- ;){
         idx = actv[i];
         if(idx>=0){
-            dual[i] = HotStart_->dual[i];
+        	it = dual_map.find(i);
+            dual[i] =  it != dual_map.end() ? it->second : 0.0 ;
         }else{
             dual[i] =0;
         }
     }
 
-    int fidx = ndemands*nnodes;
-    int sz = cover_manager->covers.sizeOfCollection;
+   int sz = cover_manager->covers.sizeOfCollection;
     Cover* vi = cover_manager->covers.end;    
 	for(; sz--;){
 		idx = actv[vi->id_vi];
 		if(idx>=0){
-            dual[vi->id_vi] = HotStart_->get_mapped(vi->serial_nmbr); 
+            it = dual_map.find(fx+vi->serial_nmbr);
+            //if(it != dual_map.end()) std::cout<<"restdual: "<<vi->serial_nmbr<<" "<<it->second<<std::endl;
+            dual[vi->id_vi] =  it != dual_map.end() ? it->second : 0.0 ;
         }else{
             dual[vi->id_vi] =0;
         }
@@ -1016,7 +1020,9 @@ OsiVolSolverInterface::translate_dualws(){
 	for(; sz--;){
 		idx = actv[vilc->id_vi];
 		if(idx>=0){
-            dual[vilc->id_vi] = HotStart_->get_mapped(vilc->serial_nmbr); 
+            it = dual_map.find(fx+vilc->serial_nmbr);
+            //if(it != dual_map.end()) std::cout<<"restdual: "<<vilc->serial_nmbr<<" "<<it->second<<std::endl;
+            dual[vilc->id_vi] =  it != dual_map.end() ? it->second : 0.0 ;
         }else{
             dual[vilc->id_vi] = 0;
         }
@@ -1027,7 +1033,8 @@ OsiVolSolverInterface::translate_dualws(){
 	for(; sz--;){
 		idx = actv[vigc->id_vi];
 		if(idx>=0){
-            dual[vigc->id_vi] = HotStart_->get_mapped(vigc->serial_nmbr); 
+            it = dual_map.find(fx+vigc->serial_nmbr);
+            dual[vigc->id_vi] =  it != dual_map.end() ? it->second : 0.0 ;
         }else{
             dual[vigc->id_vi] = 0;
         }
@@ -1036,6 +1043,8 @@ OsiVolSolverInterface::translate_dualws(){
 
 }
 
+//-----------------------------------------------------------------------
+//-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 
 bool 

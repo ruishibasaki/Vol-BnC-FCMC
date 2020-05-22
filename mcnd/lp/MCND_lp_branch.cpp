@@ -141,10 +141,11 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
     bool arcfx=false;
      
     std::fill(yfix,yfix+data.narcs, -1);
+    
  	for (int a=data.narcs; a--;){
-		gij = rcsol[a];
 		if(vars[a]->lb()==0.0 && vars[a]->ub()==1.0){
 			//std::cout<<"penalty test: "<<a<<" "<<gij<<" lbs: "<<lb<<" "<<LBi<<std::endl;
+			gij = rcsol[a];
 			if(gij>0 && (lb+gij)>=upper_bound()){
 				std::cout<<a<<" LOGFIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
@@ -162,22 +163,32 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
 	}
-	
+	if(lp_mode & LP_OptSolved) 
+ 		lpchecker.logical_yfix(upper_bound(), changed_pos, new_bd, yfix);
+
 	if(!cut_varfix_and_updt( vars, cuts, changed_pos, new_bd)) return;
 	
+	if(lp_mode & LP_OptSolved) 
+ 		lpchecker.logical_xfix(upper_bound(), yfix, vars);
+ 	
 	double tt, bd, dk;
+	double lpbd;
 	int id;
 	Arc * item;
 	for(int a=data.narcs; a--;){
 		if(yfix[a]==0){ if(vars[a]->ub()==1.0){lp_mode |= LP_TestConnectivity; arcfx=true;} continue;}
 		else if(yfix[a]==1 && vars[a]->lb()==0.0){ arcfx=true;}
+		
 		item  =  &data.arcs[a];
 		gij = rcsol[a];
+		
 		for (int k=data.ndemands; k--;){
 			id = data.narcs+k*data.narcs+a;
 			if(vars[id]->ub()==0.0) continue;
+			
 			dk = data.d_k[k].quantity;
 			ckij = item->c[k]*dk - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
+			bd =-1;
 			if(ckij>1e-4){
 				tt = ((gij > 0)&& (vars[a]->lb()==0.0)) ? (lb+ gij) : lb;
 				if(tt + ckij*vars[id]->ub()/dk > (upper_bound()+1e-4) ){
@@ -186,13 +197,19 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 					if(bd<1e-8)bd=0.0;
 					if(bd > vars[id]->ub()){ std::cout<<"flow logical fix enlarged ub "<<bd<<" "<<vars[id]->ub()<<std::endl; abort();}
 					else if(vars[id]->ub()-bd <= 1e-4) continue;
-					//std::cout<<"flowlogfix: "<<id<<" "<<bd<<" "<<vars[id]->ub()<<" rc: "<<ckij<<std::endl;
-					changed_pos.push_back(id);
-					new_bd.push_back(0.0);
-					new_bd.push_back(bd);
-					lp_mode |= LP_TestConnectivity;
+					//if(bd < lpchecker.bound_red[a*data.ndemands+k])
+					//	std::cout<<"flowlogfix: "<<id<<" "<<bd<<" "<<lpchecker.bound_red[a*data.ndemands+k]<<std::endl;
 				}
 			}
+			lpbd = lpchecker.bound_red[a*data.ndemands+k] ;
+			if(bd >=0) bd = lpbd>=0 ? fmin(lpbd, bd): bd;
+			else if(lpbd>=0) bd = lpbd;
+			else continue;
+			
+			changed_pos.push_back(id);
+			new_bd.push_back(0.0);
+			new_bd.push_back(bd);
+			lp_mode |= LP_TestConnectivity;
 		}
 	}
 	
@@ -200,6 +217,11 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		lp_mode |= LP_LogicalFixed;	
 		lp_mode |= LP_TestFeasibility;
 	}
+	if(lp_mode & LP_OptSolved) {
+		getOsiVolBabSolver()->reset_dualsol(lpchecker.dual_map);
+		lpchecker.bound_red.assign(data.narcs*data.ndemands,-1);
+	}
+ 		
 	//if(changed_pos.size()>0){
 	//	lp_mode |= LP_LogicalFixed;
 	//} 
@@ -490,6 +512,7 @@ MCND_lp::verify_children_feasibility(BCP_lp_branching_object * candidate, bool& 
 		candidate->apply_child_bd(getOsiVolBabSolver(), 1);
 		feas1 = verify_feasibility(vars,vars_bd,0, feas1);
 		if(!feas1){
+			//std::cout<<"1 child infeasible"<<std::endl;
 			feas0 = false;
 			return 0;
 		}
@@ -499,6 +522,7 @@ MCND_lp::verify_children_feasibility(BCP_lp_branching_object * candidate, bool& 
 		candidate->apply_child_bd(getOsiVolBabSolver(), 0);
 		feas0 = verify_feasibility(vars,vars_bd,0, feas0);
  	//}
+ 	//if(!feas0) std::cout<<"0 child infeasible"<<std::endl;
 	return 0;
 }
 

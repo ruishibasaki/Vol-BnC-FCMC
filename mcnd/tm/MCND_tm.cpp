@@ -224,7 +224,7 @@ MCND_tm::display_node_information(BCP_tree& search_tree,
 	
 	BCP_buffer buf;
 	buf.pack(lower_bound());
-	std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
+	std::cout<<"The lower bound: "<<Best_LB<<std::endl;
 	broadcast_message(BCP_ProcessType_LP,buf);
 	buf.clear();
 }

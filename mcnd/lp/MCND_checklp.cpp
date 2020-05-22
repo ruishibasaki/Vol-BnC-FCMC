@@ -13,7 +13,6 @@ ILOSTLBEGIN
 void LPChecker::set_parameters() {
 	cplex.setParam(IloCplex::Threads,1);
     cplex.setParam(IloCplex::RootAlg, 2);
-    //cplex->setParam(IloCplex::NodeAlg, 3);
     cplex.setParam(IloCplex::ClockType, 1);
     //cplex->setParam(IloCplex::MIPDisplay, 4);
     cplex.setOut(env.getNullStream());
@@ -37,6 +36,8 @@ LPChecker::initialize(const Data* d, const CoverCollection* cover_man_,
     nnodes = d->nnodes;
     narcs =d->narcs;
     unfixd.resize(narcs,-1);
+    bound_red.resize(narcs*ndemands,-1);
+    
     szunfx=0;
     set_parameters();
     
@@ -95,7 +96,7 @@ LPChecker::reset(const BCP_vec<BCP_var*>& vars){
 	szunfx=0;
 	 for(int a=0;a<narcs;++a){
 		if(vars[a]->ub()<0.5){  
-			y[a].setUB(0.0);
+			y[a].setUB(0.0);// std::cout<<"LPChecker::close: "<<a<<" "<<vars[a]->ub()<<std::endl;
 			y[a].setLB(0.0);
 		}else if(vars[a]->lb()>0.5){  
 			y[a].setUB(1.0);
@@ -107,20 +108,130 @@ LPChecker::reset(const BCP_vec<BCP_var*>& vars){
 		}
 	}
 	
-	/*add_strong_force = IloRangeArray(env);
-	add_covers= IloRangeArray(env);
-	add_locals= IloRangeArray(env);
-	add_globals= IloRangeArray(env);*/
-	map_addcovers.assign(covers->sizeOfCollection,-1);
+ 	map_addcovers.assign(covers->sizeOfCollection,-1);
     map_addlocals.assign(localcs->sizeOfCollection,-1);
     map_addglobals.assign(globalcs->sizeOfCollection,-1);
-    numaddstrong = numaddcov= numaddloc= numaddgloc =0;
 }
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
+
+int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars,  double& new_lb){
+	
+	clean();
+	reset(vars);
+	std::cout<<"LPChecker::solve"<<std::endl;
+	cplex.solve();
+	cplex.setParam(IloCplex::Param::Advance, 1);
+
+	//std::cout<<"LPChecker first "<<cplex.getObjValue()<<std::endl;
+	if(cplex.getStatus() == IloAlgorithm::Infeasible){
+		cplex.exportModel("rl.lp");
+		std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 1"<<std::endl;
+  		return -1;
+	} 
+	
+	cplex.getValues(x_,x);
+	cplex.getValues(y_,y);
+	while(cut(vars, y_,x_)){
+		cplex.solve();
+		if(cplex.getStatus() == IloAlgorithm::Infeasible){ 
+			std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 
+			return -2; 
+		}
+		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
+		if(cplex.getObjValue()+1e-4>= ub){
+			new_lb = cplex.getObjValue();
+			std::cout<<"stop lpchecker "<<cplex.getObjValue()<<std::endl;
+			return 1;
+		}
+		cplex.getValues(y_,y);
+		cplex.getValues(x_,x);
+	}
+	solval = cplex.getObjValue();
+	std::cout<<"final lpchecker "<<solval<<std::endl;
+	get_dual();
+	new_lb = solval;
+	
+	return 0;
+}
+
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+
+void 
+LPChecker::get_dual(){ 
+	int fx = ndemands*nnodes ; 
+	int sz = covers->sizeOfCollection+ localcs->sizeOfCollection+ globalcs->sizeOfCollection + fx;
+	int id;
+	double val;
+	 
+	
+	IloNumArray pi(env);
+	cplex.getDuals(pi, flowconserv);
+	for (int k = 0; k < fx; ++k) 
+		dual_map.insert(std::pair<int,double>(k, pi[k]));
+    pi.end();
+    
+    if(numaddcov>0){
+    	IloNumArray alph1(env);
+    	//std::cout<<"numaddcov "<<numaddcov<<" "<<add_covers.getSize()<<std::endl;
+		cplex.getDuals(alph1, add_covers);
+		Cover * cov = covers->begin;
+		sz = covers->sizeOfCollection;
+		for(int i=0;i<sz;++i){
+			id = map_addcovers[i];
+			if(id>=0 ){
+				val = alph1[id];
+				dual_map.insert(std::pair<int,double>(fx+cov->serial_nmbr, val));
+				//std::cout<<"cpxdual: "<<cov->serial_nmbr<<" "<<alph1[id]<<" "<<dual_map.find(fx+cov->serial_nmbr)->second<<std::endl;
+			}
+			cov = cov->next;
+		}
+		alph1.end();
+    }
+    
+	if(numaddloc>0){
+		//std::cout<<"numaddloc "<<numaddloc<<std::endl;
+		IloNumArray alph2(env);
+		cplex.getDuals(alph2, add_locals);
+		LocalCut * loc = localcs->begin;
+		sz = localcs->sizeOfCollection;
+		for(int i=0;i<sz;++i){
+			id = map_addlocals[i];
+			if(id>=0 ){
+				dual_map.insert(std::pair<int,double>(fx+loc->serial_nmbr, alph2[id]));
+				//std::cout<<"cpxdual: "<<loc->serial_nmbr<<" "<<alph2[id]<<" "<<dual_map.find(fx+loc->serial_nmbr)->second<<std::endl;
+
+			} 
+			loc = loc->next;
+		}
+		alph2.end();
+	}
+
+	if(numaddgloc>0){
+		//std::cout<<"numaddgloc "<<numaddgloc<<std::endl;
+		IloNumArray alph3(env);
+		cplex.getDuals(alph3, add_globals);
+		GlobalCut * gloc = globalcs->begin;
+		sz = globalcs->sizeOfCollection;
+		for(int i=0;i<sz;++i){
+			id = map_addglobals[i];
+			if(id>=0 ){
+				dual_map.insert(std::pair<int,double>(fx+gloc->serial_nmbr, alph3[id]));
+			} 
+			gloc = gloc->next;
+		}
+		alph3.end();
+	}
+}
+
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 
 int 
 LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArray & x_){
@@ -143,11 +254,11 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloN
 			}
 		}
 	}
-	Cover * cov = covers->begin;
+ 	Cover * cov = covers->begin;
 	sz = covers->sizeOfCollection;
 	for(int i=0;i<sz;++i){
- 		if(coverc_viol(y_ , cov) ){
-			std::cout<<"LPChecker::inserst cover"<<std::endl;
+ 		if(map_addcovers[i]<0 && coverc_viol(y_ , cov) ){
+			//std::cout<<"LPChecker::inserst cover "<<cov->serial_nmbr<<std::endl;
 			IloExpr constraint(env);
 			for(int a=cov->get_total_sz(); a--; )
 				constraint += cov->gamma_at(a)*y[ cov->at(a) ];
@@ -164,8 +275,8 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloN
   	LocalCut * loc = localcs->begin;
 	sz = localcs->sizeOfCollection;
  	for(int i=0;i<sz;++i){
-		if(localc_viol(y_ , loc) ){
-			std::cout<<"LPChecker::inserst local"<<std::endl;
+		if(map_addlocals[i]<0 && localc_viol(y_ , loc) ){
+			//std::cout<<"LPChecker::inserst local"<<loc->serial_nmbr<<std::endl;
 			IloExpr constraint(env);
 			for(int a=loc->size; a--; ){
 				 constraint += loc->coef_at(a) * y[ loc->vars[a] ];
@@ -185,8 +296,8 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloN
 	GlobalCut * gloc = globalcs->begin;
 	sz = globalcs->sizeOfCollection;
  	for(int i=0;i<sz;++i){
-		if(globalc_viol(y_ , gloc) ){
-			std::cout<<"LPChecker::inserst global"<<std::endl;
+		if(map_addglobals[i]<0 && globalc_viol(y_ , gloc) ){
+			//std::cout<<"LPChecker::inserst global"<<std::endl;
 			IloExpr constraint(env);
 			for(int a=gloc->size; a--; ){
 				 constraint += y[ gloc->vars[a] ];
@@ -201,113 +312,9 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloN
 		}
 		gloc = gloc->next;
 	}
-
-	return cont;
+ 	return cont;
 }
 
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-
-
-int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars,  double& new_lb){
-	
-	//cplex.exportModel("rl.lp");
-	reset(vars);
-	std::cout<<"LPChecker::solve"<<std::endl;
-	cplex.solve();
-	std::cout<<"LPChecker first "<<cplex.getObjValue()<<std::endl;
-
-	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 1"<<std::endl;
-  		return -1;
-	} 
-	IloNumArray x_(env);
-	IloNumArray y_(env);
-	cplex.getValues(x_,x);
-	cplex.getValues(y_,y);
-	while(cut(vars, y_,x_)){
-		cplex.solve();
-		if(cplex.getStatus() == IloAlgorithm::Infeasible){ 
-			std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 
-			return -2; 
-		}
-		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
-		if(cplex.getObjValue()+1e-4>= ub){
-			new_lb = cplex.getObjValue();
-			std::cout<<"stop lpchecker "<<cplex.getObjValue()<<std::endl;
-			return 1;
-		}
-		cplex.getValues(y_,y);
-		cplex.getValues(x_,x);
-	}
-	std::cout<<"final lpchecker "<<cplex.getObjValue()<<std::endl;
-	get_dual();
-	new_lb = cplex.getObjValue();
-	
-	return 0;
-}
-
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-
-void 
-LPChecker::get_dual(){ 
-	int fx = ndemands*nnodes ; 
-	int sz = covers->sizeOfCollection+ localcs->sizeOfCollection+ globalcs->sizeOfCollection + fx;
-	int id;
-	if(dual_sol) delete [] dual_sol;
-	dual_sol = new double [sz];
-	
-	IloNumArray pi(env);
-	cplex.getDuals(pi, flowconserv);
-	for (int k = 0; k < fx; ++k) 
-       	dual_sol[k] = pi[k];
-    pi.end();
-    
-    IloNumArray alph1(env);
-	cplex.getDuals(alph1, add_covers);
-    Cover * cov = covers->begin;
-    sz = covers->sizeOfCollection;
-	for(int i=0;i<sz;++i){
-		id = map_addcovers[i];
- 		if(id>=0 ){
-			dual_sol[cov->id_vi] = alph1[id];
-		}else dual_sol[cov->id_vi]=0;
-		cov = cov->next;
-	}
-	alph1.end();
-	
-	IloNumArray alph2(env);
-	cplex.getDuals(alph2, add_locals);
-    LocalCut * loc = localcs->begin;
-	sz = localcs->sizeOfCollection;
-	for(int i=0;i<sz;++i){
-		id = map_addlocals[i];
- 		if(id>=0 ){
-			dual_sol[loc->id_vi] = alph2[id];
-		}else dual_sol[loc->id_vi]=0;
-		loc = loc->next;
-	}
-	alph2.end();
-
-	IloNumArray alph3(env);
-	cplex.getDuals(alph3, add_globals);
-    GlobalCut * gloc = globalcs->begin;
-	sz = globalcs->sizeOfCollection;
-	for(int i=0;i<sz;++i){
-		id = map_addglobals[i];
- 		if(id>=0 ){
-			dual_sol[gloc->id_vi] = alph3[id];
-		}else dual_sol[gloc->id_vi]=0;
-		gloc = gloc->next;
-	}
-	alph3.end();
-}
-
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
 bool 
@@ -363,28 +370,84 @@ LPChecker::localc_viol(const IloNumArray & y_ , const LocalCut* loc) {
 //---------------------------------------------------------------------------
 
 void 
-LPChecker::logical_fix(double ub){
-	int arc;
-	double lb = cplex.getObjValue();
-	IloNumArray rc(env);
-	cplex.getReducedCosts(rc, y);
+LPChecker::logical_yfix(double ub, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix){
+	int arc, id;
+	double rc, ysol;
+	
+	cplex.getReducedCosts(rc_y, y);
+
 	for(int a=0;a<szunfx;++a){
 		arc = unfixd[a];
+		if(yfix[arc] >=0) continue;
+		
+		rc = rc_y[arc];
+		if(solval + abs(rc) >= ub){
+			if(ysol >=1.0-1e-10){
+				changed_pos.push_back(arc);
+ 				new_bd.push_back(1.0);
+				new_bd.push_back(1.0);
+				yfix[arc] = 1.0;
+				std::cout<<arc<<" LOGFIX 1 (LP optimal)"<<std::endl;
+			}else if(ysol <=1e-10){
+				changed_pos.push_back(arc);
+ 				new_bd.push_back(0.0);
+				new_bd.push_back(0.0);
+				yfix[arc] = 0.0;
+				std::cout<<arc<<" LOGFIX 0 (LP optimal)"<<std::endl;
+			} 
+		} 
 		
 	}
 
 }
 
 //---------------------------------------------------------------------------
+
+void 
+LPChecker::logical_xfix(double ub, const int * yfix, const BCP_vec<BCP_var*>& vars){
+	int arc, id;
+	double tt;
+	double xrc, dk;
+ 	cplex.getReducedCosts(rc_x, x);
+
+	for(int a=0;a<szunfx;++a){
+		arc = unfixd[a];
+		if(yfix[arc] ==0) continue;
+		
+		for (int k = 0; k < ndemands; k++) {
+			id = arc*ndemands+k;
+			xrc = rc_x[id];
+			
+			if(x_[id]<=0 && xrc>1e-10){
+				dk = data->d_k[k].quantity;
+				tt = solval +rc_y[arc]*(1.0 -  y_[arc]);
+				
+				if(tt + xrc*(vars[narcs+k*narcs+arc]->ub()/dk) > ub +1e-4){
+					bound_red[id] = dk*(ub - tt)/rc_x[id];
+					
+				}else bound_red[id] = -1;
+			}else bound_red[id] = -1;
+       	}
+       	
+	}
+	
+}
+//---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
 void
 LPChecker::clean(){
+	map_addcovers.clear();
+    map_addlocals.clear();
+   	map_addglobals.clear();
+    numaddstrong = numaddcov= numaddloc= numaddgloc =0;
 	add_strong_force.endElements();
 	add_covers.endElements();
 	add_locals.endElements();
 	add_globals.endElements();
+	cplex.setParam(IloCplex::Param::Advance, 0);
+	dual_map.clear();
 }
 	
 
@@ -398,6 +461,10 @@ LPChecker::~LPChecker() {
 
 		x.endElements();
 		y.endElements();
+		x_.end();
+		y_.end();
+		rc_x.end();
+		rc_y.end();
 		flowconserv.endElements();
     
 		add_strong_force.endElements();
@@ -415,8 +482,7 @@ LPChecker::~LPChecker() {
         model.end();
 		cplex.end();
 		env.end();
-		if(dual_sol) delete [] dual_sol;
-
+ 
 	} catch (IloException& e) {
 		std::cerr << "ERROR: " << e.getMessage() << std::endl;
 	} catch (...) {
