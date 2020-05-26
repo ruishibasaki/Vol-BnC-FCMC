@@ -51,7 +51,9 @@ enum LP_Mode{
    /** Tighter bounds.*/
    LP_tighterBounds = 512,
    /**test connectivity due to Logical fix.*/
-   LP_TestFeasibility = 1024
+   LP_TestFeasibility = 1024,
+   /**test connectivity due to Logical fix.*/
+   LP_Dive = 2048
 };
 
 
@@ -78,7 +80,8 @@ public:
 	double nomgap;
 	int no_gap_reduct;
 	
-    bool aborted;
+	bool break_diving;
+    bool force_dive;
     bool has_sol;
     MCND_solution best_sol;
 
@@ -97,9 +100,9 @@ public:
     
         
 public:
-    inline MCND_lp() : LBi(0), has_sol(false), track(0), aborted(false) { 
+    inline MCND_lp() : LBi(0), has_sol(false), track(0), force_dive(false) { 
     	lp_mode = LP_Normal;  no_gap_reduct=num_nodes=0; lower_bound=0;
-    	nomgap = 1e30;
+    	nomgap = 1e30; break_diving=false;
     }
     ~MCND_lp();
     

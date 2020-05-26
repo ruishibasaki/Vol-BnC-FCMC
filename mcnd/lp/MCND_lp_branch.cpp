@@ -58,7 +58,14 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     const double * rcsol = lpres.dj();
 
     int max_cand = 5 ;
-    //if(no_gap_reduct >3) max_cand=1;
+    if(no_gap_reduct >5 && !break_diving){
+    	force_dive=true;
+    }else{
+    	break_diving = false;
+    	force_dive=false;
+    }
+    if(no_gap_reduct >5) max_cand=1;
+    
     if(candidates.empty()){
 		for (int a=data.narcs; a--;) {
 			//if(psol[a]==0) continue;
@@ -71,14 +78,15 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 				//	psc0 = psc1 = pump_heur.branch_candidates[a];
 				//}
 				//else{
-					psc0 =  psol[a];
-					psc1 =  (1.0-psol[a]);
+					//psc0 =  psol[a];
+					//psc1 =  (1.0-psol[a]);
 				//} 
 				/*if(has_sol){
 					psc0 = abs(best_sol.xy[a] - psol[a]);
 					psc1 = abs(best_sol.xy[a] - psol[a]);
 				}*/
-				candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+				//candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+				candidates.push_back(Pair2(a, psol[a]*data.arcs[a].capa));
 				//candidates.push_back(Pair2(a, min(psol[a]-0.7)));
 			}
 		}
@@ -428,7 +436,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		//std::cout<<"cancel branching "<<std::endl;
 		return;
 	}
-	//std::cout<<"branching variable: "<<var_branch<<std::endl;
+	std::cout<<"branching variable: "<<var_branch<<" capa: "<<data.arcs[var_branch].capa<<" y: "<<y[var_branch]<<std::endl;
 	
 	if(to_logical_fix.size()) lp_mode |= LP_LogicalFixed;
 	strong_branch_var_logicfix(best->candidate());
@@ -442,7 +450,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	bool feas0 = !((child0.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
 		(child0.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf);
 	bool feas1 = !((child1.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
-		(child1.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf);
+		(child1.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf); 
 		
 	verify_children_feasibility( best->candidate(),  feas0, feas1 );
 	
@@ -471,7 +479,8 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		/*++ninsp[var_branch].snd;
 		if(ybar_branch_>1e-8)psdcost[var_branch].snd+=diff1/ybar_branch_;
 		else psdcost[var_branch].snd+=diff1*1e8;*/
-		childs_action[1] = BCP_ReturnChild;
+		if(force_dive) childs_action[1] = BCP_KeepChild;
+		else childs_action[1] = BCP_ReturnChild;
 	}
 	//std::cout<<" 0-side childs_action "<<childs_action[0]<<std::endl;
 	//std::cout<<" 1-side childs_action "<<childs_action[1]<<std::endl;

@@ -113,50 +113,6 @@ LPChecker::reset(const BCP_vec<BCP_var*>& vars){
     map_addglobals.assign(globalcs->sizeOfCollection,-1);
 }
 
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-
-
-int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars,  double& new_lb){
-	
-	clean();
-	reset(vars);
-	std::cout<<"LPChecker::solve"<<std::endl;
-	cplex.solve();
-	cplex.setParam(IloCplex::Param::Advance, 1);
-
-	//std::cout<<"LPChecker first "<<cplex.getObjValue()<<std::endl;
-	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		cplex.exportModel("rl.lp");
-		std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 1"<<std::endl;
-  		return -1;
-	} 
-	
-	cplex.getValues(x_,x);
-	cplex.getValues(y_,y);
-	while(cut(vars, y_,x_)){
-		cplex.solve();
-		if(cplex.getStatus() == IloAlgorithm::Infeasible){ 
-			std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 
-			return -2; 
-		}
-		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
-		if(cplex.getObjValue()+1e-4>= ub){
-			new_lb = cplex.getObjValue();
-			std::cout<<"stop lpchecker "<<cplex.getObjValue()<<std::endl;
-			return 1;
-		}
-		cplex.getValues(y_,y);
-		cplex.getValues(x_,x);
-	}
-	solval = cplex.getObjValue();
-	std::cout<<"final lpchecker "<<solval<<std::endl;
-	get_dual();
-	new_lb = solval;
-	
-	return 0;
-}
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -230,8 +186,80 @@ LPChecker::get_dual(){
 }
 
 //---------------------------------------------------------------------------
+
+void 
+LPChecker::get_solution(MCND_solution* mipsol){
+	double flow;
+	double val;
+	double cij;
+	int ret=-1; 
+	mipsol->cost=0;
+	 
+	for(int a=0;a<narcs;++a){
+ 		flow = 0.0;
+		for (int k = 0; k < ndemands; ++k){
+			val = x_[a*ndemands+k]*data->d_k[k].quantity;
+			mipsol->xy[narcs+k*narcs+a] = val;
+			mipsol->cost += data->arcs[a].c[k]*val;
+			flow += val;
+		}
+		if(flow>1e-4){
+			mipsol->xy[a] = 1.0;
+			mipsol->cost+=data->arcs[a].f;
+		}
+	}
+ 	std::cout<<"LPChecker::getSolution:: integer sol value: "<<mipsol->cost<<std::endl;
+}
+
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+
+
+int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars,  double& new_lb){
+	
+	clean();
+	reset(vars);
+	std::cout<<"LPChecker::solve"<<std::endl;
+	cplex.solve();
+	cplex.setParam(IloCplex::Param::Advance, 1);
+
+	//std::cout<<"LPChecker first "<<cplex.getObjValue()<<std::endl;
+	if(cplex.getStatus() == IloAlgorithm::Infeasible){
+		cplex.exportModel("rl.lp");
+		std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 1"<<std::endl;
+  		return -1;
+	} 
+	
+	cplex.getValues(x_,x);
+	cplex.getValues(y_,y);
+	while(cut(vars, y_,x_)){
+		cplex.solve();
+		if(cplex.getStatus() == IloAlgorithm::Infeasible){ 
+			std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 
+			return -2; 
+		}
+		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
+		if(cplex.getObjValue()+1e-4>= ub){
+			new_lb = cplex.getObjValue();
+			std::cout<<"stop lpchecker "<<cplex.getObjValue()<<std::endl;
+			return 1;
+		}
+		cplex.getValues(y_,y);
+		cplex.getValues(x_,x);
+	}
+	solval = cplex.getObjValue();
+	std::cout<<"final lpchecker "<<solval<<std::endl;
+	get_dual();
+	new_lb = solval;
+	
+	return 0;
+}
+
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+
 
 int 
 LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArray & x_){
@@ -242,7 +270,7 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloN
 		arc = unfixd[a];
 		for (int k = 0; k < ndemands; ++k){
 			ub = vars[narcs+k*narcs+arc]->ub();
-			if(data->d_k[k].quantity*x_[arc*ndemands+k] - ub*y_[arc]> 1e-10 ){
+			if(data->d_k[k].quantity*x_[arc*ndemands+k] - ub*y_[arc]> 1e-4 ){
 				IloExpr constraint(env);
 				constraint += x[arc*ndemands+k];
 				constraint -= (ub/data->d_k[k].quantity)*y[arc];

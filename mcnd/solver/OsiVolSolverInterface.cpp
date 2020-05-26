@@ -795,7 +795,7 @@ int
 OsiVolSolverInterface::mark_topo( VOL_dvector& x, double lcost){
     
     //std::cout<<"Lt: "<<lcost<<std::endl;
-    if(lcost<=VIub /*|| mode > 1*/ || mode==0) return 0;
+    if(lcost<=VIub || mode > 1 || mode==0) return 0;
     int arc;
     VIub =lcost;
     for(int a=szunfxd; a--; ){

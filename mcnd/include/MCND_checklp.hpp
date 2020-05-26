@@ -16,6 +16,7 @@
 #include "BCP_vector.hpp"
 
 #include "MCND_data.hpp"
+#include "MCND_solution.hpp"
 
 #include "covercollection.hpp"
 #include "localcutcollection.hpp"
@@ -93,6 +94,7 @@ public:
 
     int solve(double ub, const BCP_vec<BCP_var*>& vars,  double& new_lb);
     void get_dual();
+    void get_solution(MCND_solution* mipsol);
  	void clean();
  	
  	//-------------------------------
