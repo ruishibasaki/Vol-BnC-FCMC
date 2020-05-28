@@ -85,6 +85,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     //std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
     ++num_nodes;
     lp_mode = LP_Normal;
+    lpchecker.solved=false;
     if(has_sol){
     	std::cout<<"no_gap_reduct: "<<no_gap_reduct<<std::endl;
     	 if((nomgap - (upper_bound()-lower_bound))/nomgap < 0.001){
@@ -416,15 +417,18 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 
-    if((ub  - LBi)/ub < 0.02 && !(lp_mode & LP_OptSolved) && current_iteration()==1){
+    if(((ub  - LBi)/ub < 0.02 || no_gap_reduct >3) && !(lp_mode & LP_OptSolved) && current_iteration()==1){
     	int ret  = lpchecker.solve(ub, vars, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
     		std::cout<<"MCND_lp::compute_lower_bound:: compute opt lower bound: INFEASIBLE"<<std::endl;
     	}else{
     		lp_mode |= LP_OptSolved;
+    		lpchecker.solved=true;
     	} 
-    }else lp_mode &=  ~LP_OptSolved;
+    }else{
+    	lp_mode &=  ~LP_OptSolved;
+    } 
     //if((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
     	//std::cout<<"compute_lower_bound aborted"<<std::endl;
 		//abort();
@@ -509,13 +513,13 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     	mipsol = new MCND_solution(data.narcs+data.narcs*data.ndemands);
     	lpchecker.get_solution(mipsol);
     	if(upper_bound() > mipsol->cost){
-			std::cout<<"MCND_lp::test_feasibility::add_external_localc11 type 2"<<std::endl;
+			std::cout<<"MCND_lp::lpchecker.get_solution::add_external_localc11 type 2"<<std::endl;
 			getOsiVolBabSolver()->add_external_localc( 0, best_sol.xy, data.narcs, 2);
 			best_sol.copy(*mipsol, data.narcs);
 			lp_mode |= LP_tighterBounds; 
 			return mipsol;
 		}else{
-			std::cout<<"MCND_lp::test_feasibility::add_external_localc12 type 2"<<std::endl;
+			std::cout<<"MCND_lp::lpchecker.get_solution::add_external_localc12 type 2"<<std::endl;
 			getOsiVolBabSolver()->add_external_localc( 0, mipsol->xy, data.narcs, 2);
 		}
 		return 0;
@@ -535,13 +539,13 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 			if(sol[a]>1e-2 && sol[a]<(1-1e-2)) integer=false;
 		} 
     }
-
+	std::cout<<"test_feasibility unfx: "<<cont<<std::endl;
     int ret=10;
     if(getOsiVolBabSolver()->getViolation()==0 && integer) {
     	ret = lpfeaschecker.solve_opt(cont, vars, sol, fixd, closed, mipsol, fathmval, upper_bound());
     	std::cout<<"MCND_lp::test_feasibility intger && no violation"<<std::endl;
     	lp_mode |= LP_ForceNodeAbort ;
-    }else if(cont<=data.narcs*0.1 || integer){ 
+    }else if(cont<=data.narcs*0.3 || integer){ 
     	ret = lpfeaschecker.solve_opt(cont, vars, 0, fixd, closed, mipsol, fathmval, upper_bound());
     	if(cont ==0){ lp_mode |= LP_ForceNodeAbort; std::cout<<"MCND_lp::test_feasibility allfixed"<<std::endl;}
     }else {
@@ -609,40 +613,45 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     int closed=0;
 	int cont= pump_heur.make_topo( x, vars);
     
-	if(cont!=0) return 0; //pump_heur.validate_topology();
-    /*if(cont>0 && current_iteration()>1){
-    	return 0;
-	}else if(cont<0){   return 0;}*/
+	//if(cont!=0) return 0; //
+    if(cont > 0){
+    	if(lp_mode & LP_HeuristicRunned) return 0;
+    	else if( no_gap_reduct <10 || current_iteration()>1) return 0;
+	}  
+    //if(pump_heur.validate_topology()< 0) return 0;
     
-	std::cout<<"try heuristic "<<cont<<" "<<(lp_mode & LP_HeuristicRunned)<<std::endl;
+	//std::cout<<"try heuristic "<<cont<<std::endl;
     int retval = pump_heur.solve( fixd0, closed, vars, sol); 
     lp_mode |= LP_HeuristicRunned;
-    if(retval>=0){
+    if(retval>0){
      	std::cout<<"heuristic sol: "<<sol->cost<<std::endl;
-     	if(retval==0){
-     		std::cout<<"MCND_lp::generate_heuristic_solution::add_external_globalc1 type 0"<<std::endl;
-			getOsiVolBabSolver()->add_external_globalc( fixd0, closed);
+     	if(retval==2){
+     	   std::cout<<"MCND_lp::generate_heuristic_solution::add_external_globalc00 type 0"<<std::endl;
+     		getOsiVolBabSolver()->add_external_globalc( fixd0, closed);
 			if(fixd0) delete [] fixd0;
-     	}
+		}
     	if(upper_bound() > sol->cost){
     		has_sol =true;
-    		//std::cout<<"MCND_lp::generate_heuristic_solution::add_external_globalc type 1"<<std::endl;
+    		std::cout<<"MCND_lp::generate_heuristic_solution::add_external_localc1 type 2"<<std::endl;
     		if(getOsiVolBabSolver()->add_external_localc( 0, best_sol.xy, data.narcs, 2))
     			lp_mode |= LP_CutAddedFromHeuristic;
     		best_sol.copy(*sol, data.narcs);
     		lp_mode |= LP_tighterBounds;
     		return sol;
     	}else{
-    		//std::cout<<"MCND_lp::generate_heuristic_solution::add_external_globalc type 1"<<std::endl;
+    		std::cout<<"MCND_lp::generate_heuristic_solution::add_external_lobalc2 type 2"<<std::endl;
     		if(getOsiVolBabSolver()->add_external_localc( 0, sol->xy, data.narcs, 2))
     			lp_mode |= LP_CutAddedFromHeuristic;
     		delete sol;
     	}
+    }else if(retval==0 || retval==-1){
+     		std::cout<<"MCND_lp::generate_heuristic_solution::add_external_globalc1 type 0"<<std::endl;
+			getOsiVolBabSolver()->add_external_globalc( fixd0, closed);
+			if(fixd0) delete [] fixd0;
     }else{
-    	std::cout<<"MCND_lp::generate_heuristic_solution::add_external_globalc type 0"<<std::endl;
-		//if(getOsiVolBabSolver()->add_external_localc(fixd0, 0, closed, 0))
-			//lp_mode |= LP_CutAddedFromHeuristic;
-		getOsiVolBabSolver()->add_external_globalc( fixd0, closed);
+    	std::cout<<"MCND_lp::generate_heuristic_solution::add_external_localc3 type 0"<<std::endl;
+		if(getOsiVolBabSolver()->add_external_localc(fixd0, 0, closed, 0))
+			lp_mode |= LP_CutAddedFromHeuristic;
 		if(fixd0) delete [] fixd0;
     }
    

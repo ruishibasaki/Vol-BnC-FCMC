@@ -291,7 +291,7 @@ public:
     
     //--------------------------------------------------------------------------
     int verify_children_feasibility(BCP_lp_branching_object * candidate, bool& feas0, bool& feas1 );
-	bool verify_feasibility(const BCP_vec<int> & vars_chngd, const BCP_vec<double> & chngd_bd, int nvars, bool feas_status);
+	int verify_feasibility(const BCP_vec<int> & vars_chngd, const BCP_vec<double> & chngd_bd, int nvars, bool feas_status);
 	void strong_branch_var_logicfix(BCP_lp_branching_object * candidate);    
 };
 

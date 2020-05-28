@@ -19,7 +19,7 @@
 struct CoinSearchTreeCompareLowerBound {
 	static inline const char *name() { return "CoinSearchTreeCompareLowerBound"; }
 	inline bool operator()(const CoinTreeSiblings *x, const CoinTreeSiblings *y) const{
-       return x->currentNode()->getQuality() > y->currentNode()->getQuality();
+       return x->currentNode()->getTrueLB() < y->currentNode()->getTrueLB();
    }
 };
 

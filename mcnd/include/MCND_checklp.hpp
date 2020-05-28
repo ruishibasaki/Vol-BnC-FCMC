@@ -52,6 +52,7 @@ public:
     //-------------------------------
     std::map<int, double> dual_map;  
 	double solval;
+	bool solved;
 	std::vector<double> bound_red;
 	IloNumArray x_;
 	IloNumArray y_;
@@ -71,7 +72,7 @@ public:
 
     inline LPChecker():model(env), cplex(env), x(env), y(env), flowconserv(env), 
     					add_strong_force(env), add_covers(env), add_locals(env), add_globals(env),
-    					x_(env), y_(env), rc_x(env), rc_y(env) {numaddstrong = numaddcov= numaddloc= numaddgloc =0; }
+    					x_(env), y_(env), rc_x(env), rc_y(env) {numaddstrong = numaddcov= numaddloc= numaddgloc =0; solved=false; }
      ~LPChecker();
     
     //-------------------------------

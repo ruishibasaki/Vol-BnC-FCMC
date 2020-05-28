@@ -127,7 +127,7 @@ MCND_tm::init_new_phase(int phase,
 	}*/
     
 	colgen = BCP_DoNotGenerateColumns_Fathom;
-    candidates = new CoinSearchTree<CoinSearchTreeCompareBest>;
+    candidates = new CoinSearchTree<CoinSearchTreeCompareLowerBound>;
 }
 
 //#############################################################################
@@ -137,12 +137,13 @@ void
 MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 			const bool new_solution){
 	
-	//std::cout<<"new_solution "<<new_solution<<std::endl;
+	//std::cout<<"MCND_tm:: "<<candidates.getTree()->compName()<<std::endl;
 	//std::cout<<"cand size "<<candidates.size()<<" "<<candidates.getTree()->compName()<<std::endl;
 	//Best_LB=lower_bound();
+	BCP_tm_prob *p = getTmProblemPointer();
 	//if(!new_solution){
 		CoinSearchTreeBase * tree = candidates.getTree();
-		CoinSearchTreeBase *t = new CoinSearchTree<CoinSearchTreeCompareBest>;
+		CoinSearchTreeBase *t = new CoinSearchTree<CoinSearchTreeCompareLowerBound>;
 		//std::cout<<"change candidate heap size:"<<tree->size()<<std::endl;
         MCND_node_branch_data * user_data;
 		BCP_tm_node * n;
@@ -153,10 +154,12 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
             //user_data =  dynamic_cast<MCND_node_branch_data*>(n->_data._user.GetRawPtr());
 			if(n->status > BCP_PrunedNode_Discarded ||
 			   n->status < BCP_PrunedNode_OverUB){
-			   (*add)->setQuality((*add)->getTrueLB()-lower_bound());
-				//std::cout<<n->getQuality()<<" "<<(*add)->getTrueLB()<<" "<<lower_bound()<<std::endl;
+				//std::cout<<"tree: "<<n->getQuality()<<" "<<(*add)->getTrueLB()<<" "<<lower_bound()<<std::endl;
 				t->push(1, add);
-			}//else delete *add;
+			}else{
+				const double oldTrueLB = floor((*add)->getTrueLB()*p->lb_multiplier);
+    			p->lower_bounds.erase(oldTrueLB);
+			} 
 			tree->pop();
 		}
 		candidates.setTree(t);

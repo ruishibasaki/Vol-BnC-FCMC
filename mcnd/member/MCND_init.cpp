@@ -111,7 +111,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
     p.par.set_entry(BCP_tm_par::TmVerb_NewPhaseStart, false);
     p.par.set_entry(BCP_tm_par::TmVerb_TrimmedNum, false);
     p.par.set_entry(BCP_tm_par::TmVerb_TimeOfImprovingSolution, false);
-    p.par.set_entry(BCP_tm_par::TmVerb_PrunedNodeInfo, false);
+    p.par.set_entry(BCP_tm_par::TmVerb_PrunedNodeInfo, true);
     p.par.set_entry(BCP_tm_par::TmVerb_FinalStatistics, true);
     p.par.set_entry(BCP_tm_par::TmVerb_ReportDefault, false);
     
@@ -178,7 +178,7 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
    p.par.set_entry(BCP_lp_par::WarmstartInfo, BCP_WarmstartNone); //BCP_WarmstartParent;
    p.par.set_entry(BCP_lp_par::DeletedRowToCompress_Frac, 0.0); //BCP_WarmstartParent;
    p.par.set_entry(BCP_lp_par::DeletedRowToCompress_Min, 0); //BCP_WarmstartParent;
-   p.par.set_entry(BCP_lp_par::SendFathomedNodeDesc, false);
+   p.par.set_entry(BCP_lp_par::SendFathomedNodeDesc, true);
 
 
 

@@ -183,8 +183,8 @@ int LPFeasChecker::solve_feas(const double *collb, const double * colub, bool fe
     
 	cplex.getObjective().setExpr(fobj1);
 	int ret = solve();
-	if(ret<0) return -1;
-	if(feas_status==false) return -2;
+	if(ret<0) return -2;
+	if(feas_status==false) return -1;
 	
 	bool bd_sat=true;
 	IloNumArray x_(env);
@@ -205,7 +205,7 @@ int LPFeasChecker::solve_feas(const double *collb, const double * colub, bool fe
 	apply_bounds(colub);
 	ret= solve();
 	if(ret<0){
-		return -2;
+		return -3;
 	}
 	return 0;
 }

@@ -270,7 +270,7 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloN
 		arc = unfixd[a];
 		for (int k = 0; k < ndemands; ++k){
 			ub = vars[narcs+k*narcs+arc]->ub();
-			if(data->d_k[k].quantity*x_[arc*ndemands+k] - ub*y_[arc]> 1e-4 ){
+			if(data->d_k[k].quantity*x_[arc*ndemands+k] - ub*y_[arc]> 1e-2 ){
 				IloExpr constraint(env);
 				constraint += x[arc*ndemands+k];
 				constraint -= (ub/data->d_k[k].quantity)*y[arc];

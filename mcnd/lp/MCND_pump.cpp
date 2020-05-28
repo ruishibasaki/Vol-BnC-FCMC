@@ -19,7 +19,7 @@ Pump::set_data(const Data * d){
  	
 	tabusz = tern=0;
 	szunfix=0;
-	maxunfix = narcs*0.1;
+	maxunfix = narcs*0.5;
 	set_parameters();
 	
     int sizeOfInt=8*sizeof(unsigned int);
@@ -147,9 +147,7 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
          	topo[a]=0;
         }
     }
-    if(cont==0){
-     	return cont;
-    }else return -1;
+    return cont;
     
 }
 
@@ -301,7 +299,7 @@ Pump::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArr
 		arc = unfx[a];
 		for (int k = 0; k < ndemands; ++k){
 			ub = data->arcs[arc].b[k];
-			if(x_[arc*ndemands+k] - ub*y_[arc]> 1e-10 ){
+			if(x_[arc*ndemands+k] - ub*y_[arc]> 1e-2){
 				IloExpr constraint(env);
 				constraint -= x[arc*ndemands+k];
 				constraint+= ub*y[arc];
@@ -329,7 +327,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 	check_feas_model();
 	cplex.solve();
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		//std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl;
+		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
 		feas=false;
 	} 
 	if(feas){
@@ -339,20 +337,19 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		x_.end(); 
  		return 1;
 	} 
-	std::cout<<"trypump? "<<szunfix<<" "<<maxunfix<<std::endl;
+	std::cout<<"Pump::solve trypump? "<<szunfix<<" "<<maxunfix<<std::endl;
 	if(szunfix > maxunfix ){
 		get_closed(fixd0, closed, true);
-     	return -1;
+     	return 0;
     }
  	create_model();
 	//cplex.exportModel("t.lp");
 	cplex.solve();
 	
-	
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible"<<std::endl;
+		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible2"<<std::endl;
 		get_closed(fixd0, closed, false);
- 		return -1;
+		return -1;
 	} 
 	
 	IloNumArray x_(env);
@@ -362,6 +359,11 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 	while(cut(vars, y_,x_)){
 		cplex.solve();
 		std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
+		if(cplex.getStatus() == IloAlgorithm::Infeasible){
+			std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible2"<<std::endl;
+			get_closed(fixd0, closed, false);
+			return -2;
+		} 
 		cplex.getValues(y_,y);
 		cplex.getValues(x_,x);
 	}
@@ -372,8 +374,8 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
  	
 	x_.end(); 
 	y_.end();
- 	return 0;
-	
+ 	if(feas) return 1;
+	else return 2;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -416,14 +418,16 @@ void
 Pump::get_closed(int*& fixd0, int& closed, bool onlyx){
 	fixd0 = new int[narcs];
 	closed=0;
-	for(int a=0;a<narcs;++a){
-		if(onlyx && topo[a]>=0){
-			fixd0[closed++] = a;
-			//std::cout<<"chekclosed: "<<a<<std::endl;
-		}else if(topo[a]==0){
-			fixd0[closed++] = a;
-		}
+	if(onlyx){
+		for(int a=0;a<narcs;++a)
+			if(topo[a]>=0)
+				fixd0[closed++] = a;
+	}else{
+		for(int a=0;a<narcs;++a)
+			if(topo[a]==0)
+				fixd0[closed++] = a;
 	}
+	
 }
 
 //-------------------------------------------------------------------------------------------
