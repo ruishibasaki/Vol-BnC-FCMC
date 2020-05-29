@@ -139,8 +139,9 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		   BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd){
 		   
 	if(lp_mode & LP_ForceNodeAbort) return;
+	if(current_iteration()>1 && !(lp_mode & LP_tighterBounds)) return;
 
-	//std::cout<<"logical_fixing "<<vars.size()<<std::endl;
+	//std::cout<<"logical_fixing "<<lpchecker.solved<<std::endl;
     //return;
     const double* psol = lpres.x();
     const double* dsol = lpres.pi();
@@ -172,12 +173,12 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
 	}
-	if(lp_mode & LP_OptSolved || getOsiVolBabSolver()->exact_solve) 
+	if(lpchecker.solved) 
  		lpchecker.logical_yfix(upper_bound(), changed_pos, new_bd, yfix);
 
 	if(!cut_varfix_and_updt( vars, cuts, changed_pos, new_bd)) return;
 	
-	if(lp_mode & LP_OptSolved) 
+	if(lpchecker.solved) 
  		lpchecker.logical_xfix(upper_bound(), yfix, vars);
  	
 	double tt, bd, dk;
@@ -227,8 +228,8 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		lp_mode |= LP_LogicalFixed;	
 		lp_mode |= LP_TestFeasibility;
 	}
-	if(lp_mode & LP_OptSolved || getOsiVolBabSolver()->exact_solve ) {
-		getOsiVolBabSolver()->reset_dualsol(lpchecker.dual_map);
+	if(lpchecker.solved) {
+		if(lp_mode & LP_OptSolved) getOsiVolBabSolver()->reset_dualsol(lpchecker.dual_map);
 		lpchecker.bound_red.assign(data.narcs*data.ndemands,-1);
 	}
  		
