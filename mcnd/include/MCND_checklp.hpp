@@ -81,7 +81,7 @@ public:
     void set_parameters();
     void initialize(const Data* d, const CoverCollection* cover_man_,
     				const LocalCutCollection* localc_man_, const GlobalCutCollection* globalc_man_ );
-    void reset(const BCP_vec<BCP_var*>& vars);
+    void reset(const BCP_vec<BCP_var*>& vars, const double *collb, const double *colub);
    
     //-------------------------------
     //-------------------------------
@@ -89,11 +89,11 @@ public:
 	 bool coverc_viol(const IloNumArray & y_ , const Cover* cover);
 	bool localc_viol(const IloNumArray & y_ , const LocalCut* loc);
 	bool globalc_viol(const IloNumArray & y_ , const GlobalCut* gloc);
-    int cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArray & x_);
+    int cut(const BCP_vec<BCP_var*>& vars, const double *colub, const IloNumArray & y_, const IloNumArray & x_);
     
     //-------------------------------
 
-    int solve(double ub, const BCP_vec<BCP_var*>& vars,  double& new_lb);
+    int solve(double ub, const BCP_vec<BCP_var*>& vars,  const double *collb, const double *colub, double& new_lb);
     void get_dual();
     void get_solution(MCND_solution* mipsol);
  	void clean();

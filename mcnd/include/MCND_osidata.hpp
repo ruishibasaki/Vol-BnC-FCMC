@@ -15,6 +15,8 @@
 #include "Structures.hpp"
 #include "OsiAuxInfo.hpp"
 
+#include "MCND_checklp.hpp"
+
 
 //-----------------------------------------------------
 // OsiAuxInfo
@@ -27,7 +29,7 @@ public:
     CutSetManager * ss_manager;
     LocalCutManager* localc_manager;
     GlobalCutManager* globalc_manager;
-    
+    LPChecker* lpchecker;
     VOL_problem volprob;
     
     //OsiSolver attributes record;

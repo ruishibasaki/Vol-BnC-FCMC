@@ -86,8 +86,8 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 					psc1 = abs(best_sol.xy[a] - psol[a]);
 				}*/
 				//candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-				if(max_cand==1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-				else candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
+				/*if(max_cand==1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+				else */candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
 				//candidates.push_back(Pair2(a, min(psol[a]-0.7)));
 			}
 		}
@@ -172,7 +172,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
 	}
-	if(lp_mode & LP_OptSolved) 
+	if(lp_mode & LP_OptSolved || getOsiVolBabSolver()->exact_solve) 
  		lpchecker.logical_yfix(upper_bound(), changed_pos, new_bd, yfix);
 
 	if(!cut_varfix_and_updt( vars, cuts, changed_pos, new_bd)) return;
@@ -227,7 +227,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		lp_mode |= LP_LogicalFixed;	
 		lp_mode |= LP_TestFeasibility;
 	}
-	if(lp_mode & LP_OptSolved) {
+	if(lp_mode & LP_OptSolved || getOsiVolBabSolver()->exact_solve ) {
 		getOsiVolBabSolver()->reset_dualsol(lpchecker.dual_map);
 		lpchecker.bound_red.assign(data.narcs*data.ndemands,-1);
 	}

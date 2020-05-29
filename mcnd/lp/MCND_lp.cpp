@@ -42,6 +42,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     AppVolData.cover_manager = &cover_manager;
     AppVolData.localc_manager = &localc_manager;
     AppVolData.globalc_manager = &globalc_manager;
+    AppVolData.lpchecker = &lpchecker;
 
      
 }
@@ -194,6 +195,8 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     
     vollp->has_sol = has_sol;
     vollp->recheck_collct=false;
+    if(no_gap_reduct >3 && !in_strong_branching) vollp->exact_solve=true;
+    else vollp->exact_solve=false;
     vollp->upper_bound = LBi >0 ? fmin(upper_bound(), LBi*5) : upper_bound();
     par.dual_limit = vollp->upper_bound*5; 
     //std::cout<<"limit: "<<par.dual_limit<<" "<<vollp->upper_bound<<" strongbranching:"<<in_strong_branching<<std::endl;
@@ -417,8 +420,8 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 
-    if(((ub  - LBi)/ub < 0.02 || no_gap_reduct >3) && !(lp_mode & LP_OptSolved) && current_iteration()==1){
-    	int ret  = lpchecker.solve(ub, vars, LBi);
+    if(((ub  - LBi)/ub < 0.02 ) && !lpchecker.solved && !(lp_mode & LP_OptSolved) && current_iteration()==1){
+    	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
     		std::cout<<"MCND_lp::compute_lower_bound:: compute opt lower bound: INFEASIBLE"<<std::endl;

@@ -448,7 +448,7 @@ private:
     
     int mark_topo( VOL_dvector& x, double lcost);
     void translate_primal(const VOL_dvector& xhist);
-    void translate_hotstart();
+    void translate_hotstart(const std::map<int, double>& dual_map, bool reset_ws);
     void translate_sol();
     void translate_dualsol();
     void set_start();
@@ -479,6 +479,7 @@ public:
     bool in_strong_branch;
     bool recheck_collct;
     bool has_sol;
+    bool exact_solve;
     
     //Volume attributes
     double VIub, VItt, B0;
@@ -496,6 +497,8 @@ public:
     CutSetManager* ss_manager;
     LocalCutManager* localc_manager;
     GlobalCutManager* globalc_manager;
+    LPChecker* lpchecker;
+
     //feasibility solver
     /// The volume solver
     VOL_problem* volprob_;

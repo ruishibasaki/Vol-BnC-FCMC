@@ -98,7 +98,7 @@ $(member_o): build/%.o: member/%.cpp
 	g++ -c $< -o $@ $(CPLEXINC) $(COININC) $(OSIINC) $(BCPINC) $(INC) -O3
 	
 $(solver_o): build/%.o: solver/%.cpp
-	g++ -c $< -o $@ $(COININC) $(OSIINC) $(VOLINC) $(BCPINC) $(INC) -O3
+	g++ -c $< -o $@ $(CPLEXINC) $(COININC) $(OSIINC) $(VOLINC) $(BCPINC) $(INC) -O3
 
 $(lp_cplex_o): build/%.o: lp/%.cpp
 	g++ -c $< -o $@ $(CPLEXINC) $(COININC) $(OSIINC) $(BCPINC) $(INC) -O3

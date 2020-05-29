@@ -19,7 +19,7 @@ Pump::set_data(const Data * d){
  	
 	tabusz = tern=0;
 	szunfix=0;
-	maxunfix = narcs*0.5;
+	maxunfix = narcs*0.3;
 	set_parameters();
 	
     int sizeOfInt=8*sizeof(unsigned int);
@@ -123,21 +123,21 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
             if(x[a]>=0.9){ 
             	topo[a]=-2;
              }else if(x[a]>=0.1){
-            	rnd = rand()%2;
+            	/*rnd = rand()%2;
 				if(rnd==1){
 					if(best_sol->xy[a]>0.5){
 						topo[a]=-1;
  					}else{
 						topo[a]=1;
 					}
-				}else{
+				}else{*/
 					rnd = ((rand()%100)/100.0 <= x[a]) ? 1 : 0;
 					if(rnd){
 						topo[a]=-1;
  					}else{
 						topo[a]=1;
 					}
-				}		 
+				//}		 
 				unfx[szunfix++] = a;   
             }else{
              	topo[a]=0;
@@ -358,7 +358,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 	cplex.getValues(y_,y);
 	while(cut(vars, y_,x_)){
 		cplex.solve();
-		std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
+		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
 		if(cplex.getStatus() == IloAlgorithm::Infeasible){
 			std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible2"<<std::endl;
 			get_closed(fixd0, closed, false);
