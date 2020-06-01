@@ -87,7 +87,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 				}*/
 				//candidates.push_back(Pair2(a, fmin(psc0, psc1)));
 				/*if(max_cand==1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-				else */candidates.push_back(Pair2(a, psol[a]*data.arcs[a].capa));
+				else */candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
 				//candidates.push_back(Pair2(a, min(psol[a]-0.7)));
 			}
 		}
