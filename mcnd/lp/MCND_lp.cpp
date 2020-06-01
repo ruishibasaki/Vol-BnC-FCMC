@@ -113,9 +113,9 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         //std::cout<<"reduced run? "<<nodedata->reduced_run<<std::endl;
 
     }else LBi=0;
+    bool arcfx = false;
     if(testconn ){
-    	testconn = false;
-    	int ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, testconn, yfix);
+     	int ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, arcfx, yfix);
     	if(ret<0){
 			if(ret==-1){ globalc_manager.globalc_generation_main2(0, yfix); }
 			var_changed_pos.clear();
@@ -126,10 +126,20 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 		}	
     } 
     
-    cut_varfix_and_updt( vars, cuts, var_changed_pos, var_new_bd);
+    if(!cut_varfix_and_updt( vars, cuts, var_changed_pos, var_new_bd)) return;
+    
+    if(testconn){
+		flwconnect.reset(vars, yfix);
+		flwconnect.check_upperbounds(vars, var_changed_pos, var_new_bd, yfix);
+		
+		flwconnect.redone=false;
+		flwconnect.idbound_red.assign(data.narcs*data.ndemands,-1);
+		flwconnect.bound_red.assign(data.narcs*data.ndemands,-1);
+		
+	} 
     
     lp_mode |= LP_TestFeasibility;
-    if(testconn)lp_mode |= LP_LogicalFixed;
+    if(arcfx)lp_mode |= LP_LogicalFixed;
     //for (int a=var_changed_pos.size(); a--;){
 	//	std::cout<<"changebd: "<<var_changed_pos[a]<<" ("<<vars[var_changed_pos[a]]->lb()<<" , "<<vars[var_changed_pos[a]]->ub()<<") new: ("<<
 	//	var_new_bd[a*2]<<" , "<<var_new_bd[a*2+1]<<") "<<std::endl;
@@ -197,8 +207,9 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     vollp->recheck_collct=false;
     vollp->upper_bound = LBi >0 ? fmin(upper_bound(), LBi*5) : upper_bound();
     par.dual_limit = vollp->upper_bound*5; 
-    if(no_gap_reduct >3 && !lpchecker.solved && !in_strong_branching) vollp->exact_solve=true;
-    else vollp->exact_solve=false;
+    //if(no_gap_reduct >3 && !lpchecker.solved && !in_strong_branching) vollp->exact_solve=true;
+    //else 
+    vollp->exact_solve=false;
     //std::cout<<"limit: "<<par.dual_limit<<" "<<vollp->upper_bound<<" strongbranching:"<<in_strong_branching<<std::endl;
 
     if(lp_mode & LP_ReducedRun){
@@ -528,13 +539,13 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 			if(sol[a]>1e-2 && sol[a]<(1-1e-2)) integer=false;
 		} 
     }
-	//std::cout<<"test_feasibility unfx: "<<cont<<std::endl;
+	std::cout<<"test_feasibility unfx: "<<cont<<std::endl;
     int ret=10;
     if(getOsiVolBabSolver()->getViolation()==0 && integer) {
     	ret = lpfeaschecker.solve_opt(cont, vars, sol, fixd, closed, mipsol, fathmval, upper_bound());
     	std::cout<<"MCND_lp::test_feasibility intger && no violation"<<std::endl;
     	lp_mode |= LP_ForceNodeAbort ;
-    }else if(cont<=data.narcs*0.3 || integer){ 
+    }else if(cont<data.narcs*0.5 || integer){ 
     	ret = lpfeaschecker.solve_opt(cont, vars, 0, fixd, closed, mipsol, fathmval, upper_bound());
     	if(cont ==0){ lp_mode |= LP_ForceNodeAbort; std::cout<<"MCND_lp::test_feasibility allfixed"<<std::endl;}
     }else {
@@ -612,9 +623,9 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
 			getOsiVolBabSolver()->add_external_localc( 0, sol->xy, data.narcs, 2);
 			lp_mode |= LP_CutAddedFromHeuristic;
 		}
-		return 0;
+		//return 0;
     }
-    
+     
     const double * x = lpres.x();
     int * fixd0 = 0;
     int closed=0;
@@ -623,7 +634,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
 	//if(cont!=0) return 0; //
     if(cont > 0){
     	if(lp_mode & LP_HeuristicRunned) return 0;
-    	else if( no_gap_reduct <10 || current_iteration()>1) return 0;
+    	else if( cont > data.narcs*0.3 || current_iteration()>1) return 0;
 	}  
     //if(pump_heur.validate_topology()< 0) return 0;
     

@@ -101,7 +101,7 @@ public:
  	//-------------------------------
     //-------------------------------
 
- 	void logical_yfix(double ub, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix);
+ 	bool logical_yfix(double ub, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix);
  	void logical_xfix(double ub, const int * yfix, const BCP_vec<BCP_var*>& vars);
     
  };

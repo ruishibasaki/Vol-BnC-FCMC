@@ -414,11 +414,11 @@ LPChecker::localc_viol(const IloNumArray & y_ , const LocalCut* loc) {
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-void 
+bool 
 LPChecker::logical_yfix(double ub, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix){
 	int arc, id;
 	double rc;
-	
+	bool arcfx=false;
 	cplex.getReducedCosts(rc_y, y);
 
 	for(int a=0;a<szunfx;++a){
@@ -432,17 +432,20 @@ LPChecker::logical_yfix(double ub, BCP_vec<int>& changed_pos, BCP_vec<double>& n
  				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
 				yfix[arc] = 1.0;
+				arcfx=true;
 				std::cout<<arc<<" LOGFIX 1 (LP optimal)"<<std::endl;
 			}else if(y_[arc] <=1e-10){
 				changed_pos.push_back(arc);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[arc] = 0.0;
+				arcfx=true;
 				std::cout<<arc<<" LOGFIX 0 (LP optimal)"<<std::endl;
 			} 
 		} 
 		
 	}
+	return arcfx;
 
 }
 

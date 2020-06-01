@@ -122,22 +122,22 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
          }else if(vars[a]->ub()==1.0){
             if(x[a]>=0.9){ 
             	topo[a]=-2;
-             }else if(x[a]>=0.1){
-            	/*rnd = rand()%2;
+            }else if(x[a]>=0.1){
+            	rnd = rand()%2;
 				if(rnd==1){
 					if(best_sol->xy[a]>0.5){
 						topo[a]=-1;
  					}else{
 						topo[a]=1;
 					}
-				}else{*/
-					rnd = ((rand()%100)/100.0 <= x[a]) ? 1 : 0;
+				}else{
+					rnd = ((rand()%101)/100.0 <= x[a]) ? 1 : 0;
 					if(rnd){
 						topo[a]=-1;
  					}else{
 						topo[a]=1;
 					}
-				//}		 
+				}	 
 				unfx[szunfix++] = a;   
             }else{
              	topo[a]=0;
@@ -256,7 +256,7 @@ void Pump::create_model( ) {
 		y[a].setUB(1.0);
 		y[a].setLB(0.0);
 		 
-		obj += 2*topo[a]*y[a];
+		obj += 5*topo[a]*y[a];
 	}
 
     cplex.getObjective().setExpr(IloMinimize(env, obj));

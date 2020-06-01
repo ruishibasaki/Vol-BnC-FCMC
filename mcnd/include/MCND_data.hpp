@@ -51,6 +51,10 @@ public:
 	std::list<int> *adjf;
 	std::list<int> *adjb;
 
+	std::vector<double> bound_red;
+	std::vector<int> idbound_red;
+	bool redone;
+
 	inline FlowConnect(){}
 	inline FlowConnect(Data* d){ initialize(d);}
     ~FlowConnect();
@@ -61,7 +65,8 @@ public:
 
 	int check_connectivity(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, bool& conn_arcfix, int * yfxd);
     int translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd,bool& conn_arcfix, int * yfxd);
-    void reset();
+    int check_upperbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd,  int * yfix);
+    void reset(const BCP_vec<BCP_var*>& vars, int * yfxd);
 };
 
 

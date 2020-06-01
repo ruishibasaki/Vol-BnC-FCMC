@@ -159,6 +159,8 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 			}else{
 				const double oldTrueLB = floor((*add)->getTrueLB()*p->lb_multiplier);
     			p->lower_bounds.erase(oldTrueLB);
+    			//std::cout<<"eraselp: "<<oldTrueLB<<" newlb: "<<lower_bound()<<std::endl;
+
 			} 
 			tree->pop();
 		}
@@ -166,7 +168,6 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 		delete add;
 		//std::cout<<"final size "<<t->size()<<std::endl;
 	//}
-	
 	//BCP_tm_user::change_candidate_heap(candidates,new_solution);
 }
 /*

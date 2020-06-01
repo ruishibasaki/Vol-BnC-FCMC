@@ -87,7 +87,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 				}*/
 				//candidates.push_back(Pair2(a, fmin(psc0, psc1)));
 				/*if(max_cand==1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-				else */candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
+				else */candidates.push_back(Pair2(a, psol[a]*data.arcs[a].capa));
 				//candidates.push_back(Pair2(a, min(psol[a]-0.7)));
 			}
 		}
@@ -162,21 +162,23 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0; 
-				
+				arcfx=true;
 			}else if(gij<0 && (lb-gij)>=upper_bound()){
 				std::cout<<a<<" LOGFIX FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
 				changed_pos.push_back(a);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
 				yfix[a]=1;
+				arcfx=true;
 			}
 		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
 	}
 	if(lpchecker.solved) 
- 		lpchecker.logical_yfix(upper_bound(), changed_pos, new_bd, yfix);
+ 		if(lpchecker.logical_yfix(upper_bound(), changed_pos, new_bd, yfix)) arcfx=true;
 
-	if(!cut_varfix_and_updt( vars, cuts, changed_pos, new_bd)) return;
+	if(arcfx)
+		if(!cut_varfix_and_updt( vars, cuts, changed_pos, new_bd)) return;
 	
 	if(lpchecker.solved) 
  		lpchecker.logical_xfix(upper_bound(), yfix, vars);
@@ -186,17 +188,16 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	int id;
 	Arc * item;
 	for(int a=data.narcs; a--;){
-		if(yfix[a]==0){ if(vars[a]->ub()==1.0){lp_mode |= LP_TestConnectivity; arcfx=true;} continue;}
-		else if(yfix[a]==1 && vars[a]->lb()==0.0){ arcfx=true;}
+		if(yfix[a]==0){ if(vars[a]->ub()==1.0){lp_mode |= LP_TestConnectivity;} continue;}
 		
 		item  =  &data.arcs[a];
 		gij = rcsol[a];
 		
 		for (int k=data.ndemands; k--;){
 			id = data.narcs+k*data.narcs+a;
-			if(vars[id]->ub()==0.0) continue;
-			
 			dk = data.d_k[k].quantity;
+			if(vars[id]->ub()==0.0 || flwconnect.bound_red[k*data.narcs+a] == 0.0) continue;
+			
 			ckij = item->c[k]*dk - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
 			bd =-1;
 			if(ckij>1e-4){
@@ -205,7 +206,6 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 					bd = (upper_bound() - tt)/ckij;
 					bd*=dk;
 					if(bd<1e-8)bd=0.0;
-					if(bd > vars[id]->ub()){ std::cout<<"flow logical fix enlarged ub "<<bd<<" "<<vars[id]->ub()<<std::endl; abort();}
 					//else if(vars[id]->ub()-bd <= 1e-4) continue;
 					//if(bd < lpchecker.bound_red[a*data.ndemands+k])
 					//	std::cout<<"flowlogfix: "<<id<<" "<<bd<<" "<<lpchecker.bound_red[a*data.ndemands+k]<<std::endl;
@@ -216,13 +216,32 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			else if(lpbd>=0) bd = lpbd;
 			else continue;
 			if(vars[id]->ub()-bd <= 1e-4) continue;
-			
+			if(bd < dk && flwconnect.bound_red[k*data.narcs+a]>=dk){
+				lp_mode |= LP_ForceNodeAbort;
+				changed_pos.clear();
+				new_bd.clear();
+				std::cout<<"MCND_lp::logical_fixing::flwconnect.bd conflict"<<std::endl;
+				return;
+			}
 			changed_pos.push_back(id);
 			new_bd.push_back(0.0);
 			new_bd.push_back(bd);
+			flwconnect.bound_red[k*data.narcs+a] = bd;
+			flwconnect.idbound_red[k*data.narcs+a] = changed_pos.size()-1;
 			lp_mode |= LP_TestConnectivity;
 		}
 	}
+	
+	
+	if(lp_mode & LP_TestConnectivity || flwconnect.redone){
+		flwconnect.reset(vars, yfix);
+		flwconnect.check_upperbounds(vars, changed_pos, new_bd, yfix);
+		
+		flwconnect.redone=false;
+		flwconnect.idbound_red.assign(data.narcs*data.ndemands,-1);
+		flwconnect.bound_red.assign(data.narcs*data.ndemands,-1);
+		
+	} 
 	
 	if(arcfx){
 		lp_mode |= LP_LogicalFixed;	
@@ -309,7 +328,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 		}
 		
 		if(zrofx){
-			int ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, conn_arcfix, yfix);
+ 			int ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, conn_arcfix, yfix);
 			if(ret<0){
 				if(ret==-1){ globalc_manager.globalc_generation_main2(0, yfix); }
 				var_changed_pos.clear();

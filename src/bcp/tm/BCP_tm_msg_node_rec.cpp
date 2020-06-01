@@ -608,77 +608,78 @@ TMDBG;
 							   true_lb, qualities);
       }
     }
-
+    
+    // Update the lower bounds
+    for (int i = true_lb.size()-1; i >= 0; --i) {
+        true_lb[i] = floor(true_lb[i]*p.lb_multiplier);
+    }
+    p.lower_bounds.insert(true_lb.begin(), true_lb.end());
+    
     int reply_to_lp = -1;
     if (numChildrenAdded > 0) {
-      CoinTreeSiblings siblings(numChildrenAdded, children);
-
-      BCP_print_memusage(p);
-      p.need_a_TS = ! BCP_tm_is_data_balanced(p);
-
-      // check the one that's proposed to be kept if there's one
-      if (keep >= 0) {
-	// The kept child was pushed into the node first.
-	child = node->child(0);
-	if (dive == BCP_DoDive || dive == BCP_TestBeforeDive) {
-	  reply_to_lp = node->lp;
-	  // we've got to answer
-	  buf.clear();
-	  if (p.need_a_TS) {
-	    /* Force no diving if we need a TS process */
-	    dive = BCP_DoNotDive;
-	  } else {
-	    if (dive == BCP_TestBeforeDive)
-	      dive = BCP_tm_shall_we_dive(p, child->getQuality());
-	  }
-	  buf.pack(dive);
-	  if (dive != BCP_DoNotDive){
-	    child->status = BCP_ActiveNode;
-	    // if diving then send the new index and var/cut_names
-	    buf.pack(child->index());
-	    siblings.advanceNode();
-	  }
-	  p.candidate_list.push(siblings);
-	  p.user->change_candidate_heap(p.candidate_list, false);
-	} else {
-	  p.candidate_list.push(siblings);
-	  p.user->change_candidate_heap(p.candidate_list, false);
-	}
-      } else {
-	p.candidate_list.push(siblings);
-	p.user->change_candidate_heap(p.candidate_list, false);
-	dive = BCP_DoNotDive;
-      }
-
-      if (dive == BCP_DoNotDive){
-	// lp,cg,vg becomes free (zeroes out node->{lp,cg,vg})
-	BCP_tm_free_procs_of_node(p, node);
-      } else {
-	// if diving then the child takes over the parent's lp,cg,vg
-	// XXX
-	if (child != node->child(0)) {
-	  throw BCP_fatal_error("\
-BCP_tm_unpack_branching_info: the value of child is messed up!\n");
-	}
-	if (node->lp == -1) {
-	  throw BCP_fatal_error("\
-BCP_tm_unpack_branching_info: the (old) node has no LP associated with!\n");
-	}
-	child->lp = node->lp;
-	child->cg = node->cg;
-	child->vg = node->vg;
-	p.active_nodes[node->lp] = child;
-	node->lp = node->cg = node->vg = -1;
-      }
+        CoinTreeSiblings siblings(numChildrenAdded, children);
+        
+        BCP_print_memusage(p);
+        p.need_a_TS = ! BCP_tm_is_data_balanced(p);
+        
+        // check the one that's proposed to be kept if there's one
+        if (keep >= 0) {
+            // The kept child was pushed into the node first.
+            child = node->child(0);
+            if (dive == BCP_DoDive || dive == BCP_TestBeforeDive) {
+                reply_to_lp = node->lp;
+                // we've got to answer
+                buf.clear();
+                if (p.need_a_TS) {
+                    /* Force no diving if we need a TS process */
+                    dive = BCP_DoNotDive;
+                } else {
+                    if (dive == BCP_TestBeforeDive)
+                        dive = BCP_tm_shall_we_dive(p, child->getQuality());
+                }
+                buf.pack(dive);
+                if (dive != BCP_DoNotDive){
+                    child->status = BCP_ActiveNode;
+                    // if diving then send the new index and var/cut_names
+                    buf.pack(child->index());
+                    siblings.advanceNode();
+                }
+                p.candidate_list.push(siblings);
+                p.user->change_candidate_heap(p.candidate_list, false);
+            } else {
+                p.candidate_list.push(siblings);
+                p.user->change_candidate_heap(p.candidate_list, false);
+            }
+        } else {
+            p.candidate_list.push(siblings);
+            p.user->change_candidate_heap(p.candidate_list, false);
+            dive = BCP_DoNotDive;
+        }
+        
+        if (dive == BCP_DoNotDive){
+            // lp,cg,vg becomes free (zeroes out node->{lp,cg,vg})
+            BCP_tm_free_procs_of_node(p, node);
+        } else {
+            // if diving then the child takes over the parent's lp,cg,vg
+            // XXX
+            if (child != node->child(0)) {
+                throw BCP_fatal_error("\
+                                      BCP_tm_unpack_branching_info: the value of child is messed up!\n");
+            }
+            if (node->lp == -1) {
+                throw BCP_fatal_error("\
+                                      BCP_tm_unpack_branching_info: the (old) node has no LP associated with!\n");
+            }
+            child->lp = node->lp;
+            child->cg = node->cg;
+            child->vg = node->vg;
+            p.active_nodes[node->lp] = child;
+            node->lp = node->cg = node->vg = -1;
+        }
     }
 
     delete[] children;
 
-    // Update the lower bounds
-    for (int i = true_lb.size()-1; i >= 0; --i) {
-      true_lb[i] = floor(true_lb[i]*p.lb_multiplier);
-    }
-    p.lower_bounds.insert(true_lb.begin(), true_lb.end());
 
     // and the node is done
     node->status = BCP_ProcessedNode;
