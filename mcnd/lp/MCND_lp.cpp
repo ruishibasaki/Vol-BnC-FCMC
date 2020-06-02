@@ -96,8 +96,8 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 			no_gap_reduct += 1;
 		}else no_gap_reduct=0;
 		nomgap = (upper_bound()-lower_bound);
-		double gap = (upper_bound()  - LBi)/upper_bound();
-		if(gap>0.001 && gap<0.01){
+		double gap = (upper_bound()  - lower_bound)/upper_bound();
+		if(gap<0.005){
     		maxszunfx=0;
 			pump_heur.maxunfix = maxszunfx;
     	} 
