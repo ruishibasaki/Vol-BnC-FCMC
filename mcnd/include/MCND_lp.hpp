@@ -79,6 +79,8 @@ public:
     double lower_bound;
 	double nomgap;
 	int no_gap_reduct;
+	int max_cand ;
+	double maxszunfx;
 	
 	bool break_diving;
     bool force_dive;

@@ -18,7 +18,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     data.unpack(buf); 
     buf.unpack(has_sol);
     if(has_sol) best_sol.unpack(buf);
-
+	
     y.resize(data.narcs,0);
     yfix = new int[data.narcs];
     std::fill(yfix,yfix+data.narcs, -1);
@@ -43,7 +43,10 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     AppVolData.localc_manager = &localc_manager;
     AppVolData.globalc_manager = &globalc_manager;
     AppVolData.lpchecker = &lpchecker;
-
+    
+    max_cand = 5 ;
+    maxszunfx=0.3*data.narcs;
+	pump_heur.maxunfix = maxszunfx;
      
 }
 
@@ -93,6 +96,11 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 			no_gap_reduct += 1;
 		}else no_gap_reduct=0;
 		nomgap = (upper_bound()-lower_bound);
+		double gap = (upper_bound()  - LBi)/upper_bound();
+		if(gap>0.001 && gap<0.01){
+    		maxszunfx=0;
+			pump_heur.maxunfix = maxszunfx;
+    	} 
     }
     
     std::fill(yfix,yfix+data.narcs, -1);
@@ -114,7 +122,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 
     }else LBi=0;
     bool arcfx = false;
-    if(testconn ){
+    if(testconn){
      	int ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, arcfx, yfix);
     	if(ret<0){
 			if(ret==-1){ globalc_manager.globalc_generation_main2(0, yfix); }
@@ -135,15 +143,15 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 		flwconnect.redone=false;
 		flwconnect.idbound_red.assign(data.narcs*data.ndemands,-1);
 		flwconnect.bound_red.assign(data.narcs*data.ndemands,-1);
-		
 	} 
     
     lp_mode |= LP_TestFeasibility;
-    if(arcfx)lp_mode |= LP_LogicalFixed;
-    //for (int a=var_changed_pos.size(); a--;){
-	//	std::cout<<"changebd: "<<var_changed_pos[a]<<" ("<<vars[var_changed_pos[a]]->lb()<<" , "<<vars[var_changed_pos[a]]->ub()<<") new: ("<<
-	//	var_new_bd[a*2]<<" , "<<var_new_bd[a*2+1]<<") "<<std::endl;
-	//}
+    for (int a=var_changed_pos.size(); a--;){
+    	if(var_changed_pos[a]<data.narcs){
+    		lp_mode |= LP_LogicalFixed;
+    		break;
+    	}
+    }
 }
 
 //-------------------------------------------------------------------------------------------
@@ -430,8 +438,8 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
     if(lp_mode & LP_ForceNodeAbort) return LBi;
 
     double ub = upper_bound();
-
-    if(((ub  - LBi)/ub < 0.02 ) && !lpchecker.solved && current_iteration()==1){
+	double gap = (ub  - LBi)/ub;
+    if((gap < 0.01 ) && !lpchecker.solved && current_iteration()==1){
     	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
@@ -545,7 +553,7 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     	ret = lpfeaschecker.solve_opt(cont, vars, sol, fixd, closed, mipsol, fathmval, upper_bound());
     	std::cout<<"MCND_lp::test_feasibility intger && no violation"<<std::endl;
     	lp_mode |= LP_ForceNodeAbort ;
-    }else if(cont<data.narcs*0.5 || integer){ 
+    }else if(cont<= maxszunfx || integer){ 
     	ret = lpfeaschecker.solve_opt(cont, vars, 0, fixd, closed, mipsol, fathmval, upper_bound());
     	if(cont ==0){ lp_mode |= LP_ForceNodeAbort; std::cout<<"MCND_lp::test_feasibility allfixed"<<std::endl;}
     }else {
@@ -634,7 +642,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
 	//if(cont!=0) return 0; //
     if(cont > 0){
     	if(lp_mode & LP_HeuristicRunned) return 0;
-    	else if( cont > data.narcs*0.3 || current_iteration()>1) return 0;
+    	else if( cont > maxszunfx || current_iteration()>1) return 0;
 	}  
     //if(pump_heur.validate_topology()< 0) return 0;
     

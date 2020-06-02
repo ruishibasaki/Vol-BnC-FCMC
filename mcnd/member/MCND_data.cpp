@@ -87,7 +87,7 @@ FlowConnect::check_upperbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
 				ubnew = bound_red[k*narcs+arc];
 				if(ubnew >= data->d_k[k].quantity) continue;
 				ubnew = (ubnew >= 0)? fmin(ubnew, vars[narcs+k*narcs+arc]->ub()) : vars[narcs+k*narcs+arc]->ub();
-				if(sum < ubnew){
+				if((sum + 1e-4) < ubnew){
 					id = idbound_red[k*narcs+arc];
 					if(id>=0){
 						new_bd[id*2+1] = sum;

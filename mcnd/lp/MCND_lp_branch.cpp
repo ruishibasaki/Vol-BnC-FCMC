@@ -57,7 +57,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     const double * psol = lpres.x();
     const double * rcsol = lpres.dj();
 
-    int max_cand = 5 ;
+    
     if(no_gap_reduct >5 && !break_diving){
     	force_dive=true;
     }else{
@@ -65,6 +65,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     	force_dive=false;
     }
     if(no_gap_reduct >5) max_cand=1;
+    else max_cand = 5 ;
     
     if(candidates.empty()){
 		for (int a=data.narcs; a--;) {
@@ -245,23 +246,21 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	
 	if(arcfx){
 		lp_mode |= LP_LogicalFixed;	
-		lp_mode |= LP_TestFeasibility;
+		//lp_mode |= LP_TestFeasibility;
 	}
 	if(lpchecker.solved) {
 		if(lp_mode & LP_OptSolved) getOsiVolBabSolver()->reset_dualsol(lpchecker.dual_map);
 		lpchecker.bound_red.assign(data.narcs*data.ndemands,-1);
 	}
  		
-	//if(changed_pos.size()>0){
-	//	lp_mode |= LP_LogicalFixed;
-	//} 
-	/*if(lp_mode & LP_TestConnectivity){
-		lp_mode &= ~LP_TestConnectivity;
-		if(!verify_feasibility( changed_pos, new_bd, changed_pos.size())){
-			std::cout<<"MCND_lp::logical_fixing::verify_feasibility NOT"<<std::endl;
-			lp_mode |= LP_ForceNodeAbort;
-		}
- 	}*/
+	
+ 	for (int a=changed_pos.size(); a--;){
+    	if((vars[changed_pos[a]]->ub() - new_bd[a*2+1] <1e-4) &&
+    		(new_bd[a*2] - vars[changed_pos[a]]->lb() <1e-4)){
+    	 	std::cout<<"no change: "<<changed_pos[a]<<" "<<vars[changed_pos[a]]->ub()<<" "<<new_bd[a*2+1]<<" ";
+    	    std::cout<<" "<<vars[changed_pos[a]]->lb()<<" "<<new_bd[a*2]<<std::endl;
+    	}
+    }
 
 }
 
