@@ -49,7 +49,7 @@ public:
     int * actv; 
  
      //Cut generation attributes
-    int maxNumVI, intvlVI;
+    int maxNumVI, intvlVI, minIterVI;
     int maxPos;
     
 //-----------------------------------------------------
@@ -69,6 +69,7 @@ public:
         maxNumVI =1000;
 		maxPos = 10000;
         intvlVI =50;
+        minIterVI=100;
         appData_ = this;
         colub= 0;
     	collb=0;

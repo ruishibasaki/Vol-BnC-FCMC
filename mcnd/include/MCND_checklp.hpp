@@ -94,6 +94,7 @@ public:
     //-------------------------------
 
     int solve(double ub, const BCP_vec<BCP_var*>& vars,  const double *collb, const double *colub, double& new_lb);
+    int resolve(double ub, const BCP_vec<BCP_var*>& vars, const double *collb, const double *colub, double& new_lb);
     void get_dual();
     void get_solution(MCND_solution* mipsol);
  	void clean();

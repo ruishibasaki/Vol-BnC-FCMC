@@ -44,6 +44,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     AppVolData.globalc_manager = &globalc_manager;
     AppVolData.lpchecker = &lpchecker;
     
+    nomgappres=0.001;
     max_cand = 5 ;
     maxszunfx=0.3*data.narcs;
 	pump_heur.maxunfix = maxszunfx;
@@ -91,12 +92,15 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     lp_mode = LP_Normal;
     lpchecker.solved=false;
     if(has_sol){
-    	std::cout<<"no_gap_reduct: "<<no_gap_reduct<<std::endl;
-    	 if((nomgap - (upper_bound()-lower_bound))/nomgap < 0.001){
+    	double ub = upper_bound();
+   		if((nomgap - (ub-lower_bound))/nomgap < nomgappres){
 			no_gap_reduct += 1;
 		}else no_gap_reduct=0;
-		nomgap = (upper_bound()-lower_bound);
-		double gap = (upper_bound()  - lower_bound)/upper_bound();
+		std::cout<<"no_gap_reduct: "<<no_gap_reduct<<" impv: "<<(nomgap - (ub-lower_bound))/nomgap <<std::endl;
+		if(no_gap_reduct<=5) nomgap = (ub-lower_bound);
+		//else nomgappres = 0.1;
+		
+		double gap = (ub  - lower_bound)/ub;
 		if(gap<0.005){
     		maxszunfx=0;
 			pump_heur.maxunfix = maxszunfx;
@@ -223,10 +227,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     if(lp_mode & LP_ReducedRun){
     	 par.maxsgriters = 100;
     	 lp_mode &= ~LP_ReducedRun;
-    }else if(!vollp->HotStartSet){
-    	if(current_level()==0) par.maxsgriters = 1000;
-    	else par.maxsgriters = 500;
-    }else par.maxsgriters = 250;
+    } 
      
     if(current_level()>0){ 
 		par.lambdainit=1.0;
@@ -234,8 +235,15 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
 		par.alphamin=1e-2;
 		par.alphafactor=0.3;
 		par.alphaint=10;
-
+		AppVolData.minIterVI = 50;
      	AppVolData.intvlVI = 200; 
+     	if(force_dive){
+     		par.ascent_first_check = 50;
+    		par.ascent_check_invl = 50;
+     	}else{
+     		par.ascent_first_check = 100;
+    		par.ascent_check_invl = 100;
+     	}
      	vollp->mode=2;
     }else vollp->mode=1;
 	
@@ -439,7 +447,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 	double gap = (ub  - LBi)/ub;
-    if((gap < 0.01 ) && !lpchecker.solved && current_iteration()==1){
+    if((gap < 0.01 ) && !lpchecker.solved && !force_dive &&current_iteration()==1){
     	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
@@ -451,13 +459,10 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
     }else{
     	lp_mode &=  ~LP_OptSolved;
     } 
-    //if((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
-    	//std::cout<<"compute_lower_bound aborted"<<std::endl;
-		//abort();
-	//}
+     
 	//std::cout<<"nomgap: "<<nomgap<<" and "<<(upper_bound()-lower_bound)<<std::endl;
     if(force_dive){
-    	if((nomgap - (upper_bound()-LBi))/nomgap < 0.001)
+    	if((nomgap - (upper_bound()-LBi))/nomgap < 0.5)
 			break_diving=false;
 		else{
 			break_diving=true;

@@ -456,7 +456,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     
     if(numrows_>=maxNumrows_) return 0;
 
-    if(letgen && iter>=100){
+    if(letgen && iter>=minIterVI){
 
         int num_covers = cover_manager->cover_generation_main(xstar.v, x.v, &ss_manager->sets, numrows_, maxNumrows_);
         cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dual.v, dual_lb.v,  dual_ub.v );
@@ -1129,7 +1129,8 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     
     maxNumVI =auxinfo->maxNumVI;
     intvlVI = auxinfo->intvlVI;
-
+	minIterVI = auxinfo->minIterVI;
+	
     nnodes =  data->nnodes;
     ndemands = data->ndemands;
     narcs = data->narcs;

@@ -489,7 +489,7 @@ public:
     
     int * arc_map;
     int * actv; 
-    int maxNumVI, intvlVI;
+    int maxNumVI, intvlVI, minIterVI;
     double upper_bound;
     double min_lower_bound;
     

@@ -78,6 +78,8 @@ public:
     double LBi;
     double lower_bound;
 	double nomgap;
+	double nomgappres;
+
 	int no_gap_reduct;
 	int max_cand ;
 	double maxszunfx;

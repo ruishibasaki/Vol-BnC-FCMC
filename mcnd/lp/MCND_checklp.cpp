@@ -123,10 +123,7 @@ LPChecker::reset(const BCP_vec<BCP_var*>& vars,  const double *collb, const doub
 			}
 		}
 	}else{std::cout<<"LPChecker::reset needed pointer  with 0-value"<<std::endl; abort(); }
-	
- 	map_addcovers.assign(covers->sizeOfCollection,-1);
-    map_addlocals.assign(localcs->sizeOfCollection,-1);
-    map_addglobals.assign(globalcs->sizeOfCollection,-1);
+ 	
 }
 
 
@@ -240,6 +237,47 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 	cplex.solve();
 	cplex.setParam(IloCplex::Param::Advance, 1);
 
+	//std::cout<<"LPChecker first "<<cplex.getObjValue()<<std::endl;
+	if(cplex.getStatus() == IloAlgorithm::Infeasible){
+		cplex.exportModel("rl.lp");
+		std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 1"<<std::endl;
+  		return -1;
+	} 
+	
+	cplex.getValues(x_,x);
+	cplex.getValues(y_,y);
+	while(cut(vars, colub, y_,x_)){
+		cplex.solve();
+		if(cplex.getStatus() == IloAlgorithm::Infeasible){ 
+			std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 
+			return -2; 
+		}
+		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
+		if(cplex.getObjValue()+1e-4>= ub){
+			new_lb = cplex.getObjValue();
+			std::cout<<"stop lpchecker "<<cplex.getObjValue()<<std::endl;
+			return 1;
+		}
+		cplex.getValues(y_,y);
+		cplex.getValues(x_,x);
+	}
+	solval = cplex.getObjValue();
+	std::cout<<"final lpchecker "<<solval<<std::endl;
+	get_dual();
+	new_lb = solval;
+	
+	return 0;
+}
+
+//---------------------------------------------------------------------------
+
+
+int LPChecker::resolve(double ub, const BCP_vec<BCP_var*>& vars, const double *collb, const double *colub, double& new_lb){
+	
+ 	reset(vars, collb, colub);
+	std::cout<<"LPChecker::resolve"<<std::endl;
+	cplex.solve();
+ 
 	//std::cout<<"LPChecker first "<<cplex.getObjValue()<<std::endl;
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
 		cplex.exportModel("rl.lp");
@@ -486,9 +524,7 @@ LPChecker::logical_xfix(double ub, const int * yfix, const BCP_vec<BCP_var*>& va
 
 void
 LPChecker::clean(){
-	map_addcovers.clear();
-    map_addlocals.clear();
-   	map_addglobals.clear();
+	 
     numaddstrong = numaddcov= numaddloc= numaddgloc =0;
 	add_strong_force.endElements();
 	add_covers.endElements();
@@ -496,6 +532,10 @@ LPChecker::clean(){
 	add_globals.endElements();
 	cplex.setParam(IloCplex::Param::Advance, 0);
 	dual_map.clear();
+	
+	map_addcovers.assign(covers->sizeOfCollection,-1);
+    map_addlocals.assign(localcs->sizeOfCollection,-1);
+    map_addglobals.assign(globalcs->sizeOfCollection,-1);
 }
 	
 
