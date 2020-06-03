@@ -66,15 +66,15 @@ int
 FlowConnect::check_upperbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix){
     std::list<int>::const_iterator it;
     int arc, id;
-    int arc_unique;
-    int comm_sat = 0;
-	int ret =1;
-	double sum, ubnew;
+ 	double sum, ubnew;
+	double sumb;
+	bool modif=false;
     for(int n=nnodes;n--;){
         //std::cout<<"node "<<n+1<<std::endl;
         for(int k = ndemands; k--;){
         	if(n == (data->d_k[k].O-1) || n == (data->d_k[k].D-1)) continue;
-        	sum=0;
+        	modif=false;
+        	sum=0; sumb=0;
         	for (it = adjb[n].begin(); it != adjb[n].end(); ++it){
 				arc = data->grid[(*it)*nnodes+n];
 			 	ubnew = bound_red[k*narcs+arc];
@@ -82,10 +82,16 @@ FlowConnect::check_upperbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
             }
         	
             for (it = adjf[n].begin(); it != adjf[n].end(); ++it){
-                arc = data->grid[n*nnodes+(*it)];
-                
+                arc = data->grid[n*nnodes+(*it)];                
 				ubnew = bound_red[k*narcs+arc];
-				if(ubnew >= data->d_k[k].quantity) continue;
+				
+				if(vars[narcs+k*narcs+arc]->lb() > (sum+ 1e-4)) return -1;
+                else if(ubnew >= data->d_k[k].quantity){
+                	if(data->d_k[k].quantity > (sum+ 1e-4))	return -1;
+ 					sumb += data->d_k[k].quantity;
+                	continue;
+                } 
+                
 				ubnew = (ubnew >= 0)? fmin(ubnew, vars[narcs+k*narcs+arc]->ub()) : vars[narcs+k*narcs+arc]->ub();
 				if((sum + 1e-4) < ubnew){
 					id = idbound_red[k*narcs+arc];
@@ -96,9 +102,40 @@ FlowConnect::check_upperbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
 						new_bd.push_back(0.0);
 						new_bd.push_back(sum);
 					}
+					bound_red[k*narcs+arc] = sum;
+					ubnew = sum;
+					//std::cout<<"ATENCAO!! "<<sum<<" "<<ubnew<<std::endl;
+					modif=true;
+				}
+ 				sumb += ubnew;
+            }
+            
+            if(modif) continue;
+            for (it = adjb[n].begin(); it != adjb[n].end(); ++it){
+				arc = data->grid[(*it)*nnodes+n];
+			 	ubnew = bound_red[k*narcs+arc];
+			 	
+			 	if(vars[narcs+k*narcs+arc]->lb() > (sumb+ 1e-4)) return -1;
+                else if(ubnew >= data->d_k[k].quantity){
+                	if(data->d_k[k].quantity > (sumb+ 1e-4))	return -1;
+                 	continue;
+                } 
+                
+				ubnew = (ubnew >= 0)? fmin(ubnew, vars[narcs+k*narcs+arc]->ub()) : vars[narcs+k*narcs+arc]->ub();
+				if((sumb + 1e-4) < ubnew){
+					id = idbound_red[k*narcs+arc];
+					if(id>=0){
+						new_bd[id*2+1] = sumb;
+					}else{
+						changed_pos.push_back(narcs+k*narcs+arc);
+						new_bd.push_back(0.0);
+						new_bd.push_back(sumb);
+					}
+					bound_red[k*narcs+arc] = sumb;
+					ubnew = sumb;
 					//std::cout<<"ATENCAO!! "<<sum<<" "<<ubnew<<std::endl;
 				}
-            }
+             }
         }   
     }
     return 1;

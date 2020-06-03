@@ -648,7 +648,9 @@ OsiVolSolverInterface::solve_subproblem(const VOL_dvector& xstar,
     for(int a=szunfxd; a--; ){
     	//if(xstar[a]>1)std::cout<<"WHAT? "<<xstar[a]<<std::endl;
         arc = nz_arcs[a];
-        rc[a] += knapsack(a, rc.v, x.v);
+        cost_a = knapsack(a, rc.v, x.v);
+        rc[a] += cost_a;
+        if(cost_a > volprob_->parm.dual_limit) return -1; 
         //addrc[a]+= rc[a];
         //std::cout<<a<<", "<<arc<<" addrc: "<<addrc[a]<<std::endl;
         //if(addrc[a]<1e-10 && addrc[a]>-1e-10) addrc[a] = 0;
@@ -660,6 +662,7 @@ OsiVolSolverInterface::solve_subproblem(const VOL_dvector& xstar,
         arc = nz_arcs[a];
         cost_a = knapsack(a, rc.v, x.v);
         lcost += cost_a + data->arcs[arc].f;
+        if(cost_a > volprob_->parm.dual_limit) return -1; 
         //pcost += data->arcs[arc].f;
         //for(int k=ndemands; k--; )
          //   pcost += data->arcs[arc].c[k] * x[szunfxd + k*sznz + a];
@@ -749,7 +752,7 @@ double
 OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
     double kpsack =0;
     double fillUp =0;
-    double rcost, flow;
+    double rcost, flow, xval;
     int arc = nz_arcs[a];
     int basex;
     std::list<HeapCell> heap;
@@ -758,29 +761,43 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
     	rcost = rc[szunfxd + k*sznz + a];
         if(rcost<0.0 && colub[narcs+k*narcs+arc]>0.0){
             heap.push_back(HeapCell(k, double(rcost/data->d_k[k].quantity)));
-        }else x[szunfxd + k*sznz + a]=0.0;
+        }
+        xval= collb[narcs+k*narcs+arc];
+        if(xval>0){
+        	fillUp += xval;
+        	xval /= data->d_k[k].quantity;
+        	if(xval>1){ std::cout<<"ATENCAO!! "<<xval<<std::endl; xval = 1.0; }
+        	kpsack += rcost * xval;
+        	x[szunfxd + k*sznz + a] = xval;
+        }else x[szunfxd + k*sznz + a] = 0;
+        
     }
     
+    double capa = data->arcs[arc].capa;
+    if(fillUp >= capa || heap.empty() ){ 
+    	if(fillUp > capa) kpsack = volprob_->parm.dual_limit+1;
+    	heap.clear(); return kpsack;
+    }
     heap.sort(comp());
     //std::stable_sort(heap.begin(), heap.end(), comp());
     
-    double capa;
+    
     int comm;
-    while(heap.size()>0){
-        capa = data->arcs[arc].capa;
+    while(heap.size()>0){ 
         comm = heap.back().k;
         basex = szunfxd + comm*sznz;
         if(fillUp < capa){
         	//if(colub[narcs+comm*narcs+arc]<data->arcs[arc].b[comm])
         	// std::cout<<narcs+comm*narcs+arc<<" confirm: "<<arc+1<<" comm: "<<comm+1<<" "<<colub[narcs+comm*narcs+arc]<<std::endl;
-        	flow = std::min((capa - fillUp), colub[narcs+comm*narcs+arc]);
-            x[basex + a] = flow/data->d_k[comm].quantity;
+        	flow = std::min((capa - fillUp), (colub[narcs+comm*narcs+arc]-collb[narcs+comm*narcs+arc]));
+        	xval = flow/data->d_k[comm].quantity;
+        	if(xval>1){ std::cout<<"ATENCAO!! "<<xval <<std::endl; xval =1.0; }
+
+            x[basex + a] += xval;
             fillUp += flow;
-            kpsack += rc[basex + a] * x[basex + a];
+            kpsack += rc[basex + a] * xval;
             //std::cout<<"in"<<std::endl;
-        }else{
-            x[basex + a] = 0.0;
-        }
+        } 
         heap.pop_back();
     }
     return kpsack;

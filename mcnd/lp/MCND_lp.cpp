@@ -125,9 +125,10 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         //std::cout<<"reduced run? "<<nodedata->reduced_run<<std::endl;
 
     }else LBi=0;
+    int ret ;
     bool arcfx = false;
     if(testconn){
-     	int ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, arcfx, yfix);
+     	ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, arcfx, yfix);
     	if(ret<0){
 			if(ret==-1){ globalc_manager.globalc_generation_main2(0, yfix); }
 			var_changed_pos.clear();
@@ -135,27 +136,30 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 			std::cout<<"MCND_lp::initialize_new_search_tree_node::flwconnect.check_connectivity NOT"<<std::endl;
 			lp_mode |= LP_ForceNodeAbort;
 			return;
-		}	
+		}
+		if(arcfx) lp_mode |= LP_LogicalFixed;	
     } 
     
     if(!cut_varfix_and_updt( vars, cuts, var_changed_pos, var_new_bd)) return;
     
-    if(testconn){
+    if(testconn || (lp_mode & LP_LogicalFixed)){
 		flwconnect.reset(vars, yfix);
-		flwconnect.check_upperbounds(vars, var_changed_pos, var_new_bd, yfix);
+		ret = flwconnect.check_upperbounds(vars, var_changed_pos, var_new_bd, yfix);
 		
 		flwconnect.redone=false;
 		flwconnect.idbound_red.assign(data.narcs*data.ndemands,-1);
 		flwconnect.bound_red.assign(data.narcs*data.ndemands,-1);
+		if(ret<0){
+			var_changed_pos.clear();
+			var_new_bd.clear();
+			std::cout<<"MCND_lp::initialize_new_search_tree_node::flwconnect.check_upperbounds NOT"<<std::endl;
+			lp_mode |= LP_ForceNodeAbort;
+			return;
+		}
 	} 
     
     lp_mode |= LP_TestFeasibility;
-    for (int a=var_changed_pos.size(); a--;){
-    	if(var_changed_pos[a]<data.narcs){
-    		lp_mode |= LP_LogicalFixed;
-    		break;
-    	}
-    }
+     
 }
 
 //-------------------------------------------------------------------------------------------

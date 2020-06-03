@@ -195,6 +195,7 @@ int LPFeasChecker::solve_feas(const double *collb, const double * colub, bool fe
 			val = x_[a*ndemands+k];
 			if(val > colub[narcs+k*narcs+a]+1e-4){
 				bd_sat=false;
+				break;
 				//std::cout<<"solve_feas::atencao var: "<<narcs+k*narcs+a<<" val: "<<val<<" ub: "<< colub[narcs+k*narcs+a]<<std::endl;
 			}	
 		}

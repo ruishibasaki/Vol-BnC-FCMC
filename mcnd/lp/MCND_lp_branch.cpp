@@ -193,7 +193,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			id = data.narcs+k*data.narcs+a;
 			dk = data.d_k[k].quantity;
 			if(vars[id]->ub()==0.0 || flwconnect.bound_red[k*data.narcs+a] == 0.0) continue;
-			
+ 
 			ckij = item->c[k]*dk - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
 			bd =-1;
 			if(ckij>1e-4){
@@ -212,7 +212,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			else if(lpbd>=0) bd = lpbd;
 			else continue;
 			if(vars[id]->ub()-bd <= 1e-4) continue;
-			if(bd < dk && flwconnect.bound_red[k*data.narcs+a]>=dk){
+			if(bd < dk && (flwconnect.bound_red[k*data.narcs+a]>bd || vars[id]->lb()>bd)){
 				lp_mode |= LP_ForceNodeAbort;
 				changed_pos.clear();
 				new_bd.clear();
@@ -231,11 +231,18 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	
 	if(lp_mode & LP_TestConnectivity || flwconnect.redone){
 		flwconnect.reset(vars, yfix);
-		flwconnect.check_upperbounds(vars, changed_pos, new_bd, yfix);
+		int ret = flwconnect.check_upperbounds(vars, changed_pos, new_bd, yfix);
 		
 		flwconnect.redone=false;
 		flwconnect.idbound_red.assign(data.narcs*data.ndemands,-1);
 		flwconnect.bound_red.assign(data.narcs*data.ndemands,-1);
+		if(ret<0){
+			changed_pos.clear();
+			new_bd.clear();
+			std::cout<<"MCND_lp::logical_fixing::flwconnect.check_upperbounds NOT"<<std::endl;
+			lp_mode |= LP_ForceNodeAbort;
+			return;
+		}
 		
 	} 
 	
