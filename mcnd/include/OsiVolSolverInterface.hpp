@@ -409,20 +409,20 @@ private:
     //  volume hook methods
     //---------------------------------------------------------------------------
 private:
-    int compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int actvSSz);
+    int compute_rc(const VOL_dvector& dualu, VOL_dvector& rc, int actvSSz);
     
     int compute_sg(const VOL_dvector& x, int actvSSz, VOL_dvector& v);
     
     int solve_subproblem(const VOL_dvector& xstar,
-                         const VOL_dvector& dual,  VOL_dvector& rc,
+                         const VOL_dvector& dualu,  VOL_dvector& rc,
                          double& lcost, VOL_dvector& x,
                          double& pcost);
     
-    int resolve_subproblem(const VOL_dvector& dual, VOL_dvector& rc,
+    int resolve_subproblem(const VOL_dvector& dualu, VOL_dvector& rc,
                            double& lcost,
                            VOL_dvector& x,double& pcost);
     
-    int additional_settings(int iter, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h, VOL_dvector& x, 
+    int additional_settings(int iter, double& lcost, VOL_dvector& dualu, VOL_dvector& rc, VOL_dvector& h, VOL_dvector& x, 
     						const VOL_dvector& xhist,  int actvSSz);
     
     int heuristics(const VOL_problem& p,

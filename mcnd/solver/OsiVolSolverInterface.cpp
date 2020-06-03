@@ -371,8 +371,7 @@ OsiVolSolverInterface::resolve(){
 	else if(mode ==3){
 		markHotStart();
 	}
-    int i;
-    
+     
     map_duals();
     if(mode==-2){ return;}
     volprob_->active_size = fsize + csize;
@@ -393,7 +392,7 @@ OsiVolSolverInterface::resolve(){
     	}
     }
     retval = volprob_->solve(*this, true);
-    //if(exact_solve) std::cout<<std::setprecision(10)<<"volresult: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<std::endl;
+    if(mode ==3) std::cout<<std::setprecision(10)<<"volresult: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<std::endl;
 
     if(volprob_->value< min_lower_bound && in_strong_branch){
      	volprob_->value = min_lower_bound;
@@ -434,7 +433,7 @@ void OsiVolSolverInterface::direct_solve(const std::deque<int>& topo, const Coin
 
 int
 OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
-          const VOL_dvector& x, VOL_dvector& dual, VOL_dvector& dual_lb, VOL_dvector& dual_ub,
+          const VOL_dvector& x, VOL_dvector& dualu, VOL_dvector& dual_lb, VOL_dvector& dual_ub,
           VOL_dvector& rc, VOL_dvector& h, int & actvSSz){
     //return 0;
     bool letgen=false;
@@ -459,7 +458,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     if(letgen && iter>=minIterVI){
 
         int num_covers = cover_manager->cover_generation_main(xstar.v, x.v, &ss_manager->sets, numrows_, maxNumrows_);
-        cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dual.v, dual_lb.v,  dual_ub.v );
+        cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dualu.v, dual_lb.v,  dual_ub.v );
         if(num_covers>0){
         	numrows_ +=  num_covers;
         	cover_manager->reposition_covers(num_covers);
@@ -564,7 +563,7 @@ OsiVolSolverInterface::removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector
 //-----------------------------------------------------------------------
 
 int
-OsiVolSolverInterface::compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int actvSSz){
+OsiVolSolverInterface::compute_rc(const VOL_dvector& dualu, VOL_dvector& rc, int actvSSz){
     const Arc* item;
     int arc;
     for(int a=szunfxd; a--;){
@@ -573,25 +572,25 @@ OsiVolSolverInterface::compute_rc(const VOL_dvector& dual, VOL_dvector& rc, int 
         rc[a] = item->f;
         //addrc[a] =0;
         for(int k=ndemands; k--; ){
-            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity - dual[actv[k*nnodes + item->j-1]] + dual[actv[k*nnodes + item->i-1]];
+            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity - dualu[actv[k*nnodes + item->j-1]] + dualu[actv[k*nnodes + item->i-1]];
         }
     }
     for(int a=szunfxd; a<sznz;++a){
         arc = nz_arcs[a];
         item = &data->arcs[arc];
         for(int k=ndemands; k-- ;){
-            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity - dual[actv[k*nnodes + item->j-1]] + dual[actv[k*nnodes + item->i-1]];
+            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity - dualu[actv[k*nnodes + item->j-1]] + dualu[actv[k*nnodes + item->i-1]];
         }
     }
 
     B0=0;
     for(int k=0; k<data->ndemands; ++k){
-        B0 += ( dual[actv[k*nnodes + data->d_k[k].D-1]] - dual[actv[k*nnodes + data->d_k[k].O-1]]);
+        B0 += ( dualu[actv[k*nnodes + data->d_k[k].D-1]] - dualu[actv[k*nnodes + data->d_k[k].O-1]]);
         
     }
-    cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
-    localc_manager->compute_localc_rc( dual.v, actv,  actvSSz, rc.v,   B0);
-    globalc_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
+    cover_manager->compute_cover_rc( dualu.v, actv,  actvSSz, rc.v,   B0);
+    localc_manager->compute_localc_rc( dualu.v, actv,  actvSSz, rc.v,   B0);
+    globalc_manager->compute_cover_rc( dualu.v, actv,  actvSSz, rc.v,   B0);
 
     //double b = B0;
     //cover_manager->compute_cover_rc( dual.v,  actv,  actvSSz, addrc, b);
@@ -638,7 +637,7 @@ OsiVolSolverInterface::compute_sg(const VOL_dvector& x, int actvSSz, VOL_dvector
 
 int
 OsiVolSolverInterface::solve_subproblem(const VOL_dvector& xstar,
-                                        const VOL_dvector& dual,  VOL_dvector& rc,
+                                        const VOL_dvector& dualu,  VOL_dvector& rc,
                                         double& lcost, VOL_dvector& x,
                                         double& pcost){
     int arc;
@@ -674,7 +673,7 @@ OsiVolSolverInterface::solve_subproblem(const VOL_dvector& xstar,
 //---------------------------------------------------------------------------
 
 int
-OsiVolSolverInterface::resolve_subproblem(const VOL_dvector& dual, VOL_dvector& rc,
+OsiVolSolverInterface::resolve_subproblem(const VOL_dvector& dualu, VOL_dvector& rc,
                        double& lcost,
                        VOL_dvector& x,double& pcost){
     
@@ -709,24 +708,24 @@ OsiVolSolverInterface::resolve_subproblem(const VOL_dvector& dual, VOL_dvector& 
 //-----------------------------------------------------------------------
 
 int
-OsiVolSolverInterface::additional_settings(int iter, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h,
+OsiVolSolverInterface::additional_settings(int iter, double& lcost, VOL_dvector& dualu, VOL_dvector& rc, VOL_dvector& h,
                           VOL_dvector& x, const VOL_dvector& xhist, int actvSSz){
    return 0;
    /* if(cover_manager->covers.sizeOfCollection==0 || iter==0){
-        cover_manager->compute_cover_rc( dual.v, actv,  actvSSz, rc.v,   B0);
+        cover_manager->compute_cover_rc( dualu.v, actv,  actvSSz, rc.v,   B0);
         return 0;
     }*/
     //double ret=0;
 	
 	
-    //cover_manager->recompute_mult_neg( dual.v, addrc, rc.v, x.v, actv, actvSSz);
-    //cover_manager->recompute_mult_pos( dual.v, h.v, addrc, x.v, actv);
+    //cover_manager->recompute_mult_neg( dualu.v, addrc, rc.v, x.v, actv, actvSSz);
+    //cover_manager->recompute_mult_pos( dualu.v, h.v, addrc, x.v, actv);
     /*int sz = cover_manager->num_actv;
     int index;
     Cover *vi = cover_manager->covers.begin;
     for(;sz--;){
         index = actv[vi->id_vi];
-        B0 +=  dual[index]*vi->get_total_rhs();
+        B0 +=  dualu[index]*vi->get_total_rhs();
         vi = vi->next;
     }*/
     /*for(int a=szunfxd; a--; ){

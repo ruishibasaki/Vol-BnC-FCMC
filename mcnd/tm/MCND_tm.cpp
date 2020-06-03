@@ -158,7 +158,8 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 				t->push(1, add);
 			}else{
 				const double oldTrueLB = floor((*add)->getTrueLB()*p->lb_multiplier);
-    			p->lower_bounds.erase(oldTrueLB);
+    			std::multiset<double>::iterator it = p->lower_bounds.find(oldTrueLB);
+    			if(it != p->lower_bounds.end())p->lower_bounds.erase(it);
     			//std::cout<<"eraselp: "<<oldTrueLB<<" newlb: "<<lower_bound()<<std::endl;
 
 			} 
@@ -168,7 +169,11 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 		delete add;
 		//std::cout<<"final size "<<t->size()<<std::endl;
 	//}
-	//BCP_tm_user::change_candidate_heap(candidates,new_solution);
+	BCP_buffer buf;
+	buf.pack(lower_bound());
+	std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
+	broadcast_message(BCP_ProcessType_LP,buf);
+	buf.clear();
 }
 /*
 //-----------------------------------------------------------------------------
@@ -225,12 +230,6 @@ MCND_tm::display_node_information(BCP_tree& search_tree,
 			   bool after_processing_node){
 	if(Best_LB<lower_bound())
 		Best_LB=lower_bound();
-	
-	BCP_buffer buf;
-	buf.pack(lower_bound());
-	std::cout<<"The lower bound: "<<Best_LB<<std::endl;
-	broadcast_message(BCP_ProcessType_LP,buf);
-	buf.clear();
 }
 
 //-----------------------------------------------------------------------------

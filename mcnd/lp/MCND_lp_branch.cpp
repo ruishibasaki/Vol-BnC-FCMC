@@ -39,7 +39,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     }
     
     
-	lp_mode &= ~LP_LogicalFixed;
+	
 	if(lp_mode & LP_ForceNodeAbort){
 		//std::cout<<"node abort"<<std::endl;
 		//lp_mode = LP_Normal;
@@ -95,7 +95,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<std::endl;
+		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<" "<<min(ninsp[arc].fst, ninsp[arc].snd)<<std::endl;
 		///*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
         candidates.pop_front();		
 		vpos[0] = arc;
@@ -111,7 +111,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 		++ncands;
 	}
 	candidates.clear();
- 	
+ 	lp_mode &= ~LP_LogicalFixed;
 	//std::cout<<"do branch "<<ncands<<" force: "<<force_branch<<std::endl;
     if(ncands){
      	lp_mode |= LP_StrongBranch;
@@ -251,7 +251,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		//lp_mode |= LP_TestFeasibility;
 	}
 	if(lpchecker.solved) {
-		if(lp_mode & LP_OptSolved) getOsiVolBabSolver()->reset_dualsol(lpchecker.dual_map);
+		getOsiVolBabSolver()->reset_dualsol(lpchecker.dual_map);
 		lpchecker.bound_red.assign(data.narcs*data.ndemands,-1);
 	}
 }

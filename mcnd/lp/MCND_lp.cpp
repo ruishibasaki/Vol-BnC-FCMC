@@ -90,14 +90,13 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     //std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
     ++num_nodes;
     lp_mode = LP_Normal;
-    lpchecker.solved=false;
     if(has_sol){
     	double ub = upper_bound();
    		if((nomgap - (ub-lower_bound))/nomgap < nomgappres){
 			no_gap_reduct += 1;
 		}else no_gap_reduct=0;
-		std::cout<<"no_gap_reduct: "<<no_gap_reduct<<" impv: "<<(nomgap - (ub-lower_bound))/nomgap <<std::endl;
-		if(no_gap_reduct<=5) nomgap = (ub-lower_bound);
+		std::cout<<"no_gap_reduct: "<<no_gap_reduct<<" impv: "<<(nomgap - (ub-lower_bound))/nomgap<<std::endl;
+ 		if(no_gap_reduct<=5) nomgap = (ub-lower_bound);
 		//else nomgappres = 0.1;
 		
 		double gap = (ub  - lower_bound)/ub;
@@ -115,6 +114,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     if(nodedata!=0){ 
         //std::cout<<"user_data hotstart: "<<nodedata->hs<<std::endl;
         LBi = nodedata->min_lb;
+        lp_mode |= LP_tighterBounds;
         if(nodedata->hs!=0){
             getLpProblemPointer()->lp_solver->setWarmStart(nodedata->hs);
         }
@@ -218,7 +218,8 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     lp->setDblParam(OsiPrimalTolerance, 1e-4);
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = AppVolData.volprob.parm;
-    
+    if(lp_mode & LP_ForceNodeAbort){ vollp->mode=-1;  return;}
+
     vollp->has_sol = has_sol;
     vollp->recheck_collct=false;
     vollp->upper_bound = LBi >0 ? fmin(upper_bound(), LBi*5) : upper_bound();
@@ -226,13 +227,8 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     //if(no_gap_reduct >3 && !lpchecker.solved && !in_strong_branching) vollp->exact_solve=true;
     //else 
     vollp->exact_solve=false;
-    //std::cout<<"limit: "<<par.dual_limit<<" "<<vollp->upper_bound<<" strongbranching:"<<in_strong_branching<<std::endl;
-
-    if(lp_mode & LP_ReducedRun){
-    	 par.maxsgriters = 100;
-    	 lp_mode &= ~LP_ReducedRun;
-    } 
-     
+    //std::cout<<"limit: "<<par.dual_limit<<" "<<vollp->upper_bound<<" strongbranching:"<<in_strong_branching<<std::endl;     
+    
     if(current_level()>0){ 
 		par.lambdainit=1.0;
 		par.alphainit=0.5;
@@ -250,36 +246,123 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
      	}
      	vollp->mode=2;
     }else vollp->mode=1;
-	
-	if(lp_mode & LP_LogicalFixed){
-		vollp->recheck_collct=true;  
-		lp_mode &= ~LP_LogicalFixed; /*vollp->mode=3; par.maxsgriters = 100;*/
-	}
-    //else
+   
     if(in_strong_branching){
     	vollp->recheck_collct=true; 
     	vollp->min_lower_bound = LBi;  
     	vollp->mode=0;
-	}else if(changeType==1 || lp_mode & LP_ForceNodeAbort ){ 
-    	vollp->recheck_collct=true; 
+    	return;
+	}else if(changeType==1){ 
+     	if(!(lp_mode & LP_LogicalFixed)) vollp->mode=-1;  
+    }else if((lp_mode & LP_CutAddedFromHeuristic) && !(lp_mode & LP_LogicalFixed)){
     	vollp->mode=-1; 
-    	//std::cout<<"aqui1"<<std::endl;
-    	//std::cout<<"changeType "<<changeType<<" lpmode: "<<(lp_mode & LP_ForceNodeAbort)<<std::endl; 
-    }else if((lp_mode & LP_CutAddedFromHeuristic) ){
-    	vollp->mode=-1; 
-    	//std::cout<<"aqui2"<<std::endl;
-    	//std::cout<<"LP_CutAddedFromHeuristic"<<std::endl;
     }
-    if(vollp->mode>=0 && !in_strong_branching) lp_mode |= LP_tighterBounds;
-    //else lp_mode &= ~LP_tighterBounds;
+    
+    if(lp_mode & LP_LogicalFixed){
+		vollp->recheck_collct=true;  
+		vollp->mode=3; 
+		lp_mode &= ~LP_LogicalFixed; /*vollp->mode=3; par.maxsgriters = 100;*/
+	}
     vollp->in_strong_branch = in_strong_branching;
-	//std::cout<<"modify_lp_parameters "<<vollp->mode<<std::endl;
-   
+    
 }
 
 //#############################################################################
 //#############################################################################
 //#############################################################################
+
+
+double
+MCND_lp::compute_lower_bound(const double old_lower_bound,
+                             const BCP_lp_result& lpres,
+                             const BCP_vec<BCP_var*>& vars,
+                             const BCP_vec<BCP_cut*>& cuts){
+    
+
+    const int tc = lpres.termcode();
+    LBi = std::max(lpres.objval(),LBi);
+    if(lp_mode & LP_ForceNodeAbort) return LBi;
+
+    double ub = upper_bound();
+	double gap = (ub  - LBi)/ub;
+    if(((gap < 0.01) && !lpchecker.solved && !force_dive &&current_iteration()==1)){
+    	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
+    	if(ret<0){
+    		lp_mode |= LP_ForceNodeAbort;
+    		std::cout<<"MCND_lp::compute_lower_bound:: compute opt lower bound: INFEASIBLE"<<std::endl;
+    	}else{
+     		lpchecker.solved=true;
+    	} 
+    }else lpchecker.solved=false;
+	//std::cout<<"nomgap: "<<nomgap<<" and "<<(upper_bound()-lower_bound)<<std::endl;
+    if(force_dive){
+    	if((nomgap - (upper_bound()-LBi))/nomgap < 0.01)
+			break_diving=false;
+		else{
+			break_diving=true;
+			std::cout<<"MCND_lp::compute_lower_bound break dive"<<std::endl;
+		}
+	}
+	
+	 
+    //std::cout<<"compute lower bound: "<<(tc & BCP_ProvenOptimal)<<" "<<(tc & BCP_PrimalObjLimReached)<<std::endl;
+    
+    return LBi;
+    
+}
+
+//-------------------------------------------------------------------------------------------
+
+void
+MCND_lp::process_lp_result(const BCP_lp_result& lpres,
+                           const BCP_vec<BCP_var*>& vars,
+                           const BCP_vec<BCP_cut*>& cuts,
+                           const double old_lower_bound,
+                           double& true_lower_bound,
+                           BCP_solution*& sol,
+                           BCP_vec<BCP_cut*>& new_cuts,
+                           BCP_vec<BCP_row*>& new_rows,
+                           BCP_vec<BCP_var*>& new_vars,
+                           BCP_vec<BCP_col*>& new_cols){
+	
+	getLpProblemPointer()->user_has_lp_result_processing = false;
+	if((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
+    	lp_mode |= LP_ForceNodeAbort;
+    	std::cout<<"MCND_lp::process_lp_result:: BCP_ProvenPrimalInf"<<std::endl;
+    	return;
+	}else if((lpres.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
+    	lp_mode |= LP_ForceNodeAbort;
+    	std::cout<<"MCND_lp::process_lp_result:: BCP_PrimalObjLimReached"<<std::endl;
+    	return;
+	}else if(lp_mode & LP_ForceNodeAbort) return;
+	
+	std::cout<<"process_lp_result:: "<<lpres.objval()<<std::endl;
+	if(lpres.objval() > LBi+1e-4) lp_mode |= LP_tighterBounds;
+	/*if(current_level()==0){
+		for (int a=data.narcs; a--;)
+			std::cout<<"sol y_"<<a<<" "<<lpres.x()[a]<<std::endl;
+	}*/
+	//if(!(lp_mode & LP_Solved)) return;
+	
+	//std::cout<<"process_lp_result"<<std::endl;
+	//lp_mode |= LP_tighterBounds;
+    const double *y_vol = lpres.x();
+    double val;
+    for (int a=data.narcs; a--;) {
+    	val = y_vol[a];
+    	y[a] = val;
+		//if(vars[a]->lb()==0 && vars[a]->ub()==1){
+		//	if(val>1e-8) --tabu[a];
+		//	else if(val<=1e-8) ++tabu[a];
+		//}
+	}
+    return;
+}
+
+//#############################################################################
+//#############################################################################
+//#############################################################################
+
 
 void
 MCND_lp::generate_cuts_in_lp(const BCP_lp_result& lpres,
@@ -317,6 +400,7 @@ MCND_lp::generate_cuts_in_lp(const BCP_lp_result& lpres,
     int newly_added =0;
     
     if(	lp_mode & LP_tighterBounds){
+    	//std::cout<<"generate_cuts_in_lp locals type 1"<<std::endl;
         getOsiVolBabSolver()->add_external_localc(yfix, 0, data.narcs, 1);
 		lp_mode &= ~LP_tighterBounds;
     }
@@ -432,100 +516,6 @@ MCND_lp::purge_slack_pool(const BCP_vec<BCP_cut*>& slack_pool,
 		     BCP_vec<int>& to_be_purged){
 	//std::cout<<"try to purge "<<slack_pool.size()<<std::endl;	 
 	BCP_lp_user::purge_slack_pool(slack_pool, to_be_purged);	 
-}
-
-//#############################################################################
-//#############################################################################
-//#############################################################################
-
-double
-MCND_lp::compute_lower_bound(const double old_lower_bound,
-                             const BCP_lp_result& lpres,
-                             const BCP_vec<BCP_var*>& vars,
-                             const BCP_vec<BCP_cut*>& cuts){
-    
-
-    const int tc = lpres.termcode();
-    LBi = std::max(lpres.objval(),LBi);
-    if(lp_mode & LP_ForceNodeAbort) return LBi;
-
-    double ub = upper_bound();
-	double gap = (ub  - LBi)/ub;
-    if((gap < 0.01 ) && !lpchecker.solved && !force_dive &&current_iteration()==1){
-    	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
-    	if(ret<0){
-    		lp_mode |= LP_ForceNodeAbort;
-    		std::cout<<"MCND_lp::compute_lower_bound:: compute opt lower bound: INFEASIBLE"<<std::endl;
-    	}else{
-    		lp_mode |= LP_OptSolved;
-    		lpchecker.solved=true;
-    	} 
-    }else{
-    	lp_mode &=  ~LP_OptSolved;
-    } 
-     
-	//std::cout<<"nomgap: "<<nomgap<<" and "<<(upper_bound()-lower_bound)<<std::endl;
-    if(force_dive){
-    	if((nomgap - (upper_bound()-LBi))/nomgap < 0.5)
-			break_diving=false;
-		else{
-			break_diving=true;
-			std::cout<<"MCND_lp::compute_lower_bound break dive"<<std::endl;
-		}
-	}
-	
-	 
-    //std::cout<<"compute lower bound: "<<(tc & BCP_ProvenOptimal)<<" "<<(tc & BCP_PrimalObjLimReached)<<std::endl;
-    
-    return LBi;
-    
-}
-
-//-------------------------------------------------------------------------------------------
-
-void
-MCND_lp::process_lp_result(const BCP_lp_result& lpres,
-                           const BCP_vec<BCP_var*>& vars,
-                           const BCP_vec<BCP_cut*>& cuts,
-                           const double old_lower_bound,
-                           double& true_lower_bound,
-                           BCP_solution*& sol,
-                           BCP_vec<BCP_cut*>& new_cuts,
-                           BCP_vec<BCP_row*>& new_rows,
-                           BCP_vec<BCP_var*>& new_vars,
-                           BCP_vec<BCP_col*>& new_cols){
-	
-	getLpProblemPointer()->user_has_lp_result_processing = false;
-	if((lpres.termcode() & BCP_ProvenPrimalInf) == BCP_ProvenPrimalInf){
-    	lp_mode |= LP_ForceNodeAbort;
-    	std::cout<<"MCND_lp::process_lp_result:: BCP_ProvenPrimalInf"<<std::endl;
-    	return;
-	}else if((lpres.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached){
-    	lp_mode |= LP_ForceNodeAbort;
-    	std::cout<<"MCND_lp::process_lp_result:: BCP_PrimalObjLimReached"<<std::endl;
-    	return;
-	}else if(lp_mode & LP_ForceNodeAbort) return;
-	
-	std::cout<<"process_lp_result:: "<<lpres.objval()<<std::endl;
-	/*if(current_level()==0){
-		for (int a=data.narcs; a--;)
-			std::cout<<"sol y_"<<a<<" "<<lpres.x()[a]<<std::endl;
-	}*/
-	//if(!(lp_mode & LP_Solved)) return;
-	
-	//std::cout<<"process_lp_result"<<std::endl;
-	//lp_mode |= LP_tighterBounds;
-    const double *y_vol = lpres.x();
-    double val;
-    for (int a=data.narcs; a--;) {
-    	val = y_vol[a];
-    	y[a] = val;
-		//if(vars[a]->lb()==0 && vars[a]->ub()==1){
-		//	if(val>1e-8) --tabu[a];
-		//	else if(val<=1e-8) ++tabu[a];
-		//}
-	}
-    return;
 }
 
 //#############################################################################
