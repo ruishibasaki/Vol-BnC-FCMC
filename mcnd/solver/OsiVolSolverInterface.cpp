@@ -1151,7 +1151,7 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     ndemands = data->ndemands;
     narcs = data->narcs;
     
-    volprob_->value =0;
+    volprob_->value =1e-30;
     retval = 0;
 
     maxNumcols_ = numcols_ = numcols;

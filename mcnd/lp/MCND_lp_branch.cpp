@@ -37,8 +37,6 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     	break_diving = false;
     	force_dive=false;
     }
-    
-    
 	
 	if(lp_mode & LP_ForceNodeAbort){
 		//std::cout<<"node abort"<<std::endl;
@@ -66,7 +64,6 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     const double * rcsol = lpres.dj();
 
     if(no_gap_reduct >5) max_cand=1;
-    else max_cand = 5 ;
     
     if(max_cand==1){
     	for (int a=data.narcs; a--;) {
@@ -95,7 +92,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		//std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<" "<<min(ninsp[arc].fst, ninsp[arc].snd)<<std::endl;
+		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<" "<<min(ninsp[arc].fst, ninsp[arc].snd)<<std::endl;
 		///*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
         candidates.pop_front();		
 		vpos[0] = arc;
@@ -353,10 +350,9 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
     int sz = getOsiVolBabSolver()->getNumRows();
     double diff0 = (child0.objval() - LBi);
     double diff1 = (child1.objval() - LBi);
-   	double score = fmin(diff0, diff1);
-    newobj->user_data()[0] = new MCND_node_branch_data(sz, score , var_new, 0, LBi, true);
-    newobj->user_data()[1] = new MCND_node_branch_data(sz, score , var_new, 1, LBi, false);
-    //std::cout<<"branch0 "<<child0.objval() <<" branch1 "<<child1.objval()<<std::endl;
+    newobj->user_data()[0] = new MCND_node_branch_data(sz, diff0 , var_new, 0, LBi, true);
+    newobj->user_data()[1] = new MCND_node_branch_data(sz, diff1 , var_new, 1, LBi, false);
+    //std::cout<<"var "<<var_new<<" branch0 "<<child0.objval() <<" branch1 "<<child1.objval()<<std::endl;
     //std::cout<<" comparing ("<<var_new<<") y: "<<y[var_new]<<" score: "<<score<<" mode: "<<lp_mode<<std::endl;
      int infeas=0;
      if((child0.termcode() & BCP_PrimalObjLimReached) == BCP_PrimalObjLimReached ||
@@ -382,15 +378,19 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
     	return BCP_NewPresolvedIsBetter;
     }
     
+    double scoremin = fmin(diff0, diff1);
+    double scoremax = max(diff0, diff1);
     int var_old = oldobj->candidate()->forced_var_pos->front();
     MCND_node_branch_data* old_data = dynamic_cast<MCND_node_branch_data*>(oldobj->user_data()[0]);
-    double score_old = old_data->score;
-    
-
-     
-	if(score > (score_old+1e-4) ){
+    diff0 = old_data->score;
+    old_data = dynamic_cast<MCND_node_branch_data*>(oldobj->user_data()[1]);
+    diff1 = old_data->score;
+	double scoreminold = fmin(diff0, diff1);
+    double scoremaxold = max(diff0, diff1);
+    double pres = lower_bound*1e-4;
+	if(scoremin > (scoreminold + pres) ){
 	  return BCP_NewPresolvedIsBetter;
-	}else if(abs(score - score_old) < 1e-4 && y[var_new] > y[var_old]){
+	}else if(abs(scoremin - scoreminold) < pres &&  scoremax > scoremaxold){
 		return BCP_NewPresolvedIsBetter;
 	}return BCP_OldPresolvedIsBetter;
     
@@ -433,7 +433,6 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     cdata->hs = new WarmStartDual(cdata->dual_size, child1.pi(), mapd);//std::cout<<"dualsz: "<<cdata->dual_size<<std::endl;
     cdata->parent = current_index();
 
-	lp_mode = LP_Normal;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -470,11 +469,13 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	double ybar_branch = y[var_branch];
     double diff0 = (child0.objval() - LBi);
     double diff1 = (child1.objval() - LBi);
-    
+    double lbdev = (fmin(child0.objval(), child1.objval()) - lower_bound)/lower_bound;
     std::cout<<"branching variable: "<<var_branch<<" lp: "<<(lpchecker.solved ? lpchecker.y_[var_branch]:-1.0)<<
     " y: "<<y[var_branch]<<" nbranch: "<<tabu[var_branch]<<" capa: "<<data.arcs[var_branch].capa<<std::endl;
     std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl;
-	tabu[var_branch]++;
+ 	
+ 	bool dive=false;
+ 	if(lbdev<0.005){ dive=true; std::cout<<"force dive: childsol closed to lb"<<std::endl;}
 	if(!feas0){
 		childs_action[0] = BCP_FathomChild;
 	}else{
@@ -482,7 +483,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		if((ybar_branch)>1e-8) psdcost[var_branch].fst+=diff0/ybar_branch;
 		else psdcost[var_branch].fst+=diff0*1e8;
 		
-		if(force_dive && diff0<diff1) childs_action[0] = BCP_KeepChild;
+		if((dive || force_dive) && diff0<diff1) childs_action[0] = BCP_KeepChild;
 		else childs_action[0] = BCP_ReturnChild;
 	}
 	
@@ -500,9 +501,11 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		if(ybar_branch_>1e-8)psdcost[var_branch].snd+=diff1/ybar_branch_;
 		else psdcost[var_branch].snd+=diff1*1e8;
 		
-		if(force_dive && diff0>=diff1) childs_action[1] = BCP_KeepChild;
+		if((dive || force_dive) && diff0>=diff1) childs_action[1] = BCP_KeepChild;
 		else childs_action[1] = BCP_ReturnChild;
 	}
+	if(childs_action[1] == BCP_KeepChild || childs_action[0] == BCP_KeepChild) 
+		lp_mode |= LP_Dive;
 	//std::cout<<" 0-side childs_action "<<childs_action[0]<<std::endl;
 	//std::cout<<" 1-side childs_action "<<childs_action[1]<<std::endl;
 	

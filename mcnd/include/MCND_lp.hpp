@@ -47,7 +47,7 @@ enum LP_Mode{
 	/** strong branching phase.*/
    LP_StrongBranch = 128,
   /** Make less iterations.*/
-   LP_ReducedRun = 256,
+   LP_SecondIter = 256,
    /** Tighter bounds.*/
    LP_tighterBounds = 512,
    /**test connectivity due to Logical fix.*/

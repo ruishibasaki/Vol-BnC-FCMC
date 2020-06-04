@@ -89,23 +89,25 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     
     //std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
     ++num_nodes;
-    lp_mode = LP_Normal;
+    
     if(has_sol){
     	double ub = upper_bound();
-   		if((nomgap - (ub-lower_bound))/nomgap < nomgappres){
-			no_gap_reduct += 1;
-		}else no_gap_reduct=0;
-		std::cout<<"no_gap_reduct: "<<no_gap_reduct<<" impv: "<<(nomgap - (ub-lower_bound))/nomgap<<std::endl;
- 		if(no_gap_reduct<=5) nomgap = (ub-lower_bound);
-		//else nomgappres = 0.1;
-		
+    	if(!(lp_mode & LP_Dive)){
+			if((nomgap - (ub-lower_bound))/nomgap < nomgappres){
+				no_gap_reduct += 1;
+			}else no_gap_reduct=0;
+			std::cout<<"no_gap_reduct: "<<no_gap_reduct<<" impv: "<<(nomgap - (ub-lower_bound))/nomgap<<std::endl;
+			if(no_gap_reduct<=5) nomgap = (ub-lower_bound);
+			max_cand = 5 ;
+		}
 		double gap = (ub  - lower_bound)/ub;
 		if(gap<0.005){
-    		maxszunfx=0;
+			maxszunfx=0;
 			pump_heur.maxunfix = maxszunfx;
-    	} 
+		} 
+    	
     }
-    
+    lp_mode = LP_Normal;
     std::fill(yfix,yfix+data.narcs, -1);
     has_sol = getLpProblemPointer()->has_ub();
    
@@ -121,7 +123,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     	std::cout<<"node comes from branch on: "<<nodedata->branch_var;
         std::cout<<" of "<<nodedata->pos_neg<<" side .. parent: "<<nodedata->parent<<std::endl;
         testconn = nodedata->test_conn ;
-        if(nodedata->reduced_run)lp_mode |= LP_ReducedRun;
+        //if(nodedata->reduced_run)lp_mode |= LP_ReducedRun;
         //std::cout<<"reduced run? "<<nodedata->reduced_run<<std::endl;
 
     }else LBi=0;
@@ -265,11 +267,11 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     
     if(lp_mode & LP_LogicalFixed){
 		vollp->recheck_collct=true;  
-		vollp->mode=3; 
+		if(lp_mode & LP_SecondIter)vollp->mode=3;
 		lp_mode &= ~LP_LogicalFixed; /*vollp->mode=3; par.maxsgriters = 100;*/
 	}
     vollp->in_strong_branch = in_strong_branching;
-    
+    lp_mode |= LP_SecondIter;
 }
 
 //#############################################################################
@@ -290,22 +292,24 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 	double gap = (ub  - LBi)/ub;
-    if(((gap < 0.01) && !lpchecker.solved && !force_dive &&current_iteration()==1)){
+    if(((gap < 0.01) && !(lp_mode & LP_OptSolved) && !force_dive )){
     	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
     		std::cout<<"MCND_lp::compute_lower_bound:: compute opt lower bound: INFEASIBLE"<<std::endl;
     	}else{
      		lpchecker.solved=true;
+     		lp_mode |= LP_OptSolved;
     	} 
     }else lpchecker.solved=false;
 	//std::cout<<"nomgap: "<<nomgap<<" and "<<(upper_bound()-lower_bound)<<std::endl;
     if(force_dive){
+    	std::cout<<"MCND_lp::compute_lower_bound break dive? "<<(nomgap - (upper_bound()-LBi))/nomgap <<std::endl;
     	if((nomgap - (upper_bound()-LBi))/nomgap < 0.01)
 			break_diving=false;
 		else{
 			break_diving=true;
-			std::cout<<"MCND_lp::compute_lower_bound break dive"<<std::endl;
+			//std::cout<<"MCND_lp::compute_lower_bound break dive"<<std::endl;
 		}
 	}
 	

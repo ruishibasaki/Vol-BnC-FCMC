@@ -169,6 +169,7 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 		delete add;
 		//std::cout<<"final size "<<t->size()<<std::endl;
 	//}
+	
 	BCP_buffer buf;
 	buf.pack(lower_bound());
 	std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
@@ -199,6 +200,7 @@ MCND_tm::process_message(BCP_buffer& buf){
 
 	if(Best_LB<lower_bound())
 		Best_LB=lower_bound();
+	
 }
 
 //-----------------------------------------------------------------------------
@@ -230,6 +232,7 @@ MCND_tm::display_node_information(BCP_tree& search_tree,
 			   bool after_processing_node){
 	if(Best_LB<lower_bound())
 		Best_LB=lower_bound();
+		//std::cout<<"lower_bound(): "<<lower_bound()<<std::endl;
 }
 
 //-----------------------------------------------------------------------------
