@@ -95,7 +95,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<" "<<min(ninsp[arc].fst, ninsp[arc].snd)<<std::endl;
+		//std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<" "<<min(ninsp[arc].fst, ninsp[arc].snd)<<std::endl;
 		///*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
         candidates.pop_front();		
 		vpos[0] = arc;
@@ -174,7 +174,10 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
  		if(lpchecker.logical_yfix(upper_bound(), changed_pos, new_bd, yfix)) arcfx=true;
 
 	if(arcfx)
-		if(!cut_varfix_and_updt( vars, cuts, changed_pos, new_bd)) return;
+		if(!cut_varfix_and_updt( vars, cuts, changed_pos, new_bd)){ 
+			if(flwconnect.redone)flwconnect.clear_memory(); 
+			return;
+		}
 	
 	if(lpchecker.solved) 
  		lpchecker.logical_xfix(upper_bound(), yfix, vars);
@@ -217,6 +220,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				changed_pos.clear();
 				new_bd.clear();
 				std::cout<<"MCND_lp::logical_fixing::flwconnect.bd conflict"<<std::endl;
+				if(lp_mode & LP_TestConnectivity || flwconnect.redone) flwconnect.clear_memory();
 				return;
 			}
 			changed_pos.push_back(id);
@@ -232,10 +236,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	if(lp_mode & LP_TestConnectivity || flwconnect.redone){
 		flwconnect.reset(vars, yfix);
 		int ret = flwconnect.check_upperbounds(vars, changed_pos, new_bd, yfix);
-		
-		flwconnect.redone=false;
-		flwconnect.idbound_red.assign(data.narcs*data.ndemands,-1);
-		flwconnect.bound_red.assign(data.narcs*data.ndemands,-1);
+		flwconnect.clear_memory();
 		if(ret<0){
 			changed_pos.clear();
 			new_bd.clear();

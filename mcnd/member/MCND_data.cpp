@@ -58,6 +58,7 @@ FlowConnect::set_bd(int id, double lb, double ub, BCP_vec<int>& changed_pos, BCP
 	changed_pos.push_back(id);
 	new_bd.push_back(lb);
 	new_bd.push_back(ub);
+	if(id>=narcs)idbound_red[id-narcs] = changed_pos.size()-1;
 }
 
 //-------------------------------------------------------------------------------
@@ -65,10 +66,11 @@ FlowConnect::set_bd(int id, double lb, double ub, BCP_vec<int>& changed_pos, BCP
 int
 FlowConnect::check_upperbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix){
     std::list<int>::const_iterator it;
-    int arc, id;
+    int arc, id, idvar;
  	double sum, ubnew;
 	double sumb;
 	bool modif=false;
+		
     for(int n=nnodes;n--;){
         //std::cout<<"node "<<n+1<<std::endl;
         for(int k = ndemands; k--;){
@@ -84,27 +86,26 @@ FlowConnect::check_upperbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
             for (it = adjf[n].begin(); it != adjf[n].end(); ++it){
                 arc = data->grid[n*nnodes+(*it)];                
 				ubnew = bound_red[k*narcs+arc];
-				
-				if(vars[narcs+k*narcs+arc]->lb() > (sum+ 1e-4)) return -1;
+ 				idvar = narcs+k*narcs+arc;
+				if(vars[idvar]->lb() > (sum+ 1e-4)) return -1;
                 else if(ubnew >= data->d_k[k].quantity){
                 	if(data->d_k[k].quantity > (sum+ 1e-4))	return -1;
  					sumb += data->d_k[k].quantity;
                 	continue;
                 } 
                 
-				ubnew = (ubnew >= 0)? fmin(ubnew, vars[narcs+k*narcs+arc]->ub()) : vars[narcs+k*narcs+arc]->ub();
-				if((sum + 1e-4) < ubnew){
+				ubnew = (ubnew >= 0)? fmin(ubnew, vars[idvar]->ub()) : vars[idvar]->ub();
+				if(sum < ubnew-1e-4){
+					//std::cout<<"ATENCAO!! "<<sum<<" "<<ubnew<<std::endl;
 					id = idbound_red[k*narcs+arc];
 					if(id>=0){
-						new_bd[id*2+1] = sum;
+ 						new_bd[id*2+1] = sum;
 					}else{
-						changed_pos.push_back(narcs+k*narcs+arc);
-						new_bd.push_back(0.0);
-						new_bd.push_back(sum);
+						set_bd(idvar, 0.0, sum,  changed_pos, new_bd);
 					}
-					bound_red[k*narcs+arc] = sum;
+ 					bound_red[k*narcs+arc] = sum;
 					ubnew = sum;
-					//std::cout<<"ATENCAO!! "<<sum<<" "<<ubnew<<std::endl;
+
 					modif=true;
 				}
  				sumb += ubnew;
@@ -114,26 +115,24 @@ FlowConnect::check_upperbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
             for (it = adjb[n].begin(); it != adjb[n].end(); ++it){
 				arc = data->grid[(*it)*nnodes+n];
 			 	ubnew = bound_red[k*narcs+arc];
-			 	
-			 	if(vars[narcs+k*narcs+arc]->lb() > (sumb+ 1e-4)) return -1;
+ 				idvar = narcs+k*narcs+arc;
+ 			 	if(vars[idvar]->lb() > (sumb+ 1e-4)) return -1;
                 else if(ubnew >= data->d_k[k].quantity){
                 	if(data->d_k[k].quantity > (sumb+ 1e-4))	return -1;
                  	continue;
                 } 
                 
-				ubnew = (ubnew >= 0)? fmin(ubnew, vars[narcs+k*narcs+arc]->ub()) : vars[narcs+k*narcs+arc]->ub();
-				if((sumb + 1e-4) < ubnew){
+				ubnew = (ubnew >= 0)? fmin(ubnew, vars[idvar]->ub()) : vars[idvar]->ub();
+				if(sumb < ubnew-1e-4){
+					//std::cout<<"ATENCAO!! "<<sumb<<" "<<ubnew<<std::endl;
 					id = idbound_red[k*narcs+arc];
 					if(id>=0){
-						new_bd[id*2+1] = sumb;
+ 						new_bd[id*2+1] = sumb;
 					}else{
-						changed_pos.push_back(narcs+k*narcs+arc);
-						new_bd.push_back(0.0);
-						new_bd.push_back(sumb);
+						set_bd(idvar, 0.0, sumb,  changed_pos, new_bd);
 					}
-					bound_red[k*narcs+arc] = sumb;
+ 					bound_red[k*narcs+arc] = sumb;
 					ubnew = sumb;
-					//std::cout<<"ATENCAO!! "<<sum<<" "<<ubnew<<std::endl;
 				}
              }
         }   
@@ -151,6 +150,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
     int comm_sat = 0;
 	int ret =1;
     std::vector<int>count_closed(narcs,0);
+    	
     for(int n=nnodes;n--;){
         //std::cout<<"node "<<n+1<<std::endl;
         for(int k = ndemands; k--;){
@@ -249,7 +249,7 @@ int
 FlowConnect::check_connectivity(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, bool& conn_arcfix, int * yfxd){
     
     reset(vars, yfxd);
-
+    
     for(int i=nnodes;i--;){
         if(Ko[i][0]>0){
             BFS(true, i, adjf, labelf, Ko[i]);
@@ -329,7 +329,15 @@ FlowConnect::reset(const BCP_vec<BCP_var*>& vars, int * yfxd){
     }
 }
 
-	
+//-------------------------------------------------------------------------------
+
+void 
+FlowConnect::clear_memory(){
+	//std::cout<<"FlowConnect::clear_memory"<<std::endl;
+	redone=false;
+	idbound_red.assign(narcs*ndemands,-1);
+	bound_red.assign(narcs*ndemands,-1);	
+}
 
 //-------------------------------------------------------------------------------
 

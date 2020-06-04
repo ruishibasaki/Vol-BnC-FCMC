@@ -145,10 +145,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     if(testconn || (lp_mode & LP_LogicalFixed)){
 		flwconnect.reset(vars, yfix);
 		ret = flwconnect.check_upperbounds(vars, var_changed_pos, var_new_bd, yfix);
-		
-		flwconnect.redone=false;
-		flwconnect.idbound_red.assign(data.narcs*data.ndemands,-1);
-		flwconnect.bound_red.assign(data.narcs*data.ndemands,-1);
+		flwconnect.clear_memory();
 		if(ret<0){
 			var_changed_pos.clear();
 			var_new_bd.clear();
@@ -159,6 +156,14 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 	} 
     
     lp_mode |= LP_TestFeasibility;
+    for (int a=var_changed_pos.size(); a--;){
+    	if((var_new_bd[a*2]< vars[var_changed_pos[a]]->lb()) || (var_new_bd[a*2+1] > vars[var_changed_pos[a]]->ub()) ){
+    		std::cout<<"problema: "<<var_changed_pos[a]<<" "<<var_new_bd[a*2]<<" "<<vars[var_changed_pos[a]]->lb();
+    		std::cout<<" "<<var_new_bd[a*2+1]<<" "<<vars[var_changed_pos[a]]->ub()<<std::endl;
+
+    	}
+    }
+
      
 }
 
@@ -630,6 +635,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
 			getOsiVolBabSolver()->add_external_localc( 0, sol->xy, data.narcs, 2);
 			lp_mode |= LP_CutAddedFromHeuristic;
 		}
+		delete sol;
 		//return 0;
     }
      

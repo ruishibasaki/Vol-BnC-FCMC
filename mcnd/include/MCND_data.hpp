@@ -67,6 +67,7 @@ public:
     int translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd,bool& conn_arcfix, int * yfxd);
     int check_upperbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd,  int * yfix);
     void reset(const BCP_vec<BCP_var*>& vars, int * yfxd);
+    void clear_memory();
 };
 
 
