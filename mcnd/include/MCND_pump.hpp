@@ -2,6 +2,7 @@
 #define _PUMPBCP_H
 
 #include <ilcplex/ilocplex.h>
+#include "VolVolume.hpp"
 
 #include "MCND_data.hpp"
 #include "UtilsMethods.hpp"
@@ -11,7 +12,7 @@
 #include <deque>
 
 
-class Pump{
+class Pump : public VOL_user_hooks{
 
 public:
 	int sizeOfIdSeq;
@@ -36,12 +37,12 @@ public:
 	int nnodes, ndemands, narcs;
 	int szunfix, maxunfix;
 	int tern, tabusz;
- 	std::deque<int> unfx;
+ 	std::vector<int> unfx;
  	std::vector<int> topo;
  	std::vector<unsigned int *> tabu;
  
 	//--------------------------
-	Pump(): cplex(env), x(env), y(env), model(env), fobj(env), cutstrong(env) {data =0;  }
+	Pump(): cplex(env), x(env), y(env), model(env), fobj(env), cutstrong(env), volsolver("volmcnd.par") {data =0;  }
 	void set_data(const Data * d);
 	void initialize(const Data * d, const MCND_solution* best_sol_);
 	void set_parameters();
@@ -62,6 +63,42 @@ public:
 	void get_closed(int*& fixd, int& closed, bool onlyx);
 	
 	~Pump(); //x.endElements(); 
+	
+	//====================================================================
+	//====================================================================
+	//  volume hooks
+	//====================================================================
+	//====================================================================
+	std::vector<int> fxone;
+	int szfxone;
+	int sznz;
+	VOL_problem volsolver;
+	
+	int volsolve();
+	double knapsack(int a, bool none, const double * rc, double* x);
+	int compute_rc(const VOL_dvector& u, VOL_dvector& rc, int actvSSz);
+
+  
+	int solve_subproblem(const VOL_dvector& xstar,
+                const VOL_dvector& dual, VOL_dvector& rc,
+				double& lcost, VOL_dvector& x, double& pcost);
+    
+  	int resolve_subproblem(const VOL_dvector& dual, VOL_dvector& rc,
+                           double& lcost, VOL_dvector& x,double& pcost){return 0;};
+    
+    int additional_settings(int iter, double& lcost, VOL_dvector& dual, VOL_dvector& rc, VOL_dvector& h,
+                                    VOL_dvector& x, const VOL_dvector& xhist,  int actvSSz){return 0;};
+   
+    int heuristics(const VOL_problem& p,
+			  const VOL_dvector& x, double& heur_val){return 0;};
+    
+    int compute_sg(const VOL_dvector& x, int  actvSSz, VOL_dvector& v);
+    
+    int addVI(int iter, double lcost,const VOL_dvector& xstar, const VOL_dvector& x,
+                       VOL_dvector& dual, VOL_dvector& dual_lb,  VOL_dvector& dual_ub,
+                      VOL_dvector& rc, VOL_dvector& h, int & actvSSz){return 0;};
+    
+    int removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector& dstaru,  VOL_dvector& dualu){return 0;};
 };
 
 #endif 

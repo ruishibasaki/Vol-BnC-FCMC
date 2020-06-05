@@ -263,7 +263,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
      	if(!(lp_mode & LP_LogicalFixed)) vollp->mode=-1;  
     }else if((lp_mode & LP_CutAddedFromHeuristic) && !(lp_mode & LP_LogicalFixed)){
     	vollp->mode=-1; 
-    }
+    }else if(current_iteration()>1 && changeType==0) vollp->mode=-1;
     
     if(lp_mode & LP_LogicalFixed){
 		vollp->recheck_collct=true;  

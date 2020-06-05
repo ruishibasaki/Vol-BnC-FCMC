@@ -13,6 +13,11 @@ Pump::set_data(const Data * d){
 	nnodes = data->nnodes;
 	ndemands = data->ndemands;
 	narcs = data->narcs;
+	volsolver.ext_initializer(narcs+narcs*ndemands, nnodes*ndemands);
+	volsolver.dual_ub = 1e31;
+	volsolver.dual_lb = -1e31;
+ 
+    fxone.resize(narcs);
  	unfx.resize(narcs);
 	topo.resize(narcs);
 	tabu.resize(1000,0);
@@ -34,7 +39,7 @@ Pump::set_data(const Data * d){
     for(int a=narcs;a--;){
 		 if(factory<data->arcs[a].f)factory = data->arcs[a].f;
 	}
- 	factory *= 100;
+ 	//factory *= 100;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -116,16 +121,18 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
 	int pertbd =0;
 	double maxpertbd = narcs*0.01;
 	maxpertbd = maxpertbd>0? maxpertbd: 1;
- 	szunfix=0;
+ 	szunfix=0;szfxone=0;
  	for(int a=narcs; a--;){
         if(vars[a]->lb()==1.0){
             topo[a]=-2;
+            fxone[szfxone++] = a;
          }else if(vars[a]->ub()==1.0){
             if(x[a]>=0.9){ 
             	topo[a]=-2;
+            	fxone[szfxone++] = a;
             }else if(x[a]>=0.1){
             	rnd = rand()%2;
-				if(rnd==1 && pertbd<maxpertbd){
+				if((rnd==1 && pertbd<maxpertbd) || (best_sol==0) ){
 					rnd = ((rand()%101)/100.0 <= x[a]) ? 1 : 0;
 					if(rnd){
 						topo[a]=-1;
@@ -277,8 +284,7 @@ void Pump::check_feas_model() {
 	int arc;
 	double c;
 	
-	IloExpr obj(env);
-	for(int a=narcs ; a--; ){
+ 	for(int a=narcs ; a--; ){
 		if(topo[a]<0){
 			//std::cout<<"out: "<<a<<std::endl;
 			y[a].setUB(1.0);
@@ -348,20 +354,23 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		get_closed(fixd0, closed, true);
      	return 0;
     }*/
-    create_model();
-    IloNumArray x_(env);
-	IloNumArray y_(env);
+    //create_model();
+    //IloNumArray x_(env);
+	//IloNumArray y_(env);
 	bool dontbreak = true;
     while(dontbreak){
 		//cplex.exportModel("t.lp");
-		cplex.solve();
-	
-		if(cplex.getStatus() == IloAlgorithm::Infeasible){
+		//cplex.solve();
+		if(volsolve()<0){
+			get_closed(fixd0, closed, false);
+			return -1;
+		}
+		/*if(cplex.getStatus() == IloAlgorithm::Infeasible){
 			std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible2"<<std::endl;
 			get_closed(fixd0, closed, false);
 			return -1;
-		} 
-	
+		} */
+		/*
 		cplex.getValues(x_,x);
 		cplex.getValues(y_,y);
 		while(cut(vars, y_,x_)){
@@ -374,32 +383,45 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 			} 
 			cplex.getValues(y_,y);
 			cplex.getValues(x_,x);
-		}
+		}*/
 		dontbreak = false;
 		double solpump=0;
 		for(int a=0;a<szunfix;++a){
 			int arc = unfx[a];
-			if(topo[arc]<0)solpump += factory - factory*y_[arc];
-			else solpump += factory*y_[arc];
-			if(y_[arc] < 0.5 && topo[arc]<0){
-				std::cout<<"y "<<arc<<" : "<<y_[arc]<<" topo: "<<topo[arc]<<std::endl;
-				cplex.getObjective().setLinearCoef(y[arc], factory);
+			if(topo[arc]<0)solpump += factory - factory*volsolver.psol[a];
+			else solpump += factory*volsolver.psol[a];
+			if(volsolver.psol[a] <= 0.5 && topo[arc]<0){
+				std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
+				//cplex.getObjective().setLinearCoef(y[arc], factory);
 				topo[arc] = 1;
 				dontbreak = true;
-			}else if(y_[arc] > 0.5 && topo[arc]>0){
-				std::cout<<"y "<<arc<<" : "<<y_[arc]<<" topo: "<<topo[arc]<<std::endl;
-				cplex.getObjective().setLinearCoef(y[arc], -factory);
+			}else if(volsolver.psol[a] >= 0.5 && topo[arc]>0){
+				std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
+				//cplex.getObjective().setLinearCoef(y[arc], -factory);
 				topo[arc] = -1;
 				dontbreak = true;
 			}
 		}
-		std::cout<<"final pump "<<solpump<<std::endl;
+		std::cout<<"final pump "<<solpump<<" volume: "<<volsolver.value<<std::endl;
     }
- 	
-	getSolution( x_, mipsol );
-	//get_closed(fixd0, closed, true);
-	x_.end(); 
-	y_.end();
+    
+	 
+ 	check_feas_model();
+	cplex.solve();
+	if(cplex.getStatus() == IloAlgorithm::Infeasible){
+		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
+		feas=false;
+	} 
+	if(feas){
+		IloNumArray x_(env);
+		cplex.getValues(x_,x);
+		getSolution(  x_, mipsol );
+		x_.end(); 
+ 		return 1;
+	}else{ get_closed(fixd0, closed, true); return 0;}
+	//getSolution( x_, mipsol );
+	//x_.end(); 
+	//y_.end();
  	return 1;
 }
 
@@ -485,7 +507,172 @@ Pump::~Pump() {
 	}
 }
 
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
 
+//====================================================================
+//====================================================================
+//  volume hooks
+//====================================================================
+//====================================================================
+
+int 
+Pump::volsolve(){
+	
+    volsolver.dsol=0;
+    sznz = szunfix+szfxone;
+    volsolver.active_size = ndemands*nnodes;
+    volsolver.psize = szunfix + ndemands*sznz;
+    int retval = volsolver.solve(*this, true);
+    if(retval<0) return -1;
+    return 1;
+
+}
+
+//-------------------------------------------------------------------------------------------
+
+int
+Pump::solve_subproblem(const VOL_dvector& xstar,
+                                        const VOL_dvector& dualu,  VOL_dvector& rc,
+                                        double& lcost, VOL_dvector& x,
+                                        double& pcost){
+    int arc;
+    double cost_a;
+    pcost= 0;
+    lcost=0;
+	for(int k=0; k<data->ndemands; ++k){
+        lcost += ( dualu[k*nnodes + data->d_k[k].D-1] - dualu[k*nnodes + data->d_k[k].O-1])*data->d_k[k].quantity;
+    }    
+    for(int a=szunfix; a--; ){
+    	//if(xstar[a]>1)std::cout<<"WHAT? "<<xstar[a]<<std::endl;
+        arc = unfx[a];
+        cost_a = knapsack(a, true, rc.v, x.v);
+        rc[a] += cost_a; 
+        if( rc[a] < 0.0){
+            x[a] =1.0;
+            lcost += rc[a];
+        }else{
+            x[a]=0.0;             
+            for(int k=0; k<ndemands; ++k)
+                x[szunfix + k*sznz + a]=0.0;
+        }  
+    }
+    for(int a=szfxone; a--;){
+        arc = fxone[a];
+        cost_a = knapsack(a, false, rc.v, x.v);
+        lcost += cost_a;
+    }
+		 
+    
+    return 0;
+}
+
+//-------------------------------------------------------------------------------------------
+
+double
+Pump::knapsack(int a, bool none, const double * rc, double* x){
+    double kpsack =0;
+    double fillUp =0;
+    double rcost, flow;
+    int arc, base;
+    if(none){ arc = unfx[a]; base = szunfix;}
+    else{  arc = fxone[a];  ; base = 2*szunfix;}
+    std::list<HeapCell> heap;
+    //get reduced cost for each commodity in arc e
+    for(int k=ndemands; k--; ){
+    	rcost = rc[base + k*sznz + a];
+        if(rcost<0.0){
+            heap.push_back(HeapCell(k, rcost));
+        }else x[base + k*sznz + a] = 0;
+        
+    }
+    
+    if(  heap.empty() ){ 
+    	 return 0;
+    }
+    heap.sort(comp());
+    //std::stable_sort(heap.begin(), heap.end(), comp());
+    
+    
+    int comm;
+    double capa = data->arcs[arc].capa;
+    while(heap.size()>0){ 
+        comm = heap.back().k;
+        if(fillUp < capa){
+        	flow = std::min((capa - fillUp), data->arcs[arc].b[comm]);
+            x[base + comm*sznz + a] = flow;
+            fillUp += flow;
+            kpsack += heap.back().rc_ * flow;
+        }else x[base + comm*sznz + a] =0;
+        heap.pop_back();
+    }
+    return kpsack;
+}
+
+//-----------------------------------------------------------------------
+
+int
+Pump::compute_rc(const VOL_dvector& dualu, VOL_dvector& rc, int actvSSz){
+    const Arc* item;
+    int arc;
+    for(int a=szunfix; a--;){
+        arc = unfx[a];
+        item = &data->arcs[arc];
+        if(topo[arc]>0)rc[a] = factory;
+        else rc[a] = 0.0;
+        for(int k=ndemands; k--; ){
+            rc[szunfix + k*sznz + a] = item->c[k]  - dualu[k*nnodes + item->j-1] + dualu[k*nnodes + item->i-1];
+        }
+    }
+    for(int a=szfxone; a--;){
+        arc = fxone[a];
+        item = &data->arcs[arc];
+        for(int k=ndemands; k-- ;){
+            rc[2*szunfix + k*sznz + a] = item->c[k] - dualu[k*nnodes + item->j-1] + dualu[k*nnodes + item->i-1];
+        }
+    }
+
+    
+    
+    
+     return 0;
+}
+
+//-----------------------------------------------------------------------
+
+int
+Pump::compute_sg(const VOL_dvector& x, int actvSSz, VOL_dvector& v){
+    //std::cout<<"compute_sg"<<std::endl;
+    for(int n=actvSSz; n--; )
+    	v[n] = 0;
+    	
+    int arc, basek, basef;
+    int id;
+    const Arc* item; const Demand* itemd;
+    for(int k=ndemands; k--; ){
+        itemd = &data->d_k[k];
+        basek = k*nnodes;
+        v[basek+ itemd->O-1] -= data->d_k[k].quantity;
+        v[basek + itemd->D-1] +=  data->d_k[k].quantity;
+        for(int a=0; a<szunfix; ++a){
+            arc = unfx[a];
+            item = &data->arcs[arc];
+            basef = szunfix+k*sznz;
+            v[basek + item->i-1] += x[basef+ a];
+            v[basek + item->j-1] -= x[basef+ a];
+        }
+        for(int a=0; a<szfxone; ++a){
+            arc = fxone[a];
+            item = &data->arcs[arc];
+            basef = 2*szunfix+k*sznz;
+            v[basek + item->i-1] += x[basef+ a];
+            v[basek + item->j-1] -= x[basef+ a];
+        }
+    }
+   
+    return 0;
+}
 
 
 
