@@ -152,7 +152,7 @@ public:
         return lhs_; }
     
     virtual double getObjValue() const { //std::cout<<"get getObjValue "<<std::endl;
-        if(retval==-1 || volprob_->value<=0 ){
+        if(retval==-2 || volprob_->value<=0 ){
             return getInfinity();
         }else{
         	if(isPrimalObjectiveLimitReached()) return (upper_bound + 0.1);

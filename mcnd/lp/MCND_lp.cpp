@@ -225,7 +225,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     lp->setDblParam(OsiPrimalTolerance, 1e-4);
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = AppVolData.volprob.parm;
-    if(lp_mode & LP_ForceNodeAbort){ vollp->mode=-1;  return;}
+    if(lp_mode & LP_ForceNodeAbort){ vollp->mode=-2;  return;}
 
     vollp->has_sol = has_sol;
     vollp->recheck_collct=false;

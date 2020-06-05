@@ -367,13 +367,13 @@ OsiVolSolverInterface::initialSolve(){
 void
 OsiVolSolverInterface::resolve(){
     //std::cout<<"mode: "<<mode<<" numrows: "<<numrows_<<std::endl;
-	if(mode==-1) return;
+	if(mode<0){if(mode==-2) retval=-2; return;}
 	else if(mode ==3){
 		markHotStart();
 	}
      
     map_duals();
-    if(mode==-2){ return;}
+    if(mode==-2){retval=-2; return;}
     volprob_->active_size = fsize + csize;
     
     volprob_->psize = szunfxd + data->ndemands*sznz;
@@ -1151,7 +1151,7 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     ndemands = data->ndemands;
     narcs = data->narcs;
     
-    volprob_->value =1e-30;
+    volprob_->value =0;
     retval = 0;
 
     maxNumcols_ = numcols_ = numcols;
