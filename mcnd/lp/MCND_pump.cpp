@@ -20,21 +20,12 @@ Pump::set_data(const Data * d){
     fxone.resize(narcs);
  	unfx.resize(narcs);
 	topo.resize(narcs);
-	tabu.resize(1000,0);
- 	
-	tabusz = tern=0;
-	szunfix=0;
+  	
+ 	szunfix=0;
+ 	round =0.5;
 	maxunfix = narcs*0.3;
 	set_parameters();
 	
-    int sizeOfInt=8*sizeof(unsigned int);
-    sizeOfIdSeq = (narcs/sizeOfInt)+1;
-    
-	map = new Pair2[narcs];
-    for(int i=0;i<narcs;++i){
-        map[i].fst = i/sizeOfInt;
-        map[i].snd = i%sizeOfInt;
-    }
     factory=0;
     for(int a=narcs;a--;){
 		 if(factory<data->arcs[a].f)factory = data->arcs[a].f;
@@ -127,10 +118,10 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
             topo[a]=-2;
             fxone[szfxone++] = a;
          }else if(vars[a]->ub()==1.0){
-            if(x[a]>=0.9){ 
+            if(x[a]>=0.99){ 
             	topo[a]=-2;
             	fxone[szfxone++] = a;
-            }else if(x[a]>=0.1){
+            }else if(x[a]>=0.01){
             	rnd = rand()%2;
 				if((rnd==1 && pertbd<maxpertbd) || (best_sol==0) ){
 					rnd = ((rand()%101)/100.0 <= x[a]) ? 1 : 0;
@@ -139,7 +130,7 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
  					}else{
 						topo[a]=1;
 					}
-					++pertbd;
+ 					++pertbd;
 				}else{
 					if(best_sol->xy[a]>0.5){
 						topo[a]=-1;
@@ -158,87 +149,6 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
     }
     return cont;
     
-}
-
-//-------------------------------------------------------------------------------------------
-
-int
-Pump::validate_topology( ){
-	unsigned int* seqtopo = new unsigned int[sizeOfIdSeq];
-	std::fill(seqtopo, seqtopo+sizeOfIdSeq, 0);
-	Pair2* maptitem=0;
- 	for(int a=narcs; a--;){
-		maptitem = &map[a];
-        if(topo[a]<0.0){
-             setBit(seqtopo, maptitem->fst, maptitem->snd);
-        }
-    }
-     
-    if(check_tabu(seqtopo)){
-    	try_perturbation(seqtopo);
-    	if(check_tabu(seqtopo)){
-    		delete [] seqtopo;
-     		return -1;
-     	}
-    }
-    return 1;
-}
-
-//-------------------------------------------------------------------------------------------
-
-bool
-Pump::check_tabu(unsigned int* seqtopo){
-	unsigned int* titem;
-	bool equal;
-	Pair2* maptitem=0;
-
-	for(int i=tabusz;i--;){
-		titem = tabu[i];
-		equal=true;
-		for(int id=0;id<sizeOfIdSeq;++id){
-			if(titem[id] != seqtopo[id]){
-				equal=false;
-				break;
-			}
-		}
-		if(equal){
-			return true;
-		}
-    }  
-    if(tern==tabu.size()){ tern=0;}
-    unsigned int*& tabuitem = tabu[tern];
-	if(tabuitem) { delete [] tabuitem;}
-	tabuitem = seqtopo;
-	if(tabusz<tabu.size())++tabusz;
-	++tern;
-
-	
-    return false;
-}
-
-//-------------------------------------------------------------------------------------------
-
-void
-Pump::try_perturbation(unsigned int* seqtopo){
-	int arc;
-	Pair2* maptitem=0;
-	std::cout<<"Pump::try_perturbation"<<std::endl;
-	std::random_shuffle(unfx.begin(), unfx.begin()+szunfix);
- 	for(int a=0;a<szunfix;++a){
-		arc = unfx[a];
-		//std::cout<<"arc: "<<arc<<std::endl;
-		if(topo[arc]==-1){
-			topo[arc]=1;
-			maptitem = &map[arc];
-			clearBit(seqtopo, maptitem->fst, maptitem->snd);
-		}else if(topo[arc]==1){
-			topo[arc]=-1;
-			maptitem = &map[arc];
-			setBit(seqtopo, maptitem->fst, maptitem->snd);
-		}
-		if(rand()%2)++a;
-	}
-
 }
 
 //-------------------------------------------------------------------------------------------
@@ -390,12 +300,12 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 			int arc = unfx[a];
 			if(topo[arc]<0)solpump += factory - factory*volsolver.psol[a];
 			else solpump += factory*volsolver.psol[a];
-			if(volsolver.psol[a] <= 0.5 && topo[arc]<0){
+			if(volsolver.psol[a] <= 0.3 && topo[arc]<0){
 				std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], factory);
 				topo[arc] = 1;
 				dontbreak = true;
-			}else if(volsolver.psol[a] >= 0.5 && topo[arc]>0){
+			}else if(volsolver.psol[a] >= 0.3 && topo[arc]>0){
 				std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], -factory);
 				topo[arc] = -1;
@@ -417,8 +327,13 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		cplex.getValues(x_,x);
 		getSolution(  x_, mipsol );
 		x_.end(); 
+		round*=1.8; if(round>0.5) round=0.5;
  		return 1;
-	}else{ get_closed(fixd0, closed, true); return 0;}
+	}else{ 
+		get_closed(fixd0, closed, true); 
+		round*=0.8; if(round<0.3) round=0.3;
+		return 0;
+	}
 	//getSolution( x_, mipsol );
 	//x_.end(); 
 	//y_.end();
@@ -466,9 +381,10 @@ Pump::get_closed(int*& fixd0, int& closed, bool onlyx){
 	fixd0 = new int[narcs];
 	closed=0;
 	if(onlyx){
-		for(int a=0;a<narcs;++a)
+		for(int a=0;a<narcs;++a){
 			if(topo[a]>=0)
 				fixd0[closed++] = a;
+ 		}
 	}else{
 		for(int a=0;a<narcs;++a)
 			if(topo[a]==0)
@@ -493,14 +409,11 @@ Pump::~Pump() {
 		fobj.end();
 
 		env.end();
+ 		fxone.clear();
 		unfx.clear();
 		topo.clear();
- 		for(int i=tabu.size() ; i--; ){
-			if(tabu[i]!=0) delete [] tabu[i];
-		}
-		tabu.clear();
-        delete [] map;
-	} catch (IloException& e) {
+ 		 
+ 	} catch (IloException& e) {
 		std::cerr << "ERROR: " << e.getMessage() << std::endl;
 	} catch (...) {
 		std::cerr << "Error" << std::endl;
