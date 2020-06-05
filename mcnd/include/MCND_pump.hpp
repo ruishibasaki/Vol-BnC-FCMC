@@ -27,7 +27,7 @@ public:
 	IloObjective fobj;
 	IloRangeArray cutstrong;
 	 
-	double factorx;
+	double factory;
  	//--------------------------
 	
 	const Data * data;
@@ -53,7 +53,7 @@ public:
 	void try_perturbation(unsigned int* seqtopo);
 	//--------------------------
 
- 	void create_model(  );
+ 	void create_model();
 	void check_feas_model();
 	//--------------------------
 	int solve(int *& fixd, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_solution*& mipsol);

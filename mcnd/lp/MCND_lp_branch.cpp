@@ -28,34 +28,36 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 
     //return BCP_DoNotBranch_Fathomed;
 
-    /*if(current_level() == 0){
+    
+	if(current_iteration()<10) return BCP_DoNotBranch;
+	if(current_level() == 0){
         return BCP_DoNotBranch_Fathomed;
-	}*/
-	if(no_gap_reduct >5 && !break_diving){
-    	force_dive=true;
-    }else{
-    	break_diving = false;
-    	force_dive=false;
-    }
+	}
 	
 	if(lp_mode & LP_ForceNodeAbort){
 		//std::cout<<"node abort"<<std::endl;
 		//lp_mode = LP_Normal;
         return BCP_DoNotBranch_Fathomed;
 	}
-	
     
     if(local_cut_pool.size()>0 ){
     	return BCP_DoNotBranch;
 	}else if((lp_mode & LP_CutAddedFromHeuristic)){
 		return BCP_DoNotBranch;
 	} 
+	
+	if(no_gap_reduct >5 && !break_diving){
+    	force_dive=true;
+    }else{
+    	break_diving = false;
+    	force_dive=false;
+    }
+    
 	mapd.clear();
     cover_manager.covers.map_collection(mapd);
 	localc_manager.locals.map_collection(mapd);
 	globalc_manager.globals.map_collection(mapd);
 
-	
     std::deque<Pair2> candidates;
 	BCP_vec<double> vbd(4, 0.0);
     BCP_vec<int> vpos(1, 0);
@@ -485,7 +487,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		if((ybar_branch)>1e-8) psdcost[var_branch].fst+=diff0/ybar_branch;
 		else psdcost[var_branch].fst+=diff0*1e8;
 		
-		if((dive || force_dive) && diff0<diff1) childs_action[0] = BCP_KeepChild;
+		if((dive) && diff0<diff1) childs_action[0] = BCP_KeepChild;
 		else childs_action[0] = BCP_ReturnChild;
 	}
 	
@@ -503,7 +505,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		if(ybar_branch_>1e-8)psdcost[var_branch].snd+=diff1/ybar_branch_;
 		else psdcost[var_branch].snd+=diff1*1e8;
 		
-		if((dive || force_dive) && diff0>=diff1) childs_action[1] = BCP_KeepChild;
+		if((dive) && diff0>=diff1) childs_action[1] = BCP_KeepChild;
 		else childs_action[1] = BCP_ReturnChild;
 	}
 	if(childs_action[1] == BCP_KeepChild || childs_action[0] == BCP_KeepChild) 

@@ -30,13 +30,11 @@ Pump::set_data(const Data * d){
         map[i].fst = i/sizeOfInt;
         map[i].snd = i%sizeOfInt;
     }
-    double norm=0;
+    factory=0;
     for(int a=narcs;a--;){
-		for (int k = 0; k<ndemands;++k)
-			norm+=pow(data->arcs[a].c[k],2);
+		 if(factory<data->arcs[a].f)factory = data->arcs[a].f;
 	}
-	norm = sqrt(norm);
-	factorx = 1.0/norm;
+ 	factory *= 100;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -115,6 +113,9 @@ int
 Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
 	int rnd=0;
 	int cont=0;
+	int pertbd =0;
+	double maxpertbd = narcs*0.01;
+	maxpertbd = maxpertbd>0? maxpertbd: 1;
  	szunfix=0;
  	for(int a=narcs; a--;){
         if(vars[a]->lb()==1.0){
@@ -124,15 +125,16 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
             	topo[a]=-2;
             }else if(x[a]>=0.1){
             	rnd = rand()%2;
-				if(rnd==1){
-					if(best_sol->xy[a]>0.5){
+				if(rnd==1 && pertbd<maxpertbd){
+					rnd = ((rand()%101)/100.0 <= x[a]) ? 1 : 0;
+					if(rnd){
 						topo[a]=-1;
  					}else{
 						topo[a]=1;
 					}
+					++pertbd;
 				}else{
-					rnd = ((rand()%101)/100.0 <= x[a]) ? 1 : 0;
-					if(rnd){
+					if(best_sol->xy[a]>0.5){
 						topo[a]=-1;
  					}else{
 						topo[a]=1;
@@ -244,19 +246,23 @@ void Pump::create_model( ) {
 	IloExpr obj(env);
 	for(int a=narcs ; a--; ){
 		if(topo[a]==0){
+			y[a].setUB(0.0);
+			y[a].setLB(0.0);
 			continue;
 		} 
 		for (int k = ndemands; k-- ;){
- 			obj += factorx*data->arcs[a].c[k]*x[a*ndemands+k];
+ 			obj += data->arcs[a].c[k]*x[a*ndemands+k];
 		}
 		if(topo[a] == -2){
+			y[a].setUB(1.0);
+			y[a].setLB(1.0);
 			continue;
 		}
 			
 		y[a].setUB(1.0);
 		y[a].setLB(0.0);
 		 
-		obj += 5*topo[a]*y[a];
+		obj += factory*topo[a]*y[a];
 	}
 
     cplex.getObjective().setExpr(IloMinimize(env, obj));
@@ -324,7 +330,7 @@ int
 Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_solution*& mipsol){
 	bool feas=true;
 	
-	check_feas_model();
+	/*check_feas_model();
 	cplex.solve();
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
 		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
@@ -336,46 +342,65 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		getSolution(  x_, mipsol );
 		x_.end(); 
  		return 1;
-	} 
+	}*/
 	std::cout<<"Pump::solve trypump? "<<szunfix<<" "<<maxunfix<<std::endl;
-	if(szunfix > maxunfix ){
+	/*if(szunfix > maxunfix ){
 		get_closed(fixd0, closed, true);
      	return 0;
-    }
- 	create_model();
-	//cplex.exportModel("t.lp");
-	cplex.solve();
-	
-	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible2"<<std::endl;
-		get_closed(fixd0, closed, false);
-		return -1;
-	} 
-	
-	IloNumArray x_(env);
+    }*/
+    create_model();
+    IloNumArray x_(env);
 	IloNumArray y_(env);
-	cplex.getValues(x_,x);
-	cplex.getValues(y_,y);
-	while(cut(vars, y_,x_)){
+	bool dontbreak = true;
+    while(dontbreak){
+		//cplex.exportModel("t.lp");
 		cplex.solve();
-		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
+	
 		if(cplex.getStatus() == IloAlgorithm::Infeasible){
 			std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible2"<<std::endl;
 			get_closed(fixd0, closed, false);
-			return -2;
+			return -1;
 		} 
-		cplex.getValues(y_,y);
+	
 		cplex.getValues(x_,x);
-	}
-	std::cout<<"final pump "<<cplex.getObjValue()<<std::endl;
-
-	getSolution( x_, mipsol );
-	get_closed(fixd0, closed, true);
+		cplex.getValues(y_,y);
+		while(cut(vars, y_,x_)){
+			cplex.solve();
+			//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
+			if(cplex.getStatus() == IloAlgorithm::Infeasible){
+				std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible2"<<std::endl;
+				get_closed(fixd0, closed, false);
+				return -2;
+			} 
+			cplex.getValues(y_,y);
+			cplex.getValues(x_,x);
+		}
+		dontbreak = false;
+		double solpump=0;
+		for(int a=0;a<szunfix;++a){
+			int arc = unfx[a];
+			if(topo[arc]<0)solpump += factory - factory*y_[arc];
+			else solpump += factory*y_[arc];
+			if(y_[arc] < 0.5 && topo[arc]<0){
+				std::cout<<"y "<<arc<<" : "<<y_[arc]<<" topo: "<<topo[arc]<<std::endl;
+				cplex.getObjective().setLinearCoef(y[arc], factory);
+				topo[arc] = 1;
+				dontbreak = true;
+			}else if(y_[arc] > 0.5 && topo[arc]>0){
+				std::cout<<"y "<<arc<<" : "<<y_[arc]<<" topo: "<<topo[arc]<<std::endl;
+				cplex.getObjective().setLinearCoef(y[arc], -factory);
+				topo[arc] = -1;
+				dontbreak = true;
+			}
+		}
+		std::cout<<"final pump "<<solpump<<std::endl;
+    }
  	
+	getSolution( x_, mipsol );
+	//get_closed(fixd0, closed, true);
 	x_.end(); 
 	y_.end();
- 	if(feas) return 1;
-	else return 2;
+ 	return 1;
 }
 
 //-------------------------------------------------------------------------------------------

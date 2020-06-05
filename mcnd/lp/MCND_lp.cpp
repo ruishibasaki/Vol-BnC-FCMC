@@ -99,7 +99,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 			std::cout<<"no_gap_reduct: "<<no_gap_reduct<<" impv: "<<(nomgap - (ub-lower_bound))/nomgap<<std::endl;
 			if(no_gap_reduct<=5) nomgap = (ub-lower_bound);
 			max_cand = 5 ;
-		}
+		}else max_cand = 1;
 		double gap = (ub  - lower_bound)/ub;
 		if(gap<0.005){
 			maxszunfx=0;
@@ -302,7 +302,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
      		lp_mode |= LP_OptSolved;
     	} 
     }else lpchecker.solved=false;
-	//std::cout<<"nomgap: "<<nomgap<<" and "<<(upper_bound()-lower_bound)<<std::endl;
+   
     if(force_dive){
     	std::cout<<"MCND_lp::compute_lower_bound break dive? "<<(nomgap - (upper_bound()-LBi))/nomgap <<std::endl;
     	if((nomgap - (upper_bound()-LBi))/nomgap < 0.01)
@@ -312,7 +312,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 			//std::cout<<"MCND_lp::compute_lower_bound break dive"<<std::endl;
 		}
 	}
-	
+
 	 
     //std::cout<<"compute lower bound: "<<(tc & BCP_ProvenOptimal)<<" "<<(tc & BCP_PrimalObjLimReached)<<std::endl;
     
@@ -585,7 +585,7 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     //std::cout<<"test_feasibility: "<<getOsiVolBabSolver()->getViolation()<<" integ: "<<integer<<" unfx: "<<cont<<std::endl;
     std::cout<<"test_feasibility: sol: "<<mipsol->cost<<" "<<cont<<" ub: "<<upper_bound()<<std::endl;
     lp_mode |= LP_HeuristicRunned;
-	if(upper_bound() > mipsol->cost){
+	if(upper_bound() >= mipsol->cost){
 		std::cout<<"MCND_lp::test_feasibility::add_external_localc1 type 2"<<std::endl;
 		getOsiVolBabSolver()->add_external_localc( 0, best_sol.xy, data.narcs, 2);
 		best_sol.copy(*mipsol, data.narcs);
@@ -649,10 +649,10 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
 	int cont= pump_heur.make_topo( x, vars);
     
 	//if(cont!=0) return 0; //
-    if(cont > 0){
+    /*if(cont > 0){
     	if(lp_mode & LP_HeuristicRunned) return 0;
     	else if( cont > maxszunfx || current_iteration()>1) return 0;
-	}  
+	} */ 
     //if(pump_heur.validate_topology()< 0) return 0;
     
 	//std::cout<<"try heuristic "<<cont<<std::endl;
@@ -665,7 +665,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
      		getOsiVolBabSolver()->add_external_globalc( fixd0, closed);
 			if(fixd0) delete [] fixd0;
 		}
-    	if(upper_bound() > sol->cost){
+    	if(upper_bound() >= sol->cost){
     		has_sol =true;
     		std::cout<<"MCND_lp::generate_heuristic_solution::add_external_localc1 type 2"<<std::endl;
     		if(getOsiVolBabSolver()->add_external_localc( 0, best_sol.xy, data.narcs, 2))
