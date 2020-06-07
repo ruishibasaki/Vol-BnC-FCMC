@@ -93,14 +93,15 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    tm->init_sol.size = tm->data.narcs;
    tm->init_sol.xy = new double [tm->data.narcs];
    std::fill(tm->init_sol.xy, tm->init_sol.xy+tm->data.narcs,0.0);
-   for(int a=tm->data.narcs;a--;)tm->init_sol.xy[a]=0.0;
-   tm->init_sol.cost = read_init_sol("optimal.txt", inst, tm->init_sol.xy);
-   if(tm->init_sol.cost>0){
+   int ret = read_init_sol("optimal.txt", inst, tm->init_sol.xy, tm->init_sol.cost);
+   if(ret>=0){
+   		if(ret==0) tm->init_sol.onlyvalue=true;
 		p.upper_bound = tm->init_sol.cost;
 		MCND_solution * sol = new MCND_solution();
 		sol->copy(tm->init_sol, tm->data.narcs);
    		p.feas_sol = sol;
-   }
+   		
+   }else{tm->init_sol=0;}
 
    p.par.set_entry(BCP_tm_par::VerbosityShutUp, false);
    p.par.set_entry(BCP_tm_par::TmVerb_AllFeasibleSolutionValue, false);

@@ -123,7 +123,7 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
             	fxone[szfxone++] = a;
             }else if(x[a]>=0.01){
             	rnd = rand()%2;
-				if((rnd==1 && pertbd<maxpertbd) || (best_sol==0) ){
+				if((rnd==1 && pertbd<maxpertbd) || (best_sol==0) || (best_sol->onlyvalue)){
 					rnd = ((rand()%101)/100.0 <= x[a]) ? 1 : 0;
 					if(rnd){
 						topo[a]=-1;

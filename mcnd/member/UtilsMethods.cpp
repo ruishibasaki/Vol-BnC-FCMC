@@ -129,7 +129,7 @@ void MCND_read_data(std::string fname, Data & data) {
 //----------------------------------------------------------------------------------
 
 
-double read_init_sol(std::string fname, std::string instance, double * xy) {
+int read_init_sol(std::string fname, std::string instance, double * xy, double& val) {
 	std::ifstream file;
     file.open(fname.c_str());
     if (!file.is_open()) {
@@ -140,7 +140,7 @@ double read_init_sol(std::string fname, std::string instance, double * xy) {
     std::string s;
     std::string instance_inline;
     std::istringstream ss;
-    double val=0;
+    val=0;
     int cont=0;
     
 
@@ -155,13 +155,16 @@ double read_init_sol(std::string fname, std::string instance, double * xy) {
         ss.clear();
     }
     file.close();
-    if(xy==0) return val;
+    if(val==0) return -1;
+    else if(xy==0) return 0;
     instance_inline = "../results/heursolutions/sol"+instance_inline.substr(instance_inline.find("/")+1); 
     std::cout<<"file: "<<instance_inline<<std::endl;
     file.open(instance_inline.c_str()); 
     if (!file.is_open()) {
-        std::cout<<"Failure to open datafile: %s\n "<<fname;
-        abort();
+        //std::cout<<"Failure to open datafile: %s\n "<<fname;
+        //abort();
+        std::cout<<"no solution vector"<<std::endl;
+        return 0;
     }
     
     std::string aux;
@@ -184,7 +187,7 @@ double read_init_sol(std::string fname, std::string instance, double * xy) {
     	ss.clear();
     }
     file.close();
-    return val;
+    return 1;
 }
 
 //----------------------------------------------------------------------------------

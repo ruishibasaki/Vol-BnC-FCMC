@@ -16,20 +16,21 @@ public:
   double cost;
   int size;
   double* xy;
+  bool onlyvalue;
   
 public:
-   MCND_solution():cost(1e30), size(0), xy(0){}
+   MCND_solution():cost(1e30), size(0), xy(0){ onlyvalue=false;}
 		
    MCND_solution(const int sz) :
 		size(sz),cost(1e30){
-		xy =new double[sz];
+		xy =new double[sz]; onlyvalue=false;
 		for(int i= sz;i--;)xy[i]=0;}
 	
 	
    MCND_solution(const int sz, const double c, double* sol) :
 		size(sz),
 		cost(c), 
-		xy(sol) {}
+		xy(sol) {onlyvalue=false;}
 		
   ~MCND_solution() {if(size) delete[] xy;}
 

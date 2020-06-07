@@ -18,7 +18,7 @@
 // Read/Translate methods
 //----------------------------------------------------------------------------------
 void MCND_read_data(std::string fname, Data & data);
-double read_init_sol(std::string fname, std::string instance, double * xy);
+int read_init_sol(std::string fname, std::string instance, double * xy, double& val) ;
 void read_init_dualsol(std::string fname, const Data & data, double * dual);
 
 bool getScalar(int id,const std::vector<PairF> & mapset, double & gam1, double & gam2);

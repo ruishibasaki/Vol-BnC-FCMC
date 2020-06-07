@@ -21,7 +21,7 @@ BCP_buffer&
 MCND_solution::pack(BCP_buffer& buf) const {
 		//std::cout<<"packing solution: cost "<<cost<<" size: "<<size<<std::endl;
 
-  buf.pack(cost).pack(size);
+  buf.pack(cost).pack(size).pack(onlyvalue);
     for(int i=size;i--;){
 		buf.pack(xy[i]);
 	}
@@ -37,7 +37,7 @@ MCND_solution::unpack(BCP_buffer& buf) {
   bool alloc=false;
   if(size==0)alloc=true;
   
-  buf.unpack(cost).unpack(size);
+  buf.unpack(cost).unpack(size).unpack(onlyvalue);
   
   if(alloc)xy=new double[size];
   for(int i=size;i--;)
@@ -56,7 +56,8 @@ MCND_solution::copy(const MCND_solution& sol, int sz){
   sz = sol.size < sz? sol.size: sz;
   cost = sol.cost;
   size = sz;
-  
+  onlyvalue = sol.onlyvalue;
+   
   if(alloc)xy=new double[sz];
     for(int i=sz;i--;)
 		xy[i] = sol.xy[i];
@@ -73,7 +74,8 @@ MCND_solution::operator=(const MCND_solution& sol) {
   if(size==0)alloc=true;
   
   cost = sol.cost;
-  size = sol.size;
+  size = sol.size;  
+  onlyvalue = sol.onlyvalue;
   
   if(alloc)xy=new double[size];
     for(int i=size;i--;)
