@@ -302,13 +302,13 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 			int arc = unfx[a];
 			if(topo[arc]<0)solpump += factory - factory*volsolver.psol[a];
 			else solpump += factory*volsolver.psol[a];
-			if(volsolver.psol[a] <= 0.3 && topo[arc]<0 && !tabu[arc]){
+			if(volsolver.psol[a] <= round && topo[arc]<0 && tabu[arc]<3){
 				std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], factory);
 				tabu[arc]++;
 				topo[arc] = 1;
 				dontbreak = true;
-			}else if(volsolver.psol[a] >= 0.3 && topo[arc]>0 && !tabu[arc]){
+			}else if(volsolver.psol[a] >= 0.3 && topo[arc]>0 && tabu[arc]<3){
 				std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], -factory);
 				topo[arc] = -1;
@@ -334,8 +334,9 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		cplex.getValues(x_,x);
 		getSolution(  x_, mipsol );
 		x_.end(); 
-		round*=1.8; if(round>0.5) round=0.5;
- 		return 1;
+		if(best_sol != 0 && mipsol->cost > best_sol->cost)
+			round*=1.8; if(round>0.5) round=0.5;
+  		return 1;
 	}else{ 
 		get_closed(fixd0, closed, true); 
 		round*=0.8; if(round<0.3) round=0.3;
@@ -539,7 +540,7 @@ Pump::compute_rc(const VOL_dvector& dualu, VOL_dvector& rc, int actvSSz){
     for(int a=szunfix; a--;){
         arc = unfx[a];
         item = &data->arcs[arc];
-        if(topo[arc]>0)rc[a] = factory;
+        if(topo[arc]>0)rc[a] = item->f; //factory;
         else rc[a] = 0.0;
         for(int k=ndemands; k--; ){
             rc[szunfix + k*sznz + a] = item->c[k]  - dualu[k*nnodes + item->j-1] + dualu[k*nnodes + item->i-1];
