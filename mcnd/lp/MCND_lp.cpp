@@ -649,10 +649,10 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
 	int cont= pump_heur.make_topo( x, vars);
     
 	//if(cont!=0) return 0; //
-    /*if(cont > 0){
-    	if(lp_mode & LP_HeuristicRunned) return 0;
-    	else if( cont > maxszunfx || current_iteration()>1) return 0;
-	} */ 
+ 	//if(cont > 0){
+    //	if(lp_mode & LP_HeuristicRunned ) return 0;
+    //	else if( cont > maxszunfx /*|| current_iteration()>1*/) return 0;
+	//}
     //if(pump_heur.validate_topology()< 0) return 0;
     
 	//std::cout<<"try heuristic "<<cont<<std::endl;
@@ -683,7 +683,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
      		std::cout<<"MCND_lp::generate_heuristic_solution::add_external_globalc1 type 0"<<std::endl;
 			getOsiVolBabSolver()->add_external_globalc( fixd0, closed);
 			if(fixd0) delete [] fixd0;
-    }else{
+    }else if(retval>-10){
     	std::cout<<"MCND_lp::generate_heuristic_solution::add_external_localc3 type 0"<<std::endl;
 		if(getOsiVolBabSolver()->add_external_localc(fixd0, 0, closed, 0))
 			lp_mode |= LP_CutAddedFromHeuristic;

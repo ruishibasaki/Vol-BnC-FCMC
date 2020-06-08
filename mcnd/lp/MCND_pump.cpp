@@ -22,7 +22,7 @@ Pump::set_data(const Data * d){
 	topo.resize(narcs);
   	
  	szunfix=0;
- 	round =0.5;
+ 	round =0.3;
 	maxunfix = narcs*0.3;
 	set_parameters();
 	
@@ -42,7 +42,8 @@ void Pump::set_parameters() {
 	cplex.setParam(IloCplex::ClockType, 1);
 	//cplex->setParam(IloCplex::MIPDisplay, 4);
 	cplex.setOut(env.getNullStream());
-	cplex.setParam(IloCplex::TiLim, 3600.0); // Time limit in seconds
+	//cplex.setParam(IloCplex::TiLim, 3600.0); // Time limit in seconds
+	cplex.setParam(IloCplex::Param::Advance, 0);
 
 }
 
@@ -268,6 +269,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
     //IloNumArray x_(env);
 	//IloNumArray y_(env);
 	bool dontbreak = true;
+	std::vector<int>tabu(narcs,0);
     while(dontbreak){
 		//cplex.exportModel("t.lp");
 		//cplex.solve();
@@ -300,15 +302,17 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 			int arc = unfx[a];
 			if(topo[arc]<0)solpump += factory - factory*volsolver.psol[a];
 			else solpump += factory*volsolver.psol[a];
-			if(volsolver.psol[a] <= 0.3 && topo[arc]<0){
+			if(volsolver.psol[a] <= 0.3 && topo[arc]<0 && !tabu[arc]){
 				std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], factory);
+				tabu[arc]++;
 				topo[arc] = 1;
 				dontbreak = true;
-			}else if(volsolver.psol[a] >= 0.3 && topo[arc]>0){
+			}else if(volsolver.psol[a] >= 0.3 && topo[arc]>0 && !tabu[arc]){
 				std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], -factory);
 				topo[arc] = -1;
+				tabu[arc]++;
 				dontbreak = true;
 			}
 		}
@@ -322,6 +326,9 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
 		feas=false;
 	} 
+	if(feas && cplex.getStatus() != IloAlgorithm::Optimal){
+		return -10;
+	}
 	if(feas){
 		IloNumArray x_(env);
 		cplex.getValues(x_,x);

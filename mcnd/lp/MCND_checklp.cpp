@@ -17,7 +17,7 @@ void LPChecker::set_parameters() {
     //cplex->setParam(IloCplex::MIPDisplay, 4);
     cplex.setOut(env.getNullStream());
     //cplex.setParam(IloCplex::DataCheck, CPX_DATACHECK_ASSIST);
-    cplex.setParam(IloCplex::TiLim, 3600.0); // Time limit in seconds
+    //cplex.setParam(IloCplex::TiLim, 3600.0); // Time limit in seconds
     //cplex.setParam(IloCplex::Param::Simplex::Limits::Iterations	);
 }
 

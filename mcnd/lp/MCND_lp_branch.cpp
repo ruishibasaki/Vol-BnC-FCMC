@@ -29,7 +29,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     //return BCP_DoNotBranch_Fathomed;
 
     
-	if(current_iteration()<10) return BCP_DoNotBranch;
+	if(current_level() == 0 && current_iteration()<15) return BCP_DoNotBranch;
 	if(current_level() == 0){
         return BCP_DoNotBranch_Fathomed;
 	}

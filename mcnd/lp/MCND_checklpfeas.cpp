@@ -15,7 +15,7 @@ void LPFeasChecker::set_parameters() {
     //cplex->setParam(IloCplex::MIPDisplay, 4);
     cplex.setOut(env.getNullStream());
     //cplex.setParam(IloCplex::DataCheck, CPX_DATACHECK_ASSIST);
-    cplex.setParam(IloCplex::TiLim, 3600.0); // Time limit in seconds
+    //cplex.setParam(IloCplex::TiLim, 3600.0); // Time limit in seconds
     //cplex.setParam(IloCplex::Param::Simplex::Limits::Iterations	);
 }
 
@@ -154,6 +154,7 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 	if(bd_sat) return 1;
 	
 	apply_bounds(vars);
+	cplex.setParam(IloCplex::Param::Advance, 1);
 	ret= solve();
 	std:cout<<"test_feasibility::resolve"<<std::endl;
 	if(ret<0){
@@ -182,6 +183,8 @@ int LPFeasChecker::solve_feas(const double *collb, const double * colub, bool fe
     }
     
 	cplex.getObjective().setExpr(fobj1);
+	cplex.setParam(IloCplex::Param::Advance, 0);
+
 	int ret = solve();
 	if(ret<0) return -2;
 	if(feas_status==false) return -1;
