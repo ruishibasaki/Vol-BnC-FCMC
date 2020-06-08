@@ -271,13 +271,13 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 			if(topo[arc]<0)solpump += factory - factory*volsolver.psol[a];
 			else solpump += factory*volsolver.psol[a];
 			if(volsolver.psol[a] <= round && topo[arc]<0 && tabu[arc]<3){
-				std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
+				//std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], factory);
 				tabu[arc]++;
 				topo[arc] = 1;
 				dontbreak = true;
 			}else if(volsolver.psol[a] >= 0.1 && topo[arc]>0 && tabu[arc]<3){
-				std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
+				//std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], -factory);
 				topo[arc] = -1;
 				tabu[arc]++;

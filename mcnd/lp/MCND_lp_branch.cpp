@@ -30,9 +30,9 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 
     
 	if(current_level() == 0 && current_iteration()<15) return BCP_DoNotBranch;
-	if(current_level() == 0){
+	/*if(current_level() == 0){
         return BCP_DoNotBranch_Fathomed;
-	}
+	}*/
 	
 	if(lp_mode & LP_ForceNodeAbort){
 		//std::cout<<"node abort"<<std::endl;
@@ -59,6 +59,8 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	globalc_manager.globals.map_collection(mapd);
 
     std::deque<Pair2> candidates;
+    std::deque<Pair2> candidates2;
+    
 	BCP_vec<double> vbd(4, 0.0);
     BCP_vec<int> vpos(1, 0);
     double psc0, psc1;
@@ -69,18 +71,33 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     if(reduced_run)max_cand=1;
     else max_cand=5;
     
-    if(max_cand==1){
-    	for (int a=data.narcs; a--;) {
- 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
-				if(min(ninsp[a].fst, ninsp[a].snd) >= 8){
-					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
-					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
-					candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-				}
+	for (int a=data.narcs; a--;) {
+		if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
+			if(min(ninsp[a].fst, ninsp[a].snd) >= 10 && psol[a]>=0.1){
+				psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
+				psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
+				candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+			}else{
+				psc0 =  psol[a];
+				psc1 =  (1.0-psol[a]); 
+				if(max_cand>1)
+					candidates2.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
+				else candidates2.push_back(Pair2(a, fmin(psc0, psc1)));
 			}
 		}
-    }    	
-    if(candidates.empty()){
+	}
+     	
+    std::stable_sort(candidates.begin(), candidates.end(), compPair2());
+	
+	if(candidates.size()<max_cand){
+		std::stable_sort(candidates2.begin(), candidates2.end(), compPair2());
+		while(candidates.size()<max_cand){
+			candidates.push_back(candidates2.front());
+			candidates2.pop_front();
+		}
+	}
+	candidates2.clear();
+    /*if(candidates.empty()){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
 				psc0 =  psol[a];
@@ -88,9 +105,8 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 				candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
 			}
 		}
-	}
+	}*/
 	 
-	std::stable_sort(candidates.begin(), candidates.end(), compPair2());
 	int arc;
 	int ncands=0;
 	
@@ -530,7 +546,7 @@ MCND_lp::verify_feasibility(const BCP_vec<int> & vars_chngd, const BCP_vec<doubl
 
 	const double * collb = lpsolver->getColLower();
     const double * colub = lpsolver->getColUpper();
-    
+
     int ret = lpfeaschecker.solve_feas(collb, colub, feas_status);
     if(ret == -2){
     	globalc_manager.globalc_generation_main2(colub, 0);

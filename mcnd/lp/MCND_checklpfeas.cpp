@@ -181,11 +181,10 @@ int LPFeasChecker::solve_feas(const double *collb, const double * colub, bool fe
             x[a*ndemands+k].setUB(ub);
         }
     }
-    
 	cplex.getObjective().setExpr(fobj1);
 	cplex.setParam(IloCplex::Param::Advance, 0);
+ 	int ret = solve();	 
 
-	int ret = solve();
 	if(ret<0) return -2;
 	if(feas_status==false) return -1;
 	
@@ -207,6 +206,7 @@ int LPFeasChecker::solve_feas(const double *collb, const double * colub, bool fe
 	if(bd_sat) return 0;
 	
 	apply_bounds(colub);
+	cplex.setParam(IloCplex::Param::Advance, 1);
 	ret= solve();
 	if(ret<0){
 		return -3;

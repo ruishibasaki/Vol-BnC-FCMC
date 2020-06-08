@@ -103,7 +103,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 				reduced_run=false;
 			}else{
 				reduced_run=true;
-				nomgappres = 0.01;
+				nomgappres = 0.005;
 			}
 			//max_cand = 5 ;
 		}else reduced_run=true;//max_cand = 1;
