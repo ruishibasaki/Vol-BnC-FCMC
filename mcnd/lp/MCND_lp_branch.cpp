@@ -29,7 +29,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     //return BCP_DoNotBranch_Fathomed;
 
     
-	if(current_level() == 0 && current_iteration()<20) return BCP_DoNotBranch;
+	if(current_level() == 0 && current_iteration()<15) return BCP_DoNotBranch;
 	if(current_level() == 0){
         return BCP_DoNotBranch_Fathomed;
 	}
@@ -46,12 +46,12 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 		return BCP_DoNotBranch;
 	} 
 	
-	if(no_gap_reduct >5 && !break_diving){
+	/*if(no_gap_reduct >5 && !break_diving){
     	force_dive=true;
     }else{
     	break_diving = false;
     	force_dive=false;
-    }
+    }*/
     
 	mapd.clear();
     cover_manager.covers.map_collection(mapd);
@@ -65,7 +65,9 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     const double * psol = lpres.x();
     const double * rcsol = lpres.dj();
 
-    if(no_gap_reduct >5) max_cand=1;
+    //if(no_gap_reduct >5) max_cand=1;
+    if(reduced_run)max_cand=1;
+    else max_cand=5;
     
     if(max_cand==1){
     	for (int a=data.narcs; a--;) {
@@ -134,7 +136,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		   BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd){
 		   
 	if(lp_mode & LP_ForceNodeAbort) return;
-	if(current_iteration()>1 && !(lp_mode & LP_tighterBounds)) return;
+	if(current_iteration()>1 && !(lp_mode & LP_TighterBounds)) return;
 
 	//std::cout<<"logical_fixing "<<lpchecker.solved<<std::endl;
     //return;

@@ -112,8 +112,14 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
 	int cont=0;
 	int pertbd =0;
 	double maxpertbd = narcs*0.01;
+	const double *besttopo=0;
 	maxpertbd = maxpertbd>0? maxpertbd: 1;
  	szunfix=0;szfxone=0;
+ 	if(best_sol==0){
+ 		 if(altsol!=0) besttopo = altsol;
+ 	}else if(!best_sol->onlyvalue) besttopo = best_sol->xy;
+ 	else if(altsol!=0){besttopo = altsol;}
+ 	
  	for(int a=narcs; a--;){
         if(vars[a]->lb()==1.0){
             topo[a]=-2;
@@ -124,7 +130,7 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
             	fxone[szfxone++] = a;
             }else if(x[a]>=0.01){
             	rnd = rand()%2;
-				if((rnd==1 && pertbd<maxpertbd) || (best_sol==0) || (best_sol->onlyvalue)){
+				if((rnd==1 && pertbd<maxpertbd) || (besttopo==0)){
 					rnd = ((rand()%101)/100.0 <= x[a]) ? 1 : 0;
 					if(rnd){
 						topo[a]=-1;
@@ -133,7 +139,7 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
 					}
  					++pertbd;
 				}else{
-					if(best_sol->xy[a]>0.5){
+					if(besttopo[a]>0.5){
 						topo[a]=-1;
  					}else{
 						topo[a]=1;
@@ -246,56 +252,18 @@ Pump::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArr
 int 
 Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_solution*& mipsol){
 	bool feas=true;
-	
-	/*check_feas_model();
-	cplex.solve();
-	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
-		feas=false;
-	} 
-	if(feas){
-		IloNumArray x_(env);
-		cplex.getValues(x_,x);
-		getSolution(  x_, mipsol );
-		x_.end(); 
- 		return 1;
-	}*/
-	std::cout<<"Pump::solve trypump? "<<szunfix<<" "<<maxunfix<<std::endl;
-	/*if(szunfix > maxunfix ){
-		get_closed(fixd0, closed, true);
-     	return 0;
-    }*/
-    //create_model();
-    //IloNumArray x_(env);
-	//IloNumArray y_(env);
+	if(best_sol->onlyvalue && altsol==0){
+    	altsolval=1e30;
+    }
+     
 	bool dontbreak = true;
 	std::vector<int>tabu(narcs,0);
     while(dontbreak){
-		//cplex.exportModel("t.lp");
-		//cplex.solve();
 		if(volsolve()<0){
 			get_closed(fixd0, closed, false);
 			return -1;
 		}
-		/*if(cplex.getStatus() == IloAlgorithm::Infeasible){
-			std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible2"<<std::endl;
-			get_closed(fixd0, closed, false);
-			return -1;
-		} */
-		/*
-		cplex.getValues(x_,x);
-		cplex.getValues(y_,y);
-		while(cut(vars, y_,x_)){
-			cplex.solve();
-			//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
-			if(cplex.getStatus() == IloAlgorithm::Infeasible){
-				std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible2"<<std::endl;
-				get_closed(fixd0, closed, false);
-				return -2;
-			} 
-			cplex.getValues(y_,y);
-			cplex.getValues(x_,x);
-		}*/
+		
 		dontbreak = false;
 		double solpump=0;
 		for(int a=0;a<szunfix;++a){
@@ -308,7 +276,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 				tabu[arc]++;
 				topo[arc] = 1;
 				dontbreak = true;
-			}else if(volsolver.psol[a] >= 0.3 && topo[arc]>0 && tabu[arc]<3){
+			}else if(volsolver.psol[a] >= 0.1 && topo[arc]>0 && tabu[arc]<3){
 				std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], -factory);
 				topo[arc] = -1;
@@ -336,15 +304,19 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		x_.end(); 
 		if(best_sol != 0 && mipsol->cost > best_sol->cost)
 			round*=1.8; if(round>0.5) round=0.5;
+		else if(best_sol ==0) return 1;
+		if(best_sol->onlyvalue && mipsol->cost < altsolval){
+			altsolval = mipsol->cost;
+			if(altsol==0) altsol = new double [narcs];
+			for(int a=narcs;a--;)altsol[a] = mipsol->xy[a];
+		}
   		return 1;
 	}else{ 
 		get_closed(fixd0, closed, true); 
 		round*=0.8; if(round<0.3) round=0.3;
 		return 0;
 	}
-	//getSolution( x_, mipsol );
-	//x_.end(); 
-	//y_.end();
+	
  	return 1;
 }
 
@@ -420,7 +392,7 @@ Pump::~Pump() {
  		fxone.clear();
 		unfx.clear();
 		topo.clear();
- 		 
+ 		if(altsol !=0) delete []  altsol;
  	} catch (IloException& e) {
 		std::cerr << "ERROR: " << e.getMessage() << std::endl;
 	} catch (...) {

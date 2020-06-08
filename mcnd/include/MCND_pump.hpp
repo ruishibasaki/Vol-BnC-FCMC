@@ -29,7 +29,8 @@ public:
 	double factory;
 	double round;
  	//--------------------------
-	
+	double altsolval;
+	double * altsol;
 	const Data * data;
 	const MCND_solution* best_sol;
 
@@ -39,7 +40,7 @@ public:
  	std::vector<int> topo;
  
 	//--------------------------
-	Pump(): cplex(env), x(env), y(env), model(env), fobj(env), cutstrong(env), volsolver("volmcnd.par") {data =0;  }
+	Pump(): cplex(env), x(env), y(env), model(env), fobj(env), cutstrong(env), volsolver("volmcnd.par") {data =0; altsolval=0; altsol=0; }
 	void set_data(const Data * d);
 	void initialize(const Data * d, const MCND_solution* best_sol_);
 	void set_parameters();

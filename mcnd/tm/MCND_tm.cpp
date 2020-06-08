@@ -78,7 +78,10 @@ MCND_tm::initialize_core(BCP_vec<BCP_var_core*>& vars,
   
   for (int k = 0; k < ndemands; ++k)
 	for (int a = 0; a < narcs; ++a){
-		 vars.unchecked_push_back(new BCP_var_core(BCP_ContinuousVar,
+		if(data.d_k[k].O == data.arcs[a].j || data.d_k[k].D == data.arcs[a].i)
+		 	vars.unchecked_push_back(new BCP_var_core(BCP_ContinuousVar,
+					      data.arcs[a].c[k], 0, 0));
+		else vars.unchecked_push_back(new BCP_var_core(BCP_ContinuousVar,
 					      data.arcs[a].c[k], 0, data.arcs[a].b[k]));
 	}
 	     
