@@ -73,7 +73,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     if(max_cand==1){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
-				if(min(ninsp[a].fst, ninsp[a].snd) >= 10 && (psol[a]>=0.2 && psol[a]<=0.8) ){
+				if(min(ninsp[a].fst, ninsp[a].snd) >= 10 && (psol[a]>=0.1 && psol[a]<=0.9) ){
 					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
 					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
 					candidates.push_back(Pair2(a, fmin(psc0, psc1)));

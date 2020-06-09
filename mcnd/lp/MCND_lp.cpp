@@ -90,7 +90,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     
     //std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
     ++num_nodes;
-    
+    lpfeaschecker.tofix.clear();
     if(has_sol){
     	double ub = upper_bound();
     	if(!(lp_mode & LP_Dive)){
