@@ -12,7 +12,7 @@ ILOSTLBEGIN
  
 void LPChecker::set_parameters() {
 	cplex.setParam(IloCplex::Threads,1);
-    cplex.setParam(IloCplex::RootAlg, 2);
+    cplex.setParam(IloCplex::RootAlg, 0);
     cplex.setParam(IloCplex::ClockType, 1);
     //cplex->setParam(IloCplex::MIPDisplay, 4);
     cplex.setOut(env.getNullStream());
@@ -234,8 +234,9 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 	clean();
 	reset(vars, collb, colub);
 	std::cout<<"LPChecker::solve"<<std::endl;
+	cplex.setParam(IloCplex::RootAlg, 0);
+	cplex.setParam(IloCplex::Param::Advance, 0);
 	cplex.solve();
-	cplex.setParam(IloCplex::Param::Advance, 1);
 
 	//std::cout<<"LPChecker first "<<cplex.getObjValue()<<std::endl;
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
@@ -247,6 +248,8 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 	cplex.getValues(x_,x);
 	cplex.getValues(y_,y);
 	while(cut(vars, colub, y_,x_)){
+		cplex.setParam(IloCplex::RootAlg, 2);
+		cplex.setParam(IloCplex::Param::Advance, 1);
 		cplex.solve();
 		if(cplex.getStatus() == IloAlgorithm::Infeasible){ 
 			std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 
@@ -276,6 +279,8 @@ int LPChecker::resolve(double ub, const BCP_vec<BCP_var*>& vars, const double *c
 	
  	reset(vars, collb, colub);
 	std::cout<<"LPChecker::resolve"<<std::endl;
+	cplex.setParam(IloCplex::RootAlg, 2);
+	cplex.setParam(IloCplex::Param::Advance, 1);
 	cplex.solve();
  
 	//std::cout<<"LPChecker first "<<cplex.getObjValue()<<std::endl;
@@ -288,6 +293,8 @@ int LPChecker::resolve(double ub, const BCP_vec<BCP_var*>& vars, const double *c
 	cplex.getValues(x_,x);
 	cplex.getValues(y_,y);
 	while(cut(vars, colub, y_,x_)){
+		cplex.setParam(IloCplex::RootAlg, 2);
+		cplex.setParam(IloCplex::Param::Advance, 1);
 		cplex.solve();
 		if(cplex.getStatus() == IloAlgorithm::Infeasible){ 
 			std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 

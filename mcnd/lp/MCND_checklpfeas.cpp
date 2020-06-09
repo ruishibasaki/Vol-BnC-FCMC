@@ -9,10 +9,10 @@ ILOSTLBEGIN
 
 void LPFeasChecker::set_parameters() {
 	cplex.setParam(IloCplex::Threads,1);
-    //cplex->setParam(IloCplex::RootAlg, 2);
-    //cplex->setParam(IloCplex::NodeAlg, 3);
+    //cplex.setParam(IloCplex::RootAlg, 2);
+    //cplex.setParam(IloCplex::NodeAlg, 3);
     cplex.setParam(IloCplex::ClockType, 1);
-    //cplex->setParam(IloCplex::MIPDisplay, 4);
+    //cplex.setParam(IloCplex::MIPDisplay, 4);
     cplex.setOut(env.getNullStream());
     //cplex.setParam(IloCplex::DataCheck, CPX_DATACHECK_ASSIST);
     //cplex.setParam(IloCplex::TiLim, 3600.0); // Time limit in seconds
@@ -75,7 +75,7 @@ LPFeasChecker::initialize(const Data* d){
             constraint.end();
         }
     }
-    
+    addbd=0;
     cplex.extract(model);
 }
 
@@ -87,7 +87,11 @@ LPFeasChecker::apply_bounds(const BCP_vec<BCP_var*>& vars){
 	 for(int a=0;a<narcs;++a){
 		if(vars[a]->ub()<=0.5){  continue; }
 		for(int k=0;k<ndemands;++k){
-			x[a*ndemands+k].setUB(vars[narcs+k*narcs+a]->ub()); 
+			IloExpr constraint(env);
+    		constraint += x[a*ndemands+k];
+    		xbd.add((constraint<=vars[narcs+k*narcs+a]->ub()));
+    		model.add(xbd[addbd++]);
+    		constraint.end();
 		}
 	}
 }
@@ -99,7 +103,11 @@ LPFeasChecker::apply_bounds(const double * colub){
 	for(int a=0;a<narcs;++a){
 		if(colub[a]<=0.5){  continue; }
 		for(int k=0;k<ndemands;++k){
-			x[a*ndemands+k].setUB(colub[narcs+k*narcs+a]); 
+			IloExpr constraint(env);
+    		constraint += x[a*ndemands+k];
+    		xbd.add((constraint<=colub[narcs+k*narcs+a]));
+    		model.add(xbd[addbd++]);
+    		constraint.end();
 		}
 	}
 	
@@ -111,33 +119,36 @@ LPFeasChecker::apply_bounds(const double * colub){
 int
 LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double * topo, 
 						int * fixd, int& closed, MCND_solution*& mipsol, double fathmval, double betsolv) {
-    IloNum ub;
-    if(topo){
+   reset();
+   if(topo){
     	for(int a=0;a<narcs;++a){
     		if(vars[a]->ub()<=0.5 || topo[a]<=0.5){
-    			ub = 0.0; 
     			fixd[closed++]=a;
-			}else{ ub = IloInfinity;}
-		
-			for(int k=0;k<ndemands;++k){
-				x[a*ndemands+k].setUB(ub);
+    
+    			IloExpr constraint(env);
+    			for(int k=0;k<ndemands;++k) constraint += x[a*ndemands+k];
+    			xbd.add((constraint<=0));
+    			model.add(xbd[addbd++]);
+    			constraint.end();
 			}
 		}
     }else{
 		for(int a=0;a<narcs;++a){
 			if(vars[a]->ub()<=0.5){ 
-				ub = 0.0; 
 				fixd[closed++]=a;
-			}else{ ub = IloInfinity;}
-		
-			for(int k=0;k<ndemands;++k){
-				x[a*ndemands+k].setUB(ub); //fmin(ub,vars[narcs+k*narcs+a]->ub())
+				IloExpr constraint(env);
+    			for(int k=0;k<ndemands;++k) constraint += x[a*ndemands+k];
+    			xbd.add((constraint<=0));
+    			model.add(xbd[addbd++]);
+    			constraint.end();
 			}
 		}
     }
+    cplex.setParam(IloCplex::Param::Advance, 0);
+    cplex.setParam(IloCplex::RootAlg, 0);
     cplex.getObjective().setExpr(fobj2);
 	int ret= solve();
-	if(ret<0) return -1;
+	if(ret<0){ return -1;}
 	
 	bool bd_sat = true;
 	double fthmv = fathmval;
@@ -155,6 +166,7 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 	
 	apply_bounds(vars);
 	cplex.setParam(IloCplex::Param::Advance, 1);
+	cplex.setParam(IloCplex::RootAlg, 2);
 	ret= solve();
 	std:cout<<"test_feasibility::resolve"<<std::endl;
 	if(ret<0){
@@ -166,6 +178,8 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 		//delete mipsol;
 		return 0;
 	}
+	
+
 	return 1;	
 }
 
@@ -173,16 +187,19 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 //---------------------------------------------------------------------------
 
 int LPFeasChecker::solve_feas(const double *collb, const double * colub, bool feas_status){
-    IloNum ub;
+    reset();
     for(int a=0;a<narcs;++a){
-        if(colub[a]<0.5){ ub = 0.0; //std::cout<<"close: "<<a<<" "<<colub[a]<<std::endl;
-        }else{ ub = IloInfinity;}
-        for(int k=0;k<ndemands;++k){
-            x[a*ndemands+k].setUB(ub);
+        if(colub[a]<0.5){ 
+        	IloExpr constraint(env);
+    		for(int k=0;k<ndemands;++k) constraint += x[a*ndemands+k];
+    		xbd.add((constraint<=0));
+    		model.add(xbd[addbd++]);
+			constraint.end();
         }
     }
 	cplex.getObjective().setExpr(fobj1);
 	cplex.setParam(IloCplex::Param::Advance, 0);
+	cplex.setParam(IloCplex::RootAlg, 0);
  	int ret = solve();	 
 
 	if(ret<0) return -2;
@@ -204,15 +221,125 @@ int LPFeasChecker::solve_feas(const double *collb, const double * colub, bool fe
 	}
 	x_.end();
 	if(bd_sat) return 0;
-	
+	//cplex.exportModel("p.lp");
 	apply_bounds(colub);
 	cplex.setParam(IloCplex::Param::Advance, 1);
+	cplex.setParam(IloCplex::RootAlg, 2);
 	ret= solve();
 	if(ret<0){
 		return -3;
 	}
 	return 0;
 }
+
+//---------------------------------------------------------------------------
+
+int 
+LPFeasChecker::test_high_lowerbounds(  const BCP_vec<BCP_var*>& vars, const double * topo, const double* volsol, double bestsolv){
+	reset();
+	IloExpr obj(env);
+	bool top = topo ? true: false;
+	double topval;
+	std::vector<int> unfix;
+	for(int a=0;a<narcs;++a){
+		if(top) topval = topo[a];
+		else topval=0;
+		if(vars[a]->ub()<=0.5 || (top && topval<=0.5)){
+			IloExpr constraint(env);
+    		for(int k=0;k<ndemands;++k) constraint += x[a*ndemands+k];
+    		xbd.add((constraint<=0));
+    		model.add(xbd[addbd++]);
+			constraint.end();
+		} 
+		else if(vars[a]->lb()>=0.5 || (top && topval>=0.5)){
+			for (int k = 0; k < ndemands; ++k){
+				obj +=  data->arcs[a].c[k]*x[a*ndemands+k];
+			}
+			obj+=data->arcs[a].f;
+		}else{
+			if(volsol[a]<0.1 || volsol[a]>0.9)unfix.push_back(a);
+			double cost = data->arcs[a].f/data->arcs[a].capa;
+			for (int k = 0; k < ndemands; ++k){
+				obj +=  (cost + data->arcs[a].c[k])*x[a*ndemands+k];
+			}
+		}	
+	}
+    
+   	cplex.getObjective().setExpr(IloMinimize(env, obj));
+   	obj.end();
+   	apply_bounds(vars);
+   	
+   	cplex.setParam(IloCplex::Param::Advance, 1);
+	cplex.setParam(IloCplex::RootAlg, 2);
+	int ret= solve();
+	std::cout<<"LPFeasChecker::test_high_lowerbounds: "<<cplex.getObjValue()<<" ub: "<<bestsolv<<std::endl;
+	if(cplex.getObjValue()>bestsolv) return -1;
+	//cplex.setParam(IloCplex::Param::Advance, 0);
+
+	int arc;
+	int addctrnt =0;
+	double additional=0;
+	std::vector<int> torecheck;
+	IloRangeArray xbdtemp(env);
+	while(!unfix.empty()){
+
+		arc = unfix.back();
+		unfix.pop_back();
+ 		if(volsol[arc]>0.9){
+ 			IloExpr constraint(env);
+    		for(int k=0;k<ndemands;++k) constraint += x[arc*ndemands+k];
+    		xbdtemp.add((constraint<=0));
+    		model.add(xbdtemp[addctrnt++]);
+			constraint.end();
+			cplex.setParam(IloCplex::Param::Advance, 1);
+			cplex.setParam(IloCplex::RootAlg, 2);
+		}else{
+			cplex.setParam(IloCplex::Param::Advance, 1);
+			cplex.setParam(IloCplex::RootAlg, 0);
+			for(int k=0;k<ndemands;++k){
+				cplex.getObjective().setLinearCoef(x[arc*ndemands+k], data->arcs[arc].c[k]); 
+			}
+			additional+=data->arcs[arc].f;
+		}
+ 		
+ 		ret= solve();
+ 		double val = cplex.getObjValue()+additional;
+		std::cout<<"LPFeasChecker::test_high_lowerbounds "<<arc<<" : "<<val<<" ub: "<<bestsolv<<" "<<volsol[arc]<<std::endl;
+  		if(volsol[arc]>0.9){
+			 xbdtemp[addctrnt-1].removeFromAll();
+		}else{
+			for(int k=0;k<ndemands;++k){
+				cplex.getObjective().setLinearCoef(x[arc*ndemands+k], data->arcs[arc].f/data->arcs[arc].capa+data->arcs[arc].c[k]); 
+			}
+			additional-=data->arcs[arc].f;
+		}
+		
+ 		if( val > bestsolv){
+ 			tofix.push_back(Pair2(arc, (volsol[arc]>0.9 ? 1.0 : 0.0)));
+			if(!torecheck.empty())unfix.insert(unfix.end(), torecheck.begin(), torecheck.end());
+			torecheck.clear();
+			
+			if(volsol[arc]>0.9){
+				for(int k=0;k<ndemands;++k){
+					cplex.getObjective().setLinearCoef(x[arc*ndemands+k], data->arcs[arc].c[k]); 
+				}
+				additional+=data->arcs[arc].f;
+			}else{
+				IloExpr constraint(env);
+    			for(int k=0;k<ndemands;++k) constraint += x[arc*ndemands+k];
+    			xbdtemp.add((constraint<=0));
+    			model.add(xbdtemp[addctrnt++]);
+				constraint.end();
+			}
+		}else{
+			torecheck.push_back(arc);
+		}
+		
+	}
+	xbdtemp.endElements();
+	return 0;
+}
+
 
 //---------------------------------------------------------------------------
 
@@ -297,12 +424,20 @@ LPFeasChecker::compute_fathmval(){
 
 //---------------------------------------------------------------------------
 
+void
+LPFeasChecker::reset(){
+	xbd.endElements();
+	addbd=0;
+}
+
+//---------------------------------------------------------------------------
+
 LPFeasChecker::~LPFeasChecker() {
 
 	try {
 		cplex.clearModel();
-
-		x.end();
+		xbd.endElements();
+		x.endElements();
         fobj1.end();
         fobj2.end();
         

@@ -16,6 +16,7 @@ void
 MCND_lp::unpack_module_data(BCP_buffer & buf){
     //std::cout<<"try unpack to lp "<<std::endl;
     data.unpack(buf); 
+    buf.unpack(no_heur);
     buf.unpack(has_sol);
     if(has_sol) best_sol.unpack(buf);
 	
@@ -105,8 +106,9 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 				reduced_run=true;
 				nomgappres = 0.005;
 			}
+			times_dived=0;
 			//max_cand = 5 ;
-		}else reduced_run=true;//max_cand = 1;
+		}else{ reduced_run=true;}//max_cand = 1;}
 		double gap = (ub  - lower_bound)/ub;
 		if(gap<0.005){
 			maxszunfx=0;
@@ -299,7 +301,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 	double gap = (ub  - LBi)/ub;
-    if(((gap < 0.01) && !(lp_mode & LP_OptSolved) && !reduced_run )){
+    if(((gap < 0.01) && !(lp_mode & LP_OptSolved) && !reduced_run)|| times_dived>=3){
     	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
@@ -559,7 +561,7 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 		if(vars[a]->lb()>0.5){fathmval += data.arcs[a].f; 
 		}else if(vars[a]->ub()>0.5){ 
 			++cont;
-			if(sol[a]>1e-2 && sol[a]<(1-1e-2)) integer=false;
+			if(sol[a]>0.1 && sol[a]<(1-0.1)) integer=false;
 		} 
     }
 	std::cout<<"test_feasibility unfx: "<<cont<<std::endl;
@@ -568,7 +570,7 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     	ret = lpfeaschecker.solve_opt(cont, vars, sol, fixd, closed, mipsol, fathmval, upper_bound());
     	std::cout<<"MCND_lp::test_feasibility intger && no violation"<<std::endl;
     	lp_mode |= LP_ForceNodeAbort ;
-    }else if(cont<= maxszunfx || integer){ 
+    }else if(cont<= maxszunfx || integer ){ 
     	ret = lpfeaschecker.solve_opt(cont, vars, 0, fixd, closed, mipsol, fathmval, upper_bound());
     	if(cont ==0){ lp_mode |= LP_ForceNodeAbort; std::cout<<"MCND_lp::test_feasibility allfixed"<<std::endl;}
     }else {
@@ -585,7 +587,15 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 		lp_mode |= LP_ForceNodeAbort;
 		delete []fixd;
     	return 0;
-	}else if(ret==0 || ret==2){lp_mode |= LP_ForceNodeAbort;}
+	}else if(ret==0 || ret==2){lp_mode |= LP_ForceNodeAbort;
+	}else if(!(lp_mode & LP_ForceNodeAbort)){
+		std::cout<<"test_feasibility integer? "<<integer<<std::endl;
+		if(lpfeaschecker.test_high_lowerbounds(vars, 0, sol , upper_bound())<0){
+			lp_mode |= LP_ForceNodeAbort;
+			return 0;
+		}
+			
+	}
 	delete []fixd;
 	
 	 
@@ -593,12 +603,14 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     std::cout<<"test_feasibility: sol: "<<mipsol->cost<<" "<<cont<<" ub: "<<upper_bound()<<std::endl;
     lp_mode |= LP_HeuristicRunned;
 	if(upper_bound() >= mipsol->cost){
-		std::cout<<"MCND_lp::test_feasibility::add_external_localc1 type 2"<<std::endl;
-		getOsiVolBabSolver()->add_external_localc( 0, best_sol.xy, data.narcs, 2);
+		if(!(lp_mode & LP_ForceNodeAbort)){
+			std::cout<<"MCND_lp::test_feasibility::add_external_localc1 type 2"<<std::endl;
+			getOsiVolBabSolver()->add_external_localc( 0, best_sol.xy, data.narcs, 2);
+		}
 		best_sol.copy(*mipsol, data.narcs);
 		lp_mode |= LP_TighterBounds;
 		return mipsol;
-	}else{
+	}else if(!(lp_mode & LP_ForceNodeAbort)){
     	std::cout<<"MCND_lp::test_feasibility::add_external_localc type 2"<<std::endl;
     	getOsiVolBabSolver()->add_external_localc( 0, mipsol->xy, data.narcs, 2);
 	}
@@ -658,9 +670,9 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
 	//if(cont!=0) return 0; //
  	if(cont > 0){
  		//std::cout<<"Pump::solve trypump? "<<cont<<" "<<maxszunfx<<std::endl;
- 		//if(force_dive) return 0; else
-    	if((lp_mode & LP_HeuristicRunned) && (current_level()>0 || current_iteration()>15)) return 0;
-    	else if( current_level()%10>0 || (current_iteration()>15)) return 0;
+ 		if(no_heur) return 0; 
+    	else if((lp_mode & LP_HeuristicRunned) && (current_level()>0 || current_iteration()>15)) return 0;
+    	else if( current_level()%50>0 || (current_iteration()>15)) return 0;
     	
 	}
     //if(pump_heur.validate_topology()< 0) return 0;

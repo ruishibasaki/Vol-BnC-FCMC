@@ -29,7 +29,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     //return BCP_DoNotBranch_Fathomed;
 
     
-	if(current_level() == 0 && current_iteration()<15) return BCP_DoNotBranch;
+	if(current_level() == 0 && current_iteration()<15 && !no_heur) return BCP_DoNotBranch;
 	/*if(current_level() == 0){
         return BCP_DoNotBranch_Fathomed;
 	}*/
@@ -59,8 +59,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	globalc_manager.globals.map_collection(mapd);
 
     std::deque<Pair2> candidates;
-    std::deque<Pair2> candidates2;
-    
+     
 	BCP_vec<double> vbd(4, 0.0);
     BCP_vec<int> vpos(1, 0);
     double psc0, psc1;
@@ -71,33 +70,18 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     if(reduced_run)max_cand=1;
     else max_cand=5;
     
-	for (int a=data.narcs; a--;) {
-		if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
-			if(min(ninsp[a].fst, ninsp[a].snd) >= 10 && psol[a]>=0.1){
-				psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
-				psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
-				candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-			}else{
-				psc0 =  psol[a];
-				psc1 =  (1.0-psol[a]); 
-				if(max_cand>1)
-					candidates2.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
-				else candidates2.push_back(Pair2(a, fmin(psc0, psc1)));
+    if(max_cand==1){
+		for (int a=data.narcs; a--;) {
+			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
+				if(min(ninsp[a].fst, ninsp[a].snd) >= 10 && (psol[a]>=0.2 && psol[a]<=0.8) ){
+					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
+					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
+					candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+				}
 			}
 		}
 	}
-     	
-    std::stable_sort(candidates.begin(), candidates.end(), compPair2());
-	
-	if(candidates.size()<max_cand){
-		std::stable_sort(candidates2.begin(), candidates2.end(), compPair2());
-		while(candidates.size()<max_cand){
-			candidates.push_back(candidates2.front());
-			candidates2.pop_front();
-		}
-	}
-	candidates2.clear();
-    /*if(candidates.empty()){
+	if(candidates.empty()){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
 				psc0 =  psol[a];
@@ -105,7 +89,9 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 				candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
 			}
 		}
-	}*/
+	}
+	
+    std::stable_sort(candidates.begin(), candidates.end(), compPair2());
 	 
 	int arc;
 	int ncands=0;
@@ -114,7 +100,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 		arc = candidates.front().fst;
 		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<" "<<min(ninsp[arc].fst, ninsp[arc].snd)<<std::endl;
 		///*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
-        candidates.pop_front();		
+		candidates.pop_front();	
 		vpos[0] = arc;
 		vbd[0] = 0.0;
 		vbd[1] = 0.0;
@@ -126,7 +112,22 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 							  0, 0, 0, 0 /* implied parts */));
 		
 		++ncands;
+		/*if(psol[arc]<0.1){        	
+        	std::cout<<"OPA!"<<std::endl;
+        	continue;
+        }	*/
+		/*if(psol[arc]<0.1){
+			while(!candidates.empty()){
+				arc = candidates.front().fst;
+				std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd
+				<<" "<<min(ninsp[arc].fst, ninsp[arc].snd)<<std::endl;
+				candidates.pop_front();		
+			}
+			abort();
+		}*/
 	}
+	
+	
 	candidates.clear();
  	lp_mode &= ~LP_LogicalFixed;
 	//std::cout<<"do branch "<<ncands<<" force: "<<force_branch<<std::endl;
@@ -165,8 +166,30 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
      
     std::fill(yfix,yfix+data.narcs, -1);
     
+    while(!lpfeaschecker.tofix.empty()){
+    	int arc = lpfeaschecker.tofix.back().fst;
+    	double val = lpfeaschecker.tofix.back().snd;
+    	lpfeaschecker.tofix.pop_back();
+    	if(vars[arc]->lb()==0.0 && vars[arc]->ub()==1.0){
+    		if(val>0.5){
+    			yfix[arc]=1;
+    			changed_pos.push_back(arc);
+ 				new_bd.push_back(1.0);
+				new_bd.push_back(1.0);
+				arcfx=true;
+				std::cout<<arc<<" LOGFIX 1 lpfeaschecker.tofix "<<std::endl;
+    		}else{
+    			yfix[arc]=0;
+    			changed_pos.push_back(arc);
+ 				new_bd.push_back(0.0);
+				new_bd.push_back(0.0);
+				arcfx=true;
+				std::cout<<arc<<" LOGFIX 0 lpfeaschecker.tofix "<<std::endl;
+    		}
+    	}else{ std::cout<<"MCND_lp::logical_fixing lpfeaschecker.tofix ERROR!"<<std::endl; abort();}
+    }
  	for (int a=data.narcs; a--;){
-		if(vars[a]->lb()==0.0 && vars[a]->ub()==1.0){
+		if(vars[a]->lb()==0.0 && vars[a]->ub()==1.0 && yfix[a]==-1){
 			//std::cout<<"penalty test: "<<a<<" "<<gij<<" lbs: "<<lb<<" "<<LBi<<std::endl;
 			gij = rcsol[a];
 			if(gij>0 && (lb+gij)>=upper_bound()){
@@ -493,11 +516,11 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
     double diff1 = (child1.objval() - LBi);
     double lbdev = (fmin(child0.objval(), child1.objval()) - lower_bound)/lower_bound;
     std::cout<<"branching variable: "<<var_branch<<" lp: "<<(lpchecker.solved ? lpchecker.y_[var_branch]:-1.0)<<
-    " y: "<<y[var_branch]<<" nbranch: "<<tabu[var_branch]<<" capa: "<<data.arcs[var_branch].capa<<std::endl;
+    " y: "<<y[var_branch]<<" nbranch: "<<min(ninsp[var_branch].fst, ninsp[var_branch].snd)<<" capa: "<<data.arcs[var_branch].capa<<std::endl;
     std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl;
  	
  	bool dive=false;
- 	if(lbdev<0.005){ dive=true; std::cout<<"force dive: childsol closed to lb"<<std::endl;}
+ 	if(lbdev<0.001){ dive=true;  ++times_dived; std::cout<<"force dive: childsol closed to lb"<<std::endl;}
 	if(!feas0){
 		childs_action[0] = BCP_FathomChild;
 	}else{

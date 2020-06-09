@@ -29,6 +29,10 @@ MCND_tm::pack_module_data(BCP_buffer& buf, BCP_process_t ptype)
     case BCP_ProcessType_LP:
     //std::cout<<"try to pack data to lp "<<data.ndemands<<" "<<data.narcs<<" "<<data.nnodes<<std::endl;
           data.pack(buf);
+          if((instance.find("C/c") != std::string::npos) ||
+          	(instance.find("R/r") != std::string::npos))
+          		buf.pack(true);
+          else buf.pack(false);
           buf.pack(getTmProblemPointer()->has_ub());
           init_sol.pack(buf);
     break;

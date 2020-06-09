@@ -80,12 +80,14 @@ public:
 	double nomgap;
 	double nomgappres;
 
+	int times_dived;
 	int no_gap_reduct;
 	int max_cand ;
 	double maxszunfx;
 	
     bool reduced_run;
     bool has_sol;
+    bool no_heur;
     MCND_solution best_sol;
 
     std::vector<double> y;
