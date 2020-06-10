@@ -201,8 +201,13 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			return;
 		}
 	
-	unfix -= changed_pos.size();
-	if((unfix < maxszunfx || (ub  - LBi)/ub<0.005)){
+	if(lpchecker.solved) 
+ 		lpchecker.logical_xfix(ub, yfix, vars);
+ 		
+ 	unfix -= changed_pos.size();
+	if(lpchecker.solved){
+		lpchecker.test_high_lowerbounds( changed_pos, new_bd,  yfix, vars, psol, ub);
+	}else if((unfix < maxszunfx || (ub  - LBi)/ub<0.005)){
 		double prev = changed_pos.size();
 		lpfeaschecker.lbtested=true;
 		if(lpfeaschecker.test_high_lowerbounds(changed_pos, new_bd, yfix, vars,  psol, ub)<0){
@@ -215,9 +220,6 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		}
 		arcfx = (prev < changed_pos.size()) ?  true: arcfx;
 	}
-	
-	if(lpchecker.solved) 
- 		lpchecker.logical_xfix(ub, yfix, vars);
  	
 	double tt, bd, dk;
 	double lpbd;

@@ -37,6 +37,7 @@ public:
     IloNumVarArray y;
     IloRangeArray flowconserv;
     
+    IloRangeArray topo_ctrnt;
 	IloRangeArray add_strong_force;
 	IloRangeArray add_covers;
 	IloRangeArray add_locals;
@@ -72,7 +73,7 @@ public:
 
     inline LPChecker():model(env), cplex(env), x(env), y(env), flowconserv(env), 
     					add_strong_force(env), add_covers(env), add_locals(env), add_globals(env),
-    					x_(env), y_(env), rc_x(env), rc_y(env) {numaddstrong = numaddcov= numaddloc= numaddgloc =0; solved=false; }
+    					x_(env), y_(env), rc_x(env), rc_y(env), topo_ctrnt(env) {numaddstrong = numaddcov= numaddloc= numaddgloc =0; solved=false; }
      ~LPChecker();
     
     //-------------------------------
@@ -89,12 +90,13 @@ public:
 	 bool coverc_viol(const IloNumArray & y_ , const Cover* cover);
 	bool localc_viol(const IloNumArray & y_ , const LocalCut* loc);
 	bool globalc_viol(const IloNumArray & y_ , const GlobalCut* gloc);
-    int cut(const BCP_vec<BCP_var*>& vars, const double *colub, const IloNumArray & y_, const IloNumArray & x_);
-    
+    int cut(const BCP_vec<BCP_var*>& vars, const double *colub);
+    int cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & yb, const IloNumArray & xb, IloRangeArray& tempcnstrt, int& addtemp);
     //-------------------------------
 
     int solve(double ub, const BCP_vec<BCP_var*>& vars,  const double *collb, const double *colub, double& new_lb);
-    int resolve(double ub, const BCP_vec<BCP_var*>& vars, const double *collb, const double *colub, double& new_lb);
+    int test_high_lowerbounds(  BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix,
+										 const BCP_vec<BCP_var*>& vars,  const double* volsol, double bestsolv);
     void get_dual();
     void get_solution(MCND_solution* mipsol);
  	void clean();
