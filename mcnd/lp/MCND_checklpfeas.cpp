@@ -235,23 +235,20 @@ int LPFeasChecker::solve_feas(const double *collb, const double * colub, bool fe
 //---------------------------------------------------------------------------
 
 int 
-LPFeasChecker::test_high_lowerbounds(  const BCP_vec<BCP_var*>& vars, const double * topo, const double* volsol, double bestsolv){
+LPFeasChecker::test_high_lowerbounds( BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix,
+										 const BCP_vec<BCP_var*>& vars,  const double* volsol, double bestsolv){
 	reset();
 	IloExpr obj(env);
-	bool top = topo ? true: false;
-	double topval;
 	std::vector<int> unfix;
 	for(int a=0;a<narcs;++a){
-		if(top) topval = topo[a];
-		else topval=0;
-		if(vars[a]->ub()<=0.5 || (top && topval<=0.5)){
+		if(vars[a]->ub()<=0.5 || (yfix[a]==0)){
 			IloExpr constraint(env);
     		for(int k=0;k<ndemands;++k) constraint += x[a*ndemands+k];
     		xbd.add((constraint<=0));
     		model.add(xbd[addbd++]);
 			constraint.end();
 		} 
-		else if(vars[a]->lb()>=0.5 || (top && topval>=0.5)){
+		else if(vars[a]->lb()>=0.5 || (yfix[a]==1)){
 			for (int k = 0; k < ndemands; ++k){
 				obj +=  data->arcs[a].c[k]*x[a*ndemands+k];
 			}
@@ -262,24 +259,27 @@ LPFeasChecker::test_high_lowerbounds(  const BCP_vec<BCP_var*>& vars, const doub
 			for (int k = 0; k < ndemands; ++k){
 				obj +=  (cost + data->arcs[a].c[k])*x[a*ndemands+k];
 			}
-		}	
-	}
+		}	 
+	} 
     
    	cplex.getObjective().setExpr(IloMinimize(env, obj));
    	obj.end();
    	apply_bounds(vars);
-   	
-   	cplex.setParam(IloCplex::Param::Advance, 1);
-	cplex.setParam(IloCplex::RootAlg, 2);
-	int ret= solve();
-	std::cout<<"LPFeasChecker::test_high_lowerbounds: "<<cplex.getObjValue()<<" ub: "<<bestsolv<<std::endl;
-	if(cplex.getObjValue()>bestsolv) return -1;
+   	int ret=0;
+   	cplex.setParam(IloCplex::Param::Advance, 0);
+	//cplex.setParam(IloCplex::RootAlg, 2);
+	
+	if(!lbtested){ 
+		ret= solve();
+		if(ret<0){ std::cout<<"LPFeasChecker::test_high_lowerbounds: infeasible"<<std::endl; return -1;}
+		std::cout<<"LPFeasChecker::test_high_lowerbounds: "<<cplex.getObjValue()<<" ub: "<<bestsolv<<std::endl;
+		if(cplex.getObjValue()>bestsolv) return -1;
+	}
 	//cplex.setParam(IloCplex::Param::Advance, 0);
 
 	int arc;
 	int addctrnt =0;
 	double additional=0;
-	std::vector<int> torecheck;
 	IloRangeArray xbdtemp(env);
 	while(!unfix.empty()){
 
@@ -291,11 +291,9 @@ LPFeasChecker::test_high_lowerbounds(  const BCP_vec<BCP_var*>& vars, const doub
     		xbdtemp.add((constraint<=0));
     		model.add(xbdtemp[addctrnt++]);
 			constraint.end();
-			cplex.setParam(IloCplex::Param::Advance, 1);
-			cplex.setParam(IloCplex::RootAlg, 2);
+			 
 		}else{
-			cplex.setParam(IloCplex::Param::Advance, 1);
-			cplex.setParam(IloCplex::RootAlg, 0);
+			 
 			for(int k=0;k<ndemands;++k){
 				cplex.getObjective().setLinearCoef(x[arc*ndemands+k], data->arcs[arc].c[k]); 
 			}
@@ -303,36 +301,44 @@ LPFeasChecker::test_high_lowerbounds(  const BCP_vec<BCP_var*>& vars, const doub
 		}
  		
  		ret= solve();
- 		double val = cplex.getObjValue()+additional;
-		std::cout<<"LPFeasChecker::test_high_lowerbounds "<<arc<<" : "<<val<<" ub: "<<bestsolv<<" "<<volsol[arc]<<std::endl;
-  		if(volsol[arc]>0.9){
-			 xbdtemp[addctrnt-1].removeFromAll();
-		}else{
-			for(int k=0;k<ndemands;++k){
-				cplex.getObjective().setLinearCoef(x[arc*ndemands+k], data->arcs[arc].f/data->arcs[arc].capa+data->arcs[arc].c[k]); 
-			}
-			additional-=data->arcs[arc].f;
-		}
 		
- 		if( val > bestsolv){
- 			tofix.push_back(Pair2(arc, (volsol[arc]>0.9 ? 1.0 : 0.0)));
-			if(!torecheck.empty())unfix.insert(unfix.end(), torecheck.begin(), torecheck.end());
-			torecheck.clear();
+ 		if(ret>=0)std::cout<<"LPFeasChecker::test_high_lowerbounds "<<arc<<" : "<<cplex.getObjValue()+additional<<" ub: "<<bestsolv<<" "<<volsol[arc]<<std::endl;
+ 		else std::cout<<"LPFeasChecker::test_high_lowerbounds "<<arc<<": infeasible"<<std::endl;
+ 		
+ 		if( ret<0 || cplex.getObjValue()+additional > bestsolv){
 			
 			if(volsol[arc]>0.9){
-				for(int k=0;k<ndemands;++k){
+				std::cout<<arc<<" LPFeasChecker::test_high_lowerbounds FIX 1 "<<std::endl;
+				changed_pos.push_back(arc);
+				new_bd.push_back(1.0);
+				new_bd.push_back(1.0);
+				yfix[arc]=1;
+				
+ 				for(int k=0;k<ndemands;++k){
 					cplex.getObjective().setLinearCoef(x[arc*ndemands+k], data->arcs[arc].c[k]); 
 				}
 				additional+=data->arcs[arc].f;
 			}else{
+				std::cout<<arc<<" LPFeasChecker::test_high_lowerbounds FIX 0 "<<std::endl;
+				changed_pos.push_back(arc);
+				new_bd.push_back(0.0);
+				new_bd.push_back(0.0);
+				yfix[arc]=0;
+				
 				IloExpr constraint(env);
     			for(int k=0;k<ndemands;++k) constraint += x[arc*ndemands+k];
     			xbdtemp.add((constraint<=0));
     			model.add(xbdtemp[addctrnt++]);
 				constraint.end();
 			}
+		}
+		if(volsol[arc]>0.9){
+			 xbdtemp[addctrnt-1].removeFromAll();
 		}else{
-			torecheck.push_back(arc);
+			for(int k=0;k<ndemands;++k){
+				cplex.getObjective().setLinearCoef(x[arc*ndemands+k], data->arcs[arc].f/data->arcs[arc].capa+data->arcs[arc].c[k]); 
+			}
+			additional-=data->arcs[arc].f;
 		}
 		
 	}

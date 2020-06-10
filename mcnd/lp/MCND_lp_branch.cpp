@@ -73,7 +73,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     if(max_cand==1){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
-				if(min(ninsp[a].fst, ninsp[a].snd) >= 10 && (psol[a]>=0.1 && psol[a]<=0.9) ){
+				if(min(ninsp[a].fst, ninsp[a].snd) >= 10 ){
 					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
 					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
 					candidates.push_back(Pair2(a, fmin(psc0, psc1)));
@@ -89,6 +89,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 				candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
 			}
 		}
+		max_cand=5;
 	}
 	
     std::stable_sort(candidates.begin(), candidates.end(), compPair2());
@@ -112,10 +113,11 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 							  0, 0, 0, 0 /* implied parts */));
 		
 		++ncands;
-		/*if(psol[arc]<0.1){        	
+		if(psol[arc]<0.1 || psol[arc]>0.9){        	
         	std::cout<<"OPA!"<<std::endl;
-        	continue;
-        }	*/
+        	++max_cand;
+        	if(max_cand>5)max_cand=5;
+        }
 		/*if(psol[arc]<0.1){
 			while(!candidates.empty()){
 				arc = candidates.front().fst;
@@ -163,55 +165,35 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
     double lb = lpres.objval();
     double gij, ckij;
     bool arcfx=false;
-     
+    int unfix=0;
     std::fill(yfix,yfix+data.narcs, -1);
+    double ub = upper_bound();
     
-    while(!lpfeaschecker.tofix.empty()){
-    	int arc = lpfeaschecker.tofix.back().fst;
-    	double val = lpfeaschecker.tofix.back().snd;
-    	lpfeaschecker.tofix.pop_back();
-    	if(vars[arc]->lb()==0.0 && vars[arc]->ub()==1.0){
-    		if(val>0.5){
-    			yfix[arc]=1;
-    			changed_pos.push_back(arc);
- 				new_bd.push_back(1.0);
-				new_bd.push_back(1.0);
-				arcfx=true;
-				std::cout<<arc<<" LOGFIX 1 lpfeaschecker.tofix "<<std::endl;
-    		}else{
-    			yfix[arc]=0;
-    			changed_pos.push_back(arc);
- 				new_bd.push_back(0.0);
-				new_bd.push_back(0.0);
-				arcfx=true;
-				std::cout<<arc<<" LOGFIX 0 lpfeaschecker.tofix "<<std::endl;
-    		}
-    	}else{ std::cout<<"MCND_lp::logical_fixing lpfeaschecker.tofix ERROR!"<<std::endl; abort();}
-    }
  	for (int a=data.narcs; a--;){
 		if(vars[a]->lb()==0.0 && vars[a]->ub()==1.0 && yfix[a]==-1){
 			//std::cout<<"penalty test: "<<a<<" "<<gij<<" lbs: "<<lb<<" "<<LBi<<std::endl;
 			gij = rcsol[a];
-			if(gij>0 && (lb+gij)>=upper_bound()){
-				std::cout<<a<<" LOGFIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<upper_bound()<<std::endl;
+			if(gij>0 && (lb+gij)>=ub){
+				std::cout<<a<<" LOGFIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<ub<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
-				yfix[a]=0; 
+				yfix[a]=0;
 				arcfx=true;
-			}else if(gij<0 && (lb-gij)>=upper_bound()){
-				std::cout<<a<<" LOGFIX FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<upper_bound()<<std::endl;
+			}else if(gij<0 && (lb-gij)>=ub){
+				std::cout<<a<<" LOGFIX FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<ub<<std::endl;
 				changed_pos.push_back(a);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
 				yfix[a]=1;
 				arcfx=true;
 			}
+			unfix++;
 		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
 	}
 	if(lpchecker.solved) 
- 		if(lpchecker.logical_yfix(upper_bound(), changed_pos, new_bd, yfix)) arcfx=true;
+ 		if(lpchecker.logical_yfix(ub, changed_pos, new_bd, yfix)) arcfx=true;
 
 	if(arcfx)
 		if(!cut_varfix_and_updt( vars, cuts, changed_pos, new_bd)){ 
@@ -219,8 +201,23 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			return;
 		}
 	
+	unfix -= changed_pos.size();
+	if((unfix < maxszunfx || (ub  - LBi)/ub<0.005)){
+		double prev = changed_pos.size();
+		lpfeaschecker.lbtested=true;
+		if(lpfeaschecker.test_high_lowerbounds(changed_pos, new_bd, yfix, vars,  psol, ub)<0){
+			lp_mode |= LP_ForceNodeAbort;
+			changed_pos.clear();
+			new_bd.clear();
+			std::cout<<"MCND_lp::logical_fixing::lpfeaschecker.test_high_lowerbounds OVER"<<std::endl;
+			if(flwconnect.redone) flwconnect.clear_memory();
+			return;
+		}
+		arcfx = (prev < changed_pos.size()) ?  true: arcfx;
+	}
+	
 	if(lpchecker.solved) 
- 		lpchecker.logical_xfix(upper_bound(), yfix, vars);
+ 		lpchecker.logical_xfix(ub, yfix, vars);
  	
 	double tt, bd, dk;
 	double lpbd;
@@ -241,8 +238,8 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			bd =-1;
 			if(ckij>1e-4){
 				tt = ((gij > 0)&& (vars[a]->lb()==0.0)) ? (lb+ gij) : lb;
-				if(tt + ckij*vars[id]->ub()/dk > (upper_bound()+1e-4) ){
-					bd = (upper_bound() - tt)/ckij;
+				if(tt + ckij*vars[id]->ub()/dk > (ub+1e-4) ){
+					bd = (ub - tt)/ckij;
 					bd*=dk;
 					if(bd<1e-8)bd=0.0;
 					//else if(vars[id]->ub()-bd <= 1e-4) continue;

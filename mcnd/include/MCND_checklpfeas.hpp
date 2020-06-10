@@ -22,13 +22,13 @@ public:
     IloNumVarArray x;
 	IloRangeArray xbd;
 
-	std::vector<Pair2> tofix;
-	int addbd;
+ 	int addbd;
     int ndemands, nnodes, narcs;
+    bool lbtested;
     const Data* data;
     
     // construtores
-    inline LPFeasChecker():model(env), cplex(env), x(env), fobj1(env), fobj2(env), xbd(env) {};
+    inline LPFeasChecker():model(env), cplex(env), x(env), fobj1(env), fobj2(env), xbd(env) {lbtested=false;};
     virtual ~LPFeasChecker();
     
     void reset();
@@ -40,7 +40,8 @@ public:
     int solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double * topo, int * fixd, 
     				int& closed, MCND_solution*& mipsol, double fathmval, double betsolv);
     int solve_feas(const double *collb, const double * colub, bool feas_status);
-    int test_high_lowerbounds(  const BCP_vec<BCP_var*>& vars, const double * topo,  const double* volsol, double bestsolv);
+    int test_high_lowerbounds(  BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix,
+										 const BCP_vec<BCP_var*>& vars,  const double* volsol, double bestsolv);
     
     int solve();
     int getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double & solvalue, double &fathmval, bool& bd_sat );

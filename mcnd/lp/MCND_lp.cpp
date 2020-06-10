@@ -90,7 +90,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     
     //std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
     ++num_nodes;
-    lpfeaschecker.tofix.clear();
+    lpfeaschecker.lbtested=false;
     if(has_sol){
     	double ub = upper_bound();
     	if(!(lp_mode & LP_Dive)){
@@ -104,7 +104,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 				reduced_run=false;
 			}else{
 				reduced_run=true;
-				nomgappres = 0.005;
+				nomgappres = 0.003;
 			}
 			times_dived=0;
 			//max_cand = 5 ;
@@ -276,7 +276,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     
     if(lp_mode & LP_LogicalFixed){
 		vollp->recheck_collct=true;  
-		if(lp_mode & LP_SecondIter)vollp->mode=3;
+		if(lp_mode & LP_SecondIter){vollp->mode=3;}
 		lp_mode &= ~LP_LogicalFixed; /*vollp->mode=3; par.maxsgriters = 100;*/
 	}
     vollp->in_strong_branch = in_strong_branching;
@@ -301,7 +301,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 	double gap = (ub  - LBi)/ub;
-    if(((gap < 0.01) && !(lp_mode & LP_OptSolved) && !reduced_run)|| times_dived>=3){
+    if(((gap < 0.01) || times_dived>=3) && !(lp_mode & LP_OptSolved)){
     	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
@@ -587,14 +587,8 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 		lp_mode |= LP_ForceNodeAbort;
 		delete []fixd;
     	return 0;
-	}else if(ret==0 || ret==2){lp_mode |= LP_ForceNodeAbort;
-	}else if(!(lp_mode & LP_ForceNodeAbort)){
-		std::cout<<"test_feasibility integer? "<<integer<<std::endl;
-		if(lpfeaschecker.test_high_lowerbounds(vars, 0, sol , upper_bound())<0){
-			lp_mode |= LP_ForceNodeAbort;
-			return 0;
-		}
-			
+	}else if(ret==0 || ret==2){
+		lp_mode |= LP_ForceNodeAbort;
 	}
 	delete []fixd;
 	
@@ -672,7 +666,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
  		//std::cout<<"Pump::solve trypump? "<<cont<<" "<<maxszunfx<<std::endl;
  		if(no_heur) return 0; 
     	else if((lp_mode & LP_HeuristicRunned) && (current_level()>0 || current_iteration()>15)) return 0;
-    	else if( current_level()%50>0 || (current_iteration()>15)) return 0;
+    	else if( current_level()%20>0 || (current_iteration()>15)) return 0;
     	
 	}
     //if(pump_heur.validate_topology()< 0) return 0;
