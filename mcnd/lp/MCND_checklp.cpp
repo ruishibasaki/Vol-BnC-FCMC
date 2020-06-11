@@ -340,7 +340,7 @@ LPChecker::test_high_lowerbounds(  BCP_vec<int>& changed_pos, BCP_vec<double>& n
 			cplex.getValues(xb,x);
 			cplex.getValues(yb,y);
 			while(cut( vars, yb, xb, xbdtemp,  addctrnt)){
-				cplex.solve();
+ 				cplex.solve();
 			
 				if(cplex.getStatus() != IloAlgorithm::Optimal){ 
 					ret = -1;
@@ -351,6 +351,9 @@ LPChecker::test_high_lowerbounds(  BCP_vec<int>& changed_pos, BCP_vec<double>& n
 				}
 				cplex.getValues(yb,y);
 				cplex.getValues(xb,x);
+				if(new_lb - cplex.getObjValue()<0.1){new_lb =  cplex.getObjValue(); break;}
+				new_lb =  cplex.getObjValue();
+				
 			}
 		}
 		
@@ -491,6 +494,7 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & yb, const IloN
 		for (int k = 0; k < ndemands; ++k){
 			ub = vars[narcs+k*narcs+arc]->ub();
 			if(data->d_k[k].quantity*xb[arc*ndemands+k] - ub*yb[arc]> 1e-2 ){
+				//std::cout<<"LPChecker::inserst ub "<<data->d_k[k].quantity*xb[arc*ndemands+k] - ub*yb[arc]<<std::endl;
 				IloExpr constraint(env);
 				constraint += x[arc*ndemands+k];
 				constraint -= (ub/data->d_k[k].quantity)*y[arc];
@@ -572,8 +576,10 @@ LPChecker::globalc_viol(const IloNumArray & yb , const GlobalCut* gloc) {
       	if(sum >= 1.0)
       		 return false;
     }
-    return true;
-}
+     if((sum + 1e-10)<1.0)
+    	return true;
+    else return false;
+ }
 
 //---------------------------------------------------------------------------
 
@@ -587,7 +593,9 @@ LPChecker::coverc_viol(const IloNumArray & yb , const Cover* cover) {
       	sum+= cover->gamma_at(a)*yb[ cover->at(a) ];
         if(sum>=rhs){return false;}   
     }
-    return true;
+    if((sum + 1e-10)<rhs)
+    	return true;
+    else return false;
 }
 
 //---------------------------------------------------------------------------
@@ -604,7 +612,7 @@ LPChecker::localc_viol(const IloNumArray & yb , const LocalCut* loc) {
         if(sum>=rhs_ && loc->sense==1){return false;} 
         else if(sum>rhs_ && loc->sense==-1){return true;}
     }
-	if(loc->sense==1)
+	if(loc->sense==1 && (sum + 1e-10)<rhs_)
    		return true;
    	else return false;
 }

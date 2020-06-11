@@ -75,8 +75,10 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
 				if(min(ninsp[a].fst, ninsp[a].snd) >= 10 ){
 					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
-					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
-					candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+					psc1 = (1.0-psol[a]); psc1 = psc1<0 ? 0: psc1;
+					psc1 = psc1*psdcost[a].snd/double(ninsp[a].snd);
+					if(fmin(psol[a], (1.0-psol[a]))<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)*fmin(psol[a], (1.0-psol[a]))));
+					else candidates.push_back(Pair2(a, fmin(psc0, psc1)));
 				}
 			}
 		}
@@ -85,11 +87,12 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
 				psc0 =  psol[a];
-				psc1 =  (1.0-psol[a]); 
-				candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
+				psc1 =  (1.0-psol[a]);  psc1 = psc1<0 ? 0: psc1;
+				if(fmin(psc0, psc1)<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+				else candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
 			}
 		}
-		max_cand=5;
+		//max_cand=5;
 	}
 	
     std::stable_sort(candidates.begin(), candidates.end(), compPair2());
@@ -205,9 +208,10 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
  		lpchecker.logical_xfix(ub, yfix, vars);
  		
  	unfix -= changed_pos.size();
-	if(lpchecker.solved){
+ 	double gap= (ub  - LBi)/ub;
+	if(lpchecker.solved && gap<0.005){
 		lpchecker.test_high_lowerbounds( changed_pos, new_bd,  yfix, vars, psol, ub);
-	}else if((unfix < maxszunfx || (ub  - LBi)/ub<0.005)){
+	}else if((unfix < maxszunfx || gap<0.005)){
 		double prev = changed_pos.size();
 		lpfeaschecker.lbtested=true;
 		if(lpfeaschecker.test_high_lowerbounds(changed_pos, new_bd, yfix, vars,  psol, ub)<0){
@@ -511,8 +515,8 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	verify_children_feasibility( best->candidate(),  feas0, feas1 );
 	
 	double ybar_branch = y[var_branch];
-    double diff0 = (child0.objval() - LBi);
-    double diff1 = (child1.objval() - LBi);
+    double diff0 = (child0.objval() - LBi); if(diff0<0)diff0=0;
+    double diff1 = (child1.objval() - LBi); if(diff1<0)diff1=0;
     double lbdev = (fmin(child0.objval(), child1.objval()) - lower_bound)/lower_bound;
     std::cout<<"branching variable: "<<var_branch<<" lp: "<<(lpchecker.solved ? lpchecker.y_[var_branch]:-1.0)<<
     " y: "<<y[var_branch]<<" nbranch: "<<min(ninsp[var_branch].fst, ninsp[var_branch].snd)<<" capa: "<<data.arcs[var_branch].capa<<std::endl;
@@ -532,6 +536,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 	}
 	
 	double ybar_branch_ = (1.0- ybar_branch);
+	ybar_branch_ = ybar_branch_< 0 ? 0: ybar_branch_;
 	if(!feas0 && feas1){
 		++ninsp[var_branch].snd;
 		if(ybar_branch_>1e-8)psdcost[var_branch].snd+=diff1/ybar_branch_;
