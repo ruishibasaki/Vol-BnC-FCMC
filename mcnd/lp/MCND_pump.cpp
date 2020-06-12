@@ -417,6 +417,7 @@ Pump::volsolve(){
     sznz = szunfix+szfxone;
     volsolver.active_size = ndemands*nnodes;
     volsolver.psize = szunfix + ndemands*sznz;
+    volsolver.active_psize = szunfix;
     int retval = volsolver.solve(*this, true);
     if(retval<0) return -1;
     return 1;

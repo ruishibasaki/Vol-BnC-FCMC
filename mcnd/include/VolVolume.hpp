@@ -368,15 +368,15 @@ public:
    // convex combination between two primal solutions
    // x <-- alpha x + (1 - alpha) p.x
    // v <-- alpha v + (1 - alpha) p.v
-   inline void cc(const double alpha, const VOL_primal& p,  int actvSSz, int psize) {
+   inline void cc(const double alpha, const VOL_primal& p,  int actvSSz, int actv_psize) {
       value = alpha * p.value + (1.0 - alpha) * value;
-      x.cc(alpha, p.x, psize);
+      x.cc(alpha, p.x, actv_psize);
       v.cc(alpha, p.v, actvSSz);
    }
    // find maximum of v[i]
    void find_max_viol(const VOL_dvector& dual_lb, 
 		      const VOL_dvector& dual_ub, int actvSSz);
-	void copy(const VOL_primal& p, int psize, int actvSSz);
+	void copy(const VOL_primal& p, int actv_psize, int actvSSz);
 };
 
 //-----------------------------------------------------------------------------
@@ -719,7 +719,7 @@ public:
    int dsize;
    /** number of active dual var (INPUT) */
    int active_size;
-
+   int active_psize;
    /** lower bounds for the duals (if 0 length, then filled with -inf) (INPUT)
     */
    VOL_dvector dual_lb;

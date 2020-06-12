@@ -170,10 +170,10 @@ VOL_dual::copy(const VOL_dvector& w, int actvSSz){
 /** Copy only Atcive_Set values of <code>w</code> into the vector. */
 
 void 
-VOL_primal::copy(const VOL_primal& p, int psize, int actvSSz){
+VOL_primal::copy(const VOL_primal& p, int actv_psize, int actvSSz){
       value = p.value;
       viol = p.viol;
-      x.copy(p.x, psize);
+      x.copy(p.x, actv_psize);
       v.copy(p.v, actvSSz);
 }
 
@@ -494,7 +494,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
     // find primal violation
     //primal.find_max_viol(dual_lb, dual_ub); // this may be left out for speed
     
-    pstar.copy(primal, psize, active_size); // set pstar=primal
+    pstar.copy(primal, active_psize, active_size); // set pstar=primal
     primal.find_max_viol(dual_lb, dual_ub, active_size);
     max_viol = primal.viol;
     //pstar.find_max_viol(dual_lb, dual_ub); // set violation of pstar
@@ -577,7 +577,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         }
 
         // convex combination with new primal vector
-        pstar.cc(power_heur(primal, pstar, dual), primal,active_size, psize);
+        pstar.cc(power_heur(primal, pstar, dual), primal,active_size, active_psize);
 
         //pstar.find_max_viol(dual_lb, dual_ub, active_size); // find maximum violation of pstar
         if (swing.rd)
@@ -598,7 +598,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
             if (ub < best_ub)
                 best_ub = ub;
         }
-		
+		 
 		if(iter_ > ascent_first_check && 
 			iter_no_improv>=parm.ascent_check_invl) break;
         // test terminating criteria

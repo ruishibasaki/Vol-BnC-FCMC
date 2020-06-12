@@ -450,13 +450,13 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     if(best->action()[0]!=BCP_FathomChild){
     	cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[0]);
    		//if(!(lp_mode & LP_LogicalFixed) && y[cdata->branch_var]==0) cdata->reduced_run =true;
-    	cdata->hs = new WarmStartDual(cdata->dual_size, child0.pi(), mapd); //std::cout<<"dualsz: "<<cdata->dual_size<<std::endl;
+    	cdata->hs = new WarmStartDual(data.narcs, child0.x() ,cdata->dual_size, child0.pi(), mapd); //std::cout<<"dualsz: "<<cdata->dual_size<<std::endl;
     	cdata->parent = current_index();
     }
     if(best->action()[1]!=BCP_FathomChild){
     	cdata= dynamic_cast<MCND_node_branch_data *>(childs_data[1]);
     	if(lp_mode & LP_TestConnectivity) cdata->test_conn=true;
-    	cdata->hs = new WarmStartDual(cdata->dual_size, child1.pi(), mapd);//std::cout<<"dualsz: "<<cdata->dual_size<<std::endl;
+    	cdata->hs = new WarmStartDual(data.narcs, child1.x(), cdata->dual_size, child1.pi(), mapd);//std::cout<<"dualsz: "<<cdata->dual_size<<std::endl;
     	cdata->parent = current_index();
     }
 

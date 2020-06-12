@@ -22,16 +22,18 @@ public:
     
     std::map<int, int> mapd; //mapping for extra core cuts;
     double * dual; // corevalues/covervalues matching map in sequence.
-    int size;
-    
+    double * primal;
+    int sized;
+    int sizei;
     //---------------------
-    inline WarmStartDual(): dual(0){size=0;};
-    WarmStartDual(int size, const double* dual, const CoverCollection* covers, const LocalCutCollection* locals, const GlobalCutCollection* globals);
-    WarmStartDual(int size, const double* dual, const std::map<int, int>& map_ );
-    WarmStartDual(int size, const double* dual);
+    inline WarmStartDual(): dual(0), primal(0){sized=0; sizei=0;};
+    WarmStartDual(int sizei, const double* primal, int sized, const double* dual, const CoverCollection* covers, 
+    			const LocalCutCollection* locals, const GlobalCutCollection* globals);
+    WarmStartDual(int sizei, const double* primal, int sized, const double* dual, const std::map<int, int>& map_ );
+    WarmStartDual(int sizei, const double* primal, int sized, const double* dual);
     WarmStartDual(const WarmStartDual* wsd);
     
-    inline ~WarmStartDual(){ mapd.clear(); if(size) delete [] dual;}
+    inline ~WarmStartDual(){ mapd.clear(); if(sized) delete [] dual; if(sizei) delete [] primal;}
     CoinWarmStart * clone () const{ return new WarmStartDual(this);}
     WarmStartDual * clone_ws () const{ return new WarmStartDual(this);}
 

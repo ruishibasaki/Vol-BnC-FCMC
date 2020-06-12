@@ -39,7 +39,7 @@ OsiVolSolverInterface::getEmptyWarmStart () const{
 CoinWarmStart* 
 OsiVolSolverInterface::getWarmStart() const{
     //std::cout<<"getWarmStart() "<<getNumRows()<<std::endl;
-    return new WarmStartDual(getNumRows(), dual, &cover_manager->covers, &localc_manager->locals, &globalc_manager->globals);
+    return new WarmStartDual(narcs, solution, getNumRows(), dual, &cover_manager->covers, &localc_manager->locals, &globalc_manager->globals);
     
 } 
 
@@ -66,7 +66,7 @@ void
 OsiVolSolverInterface::markHotStart(){
     //std::cout<<"markHotStart() "<<getNumRows()<<std::endl;
     if(HotStart_) delete HotStart_;
-    HotStart_ = new WarmStartDual(getNumRows(), dual, &cover_manager->covers, &localc_manager->locals, &globalc_manager->globals); 
+    HotStart_ = new WarmStartDual(narcs, solution, getNumRows(), dual, &cover_manager->covers, &localc_manager->locals, &globalc_manager->globals); 
     //std::cout<<"markHotStart() now "<<std::endl;
     HotStartSet = true;
 }
@@ -359,7 +359,7 @@ OsiVolSolverInterface::resolve(){
     if(mode==-2){retval=-2; return;}
     volprob_->active_size = fsize + csize;
     volprob_->psize = szunfxd + data->ndemands*sznz;
-    
+    volprob_->active_psize = szunfxd;
     set_start();
     retval = volprob_->solve(*this, true);
     if(mode ==3) std::cout<<std::setprecision(10)<<"volresult: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<std::endl;
@@ -417,6 +417,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
  		else{
  			volprob_->active_size = fsize + csize;
     		volprob_->psize = szunfxd + data->ndemands*sznz;
+    		volprob_->active_psize = szunfxd;
     		set_start();
     		ret = volprob_->solve(*this, true);
  		}
@@ -715,20 +716,14 @@ OsiVolSolverInterface::resolve_subproblem(const VOL_dvector& dualu, VOL_dvector&
     lcost += B0;
     for(int a=szunfxd; a--; ){
         arc = nz_arcs[a];
-        if(rc[a]<1e-10 && rc[a]>-1e-10) rc[a] = 0;
+        //if(rc[a]<1e-10 && rc[a]>-1e-10) rc[a] = 0;
         if( rc[a]<0 /*|| (rc[a]==0 && x[a]==1.0)*/){
             lcost += rc[a];
             x[a]=1.0;
-            //if(localc_manager->locals.sizeOfCollection)
-            //	std::cout<<"a: "<<arc<<" = 1"<<std::endl;
-            //pcost += data->arcs[arc].f;
-            //for(int k=0; k<ndemands; ++k)
-             //   pcost += data->arcs[arc].c[k] * x[szunfxd + k*sznz + a];
+            
         }else{
             //if(x[a]==1.0){ std::cout<<"rarc: "<<a<<" "<<arc<<" rc: "<<rc[a]<<" y: "<<x[a]<<std::endl; abort();}
             x[a]=0.0;
-            //if(localc_manager->locals.sizeOfCollection)
-            //	std::cout<<"a: "<<arc<<" = 0"<<std::endl;
             for(int k=0; k<ndemands; ++k)
                 x[szunfxd + k*sznz + a]=0.0;
             
@@ -980,19 +975,21 @@ OsiVolSolverInterface::translate_sol(){
     CoinFillN(solution, getNumCols(), 0.0);
 
     int arc;
-     
+    double addvalue;
 	for(int a=szunfxd; a--;){
 		arc = nz_arcs[a];
-		solution[arc] = volprob_->psol[a];
+		if(HotStartSet) solution[arc] = (0.7*volprob_->psol[a] + 0.3*HotStart_->primal[arc]);
+		else solution[arc] = volprob_->psol[a];
+		
 		//std::cout<<arc<<" "<<volprob_->psol[a]<<std::endl;// /double(volprob_->iter())<<std::endl;
-		for(int k=ndemands; k--; )
-			solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
+		//for(int k=ndemands; k--; )
+			//solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
 	}
 	for(int a=szunfxd; a<sznz;++a){
 		arc = nz_arcs[a];
 		solution[arc] = 1;
-		for(int k=ndemands; k--; )
-			solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
+		//for(int k=ndemands; k--; )
+			//solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
 	}
 	translate_dualsol();
     

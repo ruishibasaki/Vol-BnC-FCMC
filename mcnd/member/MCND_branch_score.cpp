@@ -46,12 +46,10 @@ void
 MCND_node_branch_data::pack(BCP_buffer& buf) const{
     //std::cout<<"pack MCND_node_branch_data "<<hs<<" size:"<<buf.size()<<std::endl;
     //std::cout<<branch_var<<" "<<pos_neg<<" "<<score<<" "<<score_parent<<std::endl;
-    bool hashs = false;
-    if(hs && hs->size>0){
-    	hashs = true;
-    	buf.pack(hashs);
+    if(hs && (hs->sized>0 || hs->sizei>0)){
+    	buf.pack(true);
     	hs->pack(buf);
-    }else buf.pack(hashs);
+    }else buf.pack(false);
     //std::cout<<branch_var<<" "<<pos_neg<<" "<<score<<" "<<score_parent<<std::endl;
     buf.pack(branch_var).pack(pos_neg).pack(score);
     buf.pack(min_lb);
