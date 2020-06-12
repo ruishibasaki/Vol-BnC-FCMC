@@ -164,8 +164,6 @@ OsiVolSolverInterface::map_duals(){
     const Arc* item; const Demand* itemd;
     CoinFillN(actv, numrows_, -1);
     
-    map_topology();
-    
     for(int k=0; k<ndemands; ++k ){
         for(int i=0; i<nnodes; ++i ){
             flag = false;
@@ -216,17 +214,13 @@ OsiVolSolverInterface::map_duals(){
 //---------------------------------------------------------------------------
 
 void 
-OsiVolSolverInterface::translate_hotstart(const std::map<int, double>& dual_map, bool reset_ws){
+OsiVolSolverInterface::translate_hotstart(){
     int fidx = ndemands*nnodes;
     int idx, sz;
- 	std::map<int, double>::const_iterator it;
-	for(int i=fidx; i--;){
+ 	for(int i=fidx; i--;){
 		idx = actv[i];
 		if(idx>=0){
-			if(reset_ws){ 
-				it = dual_map.find(i);
-				volprob_->dsol[idx] =  it != dual_map.end() ? it->second : 0.0 ;;
-			}else volprob_->dsol[idx] = HotStart_->dual[i];
+			volprob_->dsol[idx] = HotStart_->dual[i];
 		}
 	}
 	sz = cover_manager->covers.sizeOfCollection;
@@ -234,12 +228,8 @@ OsiVolSolverInterface::translate_hotstart(const std::map<int, double>& dual_map,
 	for(int i=sz; i--;){
 		idx = actv[vi->id_vi];
 		if(idx>=0){
-			if(reset_ws){
-            	it = dual_map.find(fidx+vi->serial_nmbr);
-            	volprob_->dsol[idx] =  it != dual_map.end() ? it->second : 0.0 ;
-        	}else{
-				volprob_->dsol[idx] = HotStart_->get_mapped(vi->serial_nmbr);
-			}//std::cout<<" wsvi idx "<<idx<<" serial "<<vi->serial_nmbr<<" : "<<volprob_->dsol[idx]<<std::endl;
+			volprob_->dsol[idx] = HotStart_->get_mapped(vi->serial_nmbr);
+			//std::cout<<" wsvi idx "<<idx<<" serial "<<vi->serial_nmbr<<" : "<<volprob_->dsol[idx]<<std::endl;
 		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
 		vi = vi->next;
 	}
@@ -249,12 +239,8 @@ OsiVolSolverInterface::translate_hotstart(const std::map<int, double>& dual_map,
 	for(int i=sz; i--;){
 		idx = actv[vilc->id_vi];
 		if(idx>=0){
-			if(reset_ws){
-            	it = dual_map.find(fidx+vilc->serial_nmbr);
-            	volprob_->dsol[idx] =  it != dual_map.end() ? it->second : 0.0 ;
-        	}else{
-				volprob_->dsol[idx] = HotStart_->get_mapped(vilc->serial_nmbr);
-			}//std::cout<<" wsvi idx "<<idx<<" serial "<<vilc->serial_nmbr<<" : "<<volprob_->dsol[idx]<<std::endl;
+			volprob_->dsol[idx] = HotStart_->get_mapped(vilc->serial_nmbr);
+			//std::cout<<" wsvi idx "<<idx<<" serial "<<vilc->serial_nmbr<<" : "<<volprob_->dsol[idx]<<std::endl;
 		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
 		vilc = vilc->next;
 	}
@@ -264,12 +250,8 @@ OsiVolSolverInterface::translate_hotstart(const std::map<int, double>& dual_map,
 	for(int i=sz; i--;){
 		idx = actv[vigc->id_vi];
 		if(idx>=0){
-			if(reset_ws){
-            	it = dual_map.find(fidx+vigc->serial_nmbr);
-            	volprob_->dsol[idx] =  it != dual_map.end() ? it->second : 0.0 ;
-        	}else{
-				volprob_->dsol[idx] = HotStart_->get_mapped(vigc->serial_nmbr);
-			}//std::cout<<" wsvi idx "<<idx<<" serial "<<vigc->serial_nmbr<<" : "<<volprob_->dsol[idx]<<std::endl;
+			volprob_->dsol[idx] = HotStart_->get_mapped(vigc->serial_nmbr);
+			//std::cout<<" wsvi idx "<<idx<<" serial "<<vigc->serial_nmbr<<" : "<<volprob_->dsol[idx]<<std::endl;
 		}//else std::cout<<idx<<"wsvi id "<<vi->id_vi<<" : "<<HotStart_->dual_[idx]<<std::endl;
 		vigc = vigc->next;
 	}
@@ -298,7 +280,7 @@ OsiVolSolverInterface::set_start(){
         if(idx>=0){
             volprob_->dual_lb[idx] = -1.0e31;
             volprob_->dual_ub[idx] = 1.0e31;
-        }
+        } 
     }
     sz = cover_manager->num_actv;
     Cover* vi = cover_manager->covers.begin;
@@ -332,7 +314,7 @@ OsiVolSolverInterface::set_start(){
     if(HotStartSet){
     	if(volprob_->parm.maxsgriters>250)
     		volprob_->parm.maxsgriters=250;
-		translate_hotstart(lpchecker->dual_map, false);
+		translate_hotstart();
     }else volprob_->parm.maxsgriters=1000;
 }
 
@@ -371,26 +353,14 @@ OsiVolSolverInterface::resolve(){
 	else if(mode ==3){
 		markHotStart();
 	}
-     
+    
+    map_topology();
     map_duals();
     if(mode==-2){retval=-2; return;}
     volprob_->active_size = fsize + csize;
-    
     volprob_->psize = szunfxd + data->ndemands*sznz;
     
     set_start();
-    //std::cout<<"re solve "<<szunfxd<<" dsize: "<<volprob_->active_size<<" maxdsz: "<<maxNumrows_<<std::endl;
-    // Set the dual starting point
-    if(exact_solve){
-     	BCP_vec<BCP_var*> fake;
-    	int ret = lpchecker->solve(upper_bound, fake, collb, colub,volprob_->value);
-    	if(ret<0) volprob_->value=-1;
-    	else {
-    		lpchecker->solved=true;
-    		translate_hotstart(lpchecker->dual_map, true);
-    		volprob_->parm.maxsgriters=0;
-    	}
-    }
     retval = volprob_->solve(*this, true);
     if(mode ==3) std::cout<<std::setprecision(10)<<"volresult: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<std::endl;
 
@@ -411,16 +381,80 @@ OsiVolSolverInterface::resolve(){
 
 //---------------------------------------------------------------------------
 
-void OsiVolSolverInterface::direct_solve(const std::deque<int>& topo, const CoinWarmStart* warmstart){
-    nz_arcs = topo;
-    sznz = szopnd = nz_arcs.size();
-    szunfxd = 0;
+void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix,
+										 const BCP_vec<BCP_var*>& vars,  double bestsolv){
     markHotStart();
-    setWarmStart(warmstart);
-    resolve();
-    
-    CoinDisjointCopyN(HotStart_->dual, getNumRows(), dual);
+    double currlb = volprob_->value;
+    mode=0;
+    std::deque<int> totest;
+    for(int a=0;a<narcs;++a){
+		collb[a] = yfix[a]==-1 ? vars[a]->lb() : yfix[a];
+		colub[a] = yfix[a]==-1 ? vars[a]->ub() : yfix[a];
+		/*for(int k=0;k<ndemands;++k){
+			collb[narcs+k*narcs+a] = vars[narcs+k*narcs+a]->lb();
+			colub[narcs+k*narcs+a] = vars[narcs+k*narcs+a]->ub();
+		}*/
+		if(yfix[a]==-1 && (solution[a]<0.1 || solution[a]>0.9))totest.push_back(a);
+	}
+	
+    volprob_->parm.ascent_check_invl = 50;
+    int arc, ret;
+    while(!totest.empty()){
+		arc = totest.back();
+		totest.pop_back();
+ 		if(solution[arc]>0.9){
+ 			collb[arc]=0;
+ 			colub[arc]=0;
+		}else{
+			collb[arc]=1;
+ 			colub[arc]=1;
+		}
+  		
+  		map_topology();
+    	map_duals();
+		ret=1;
+ 		if(mode==-2){ ret=-1;}
+ 		else{
+ 			volprob_->active_size = fsize + csize;
+    		volprob_->psize = szunfxd + data->ndemands*sznz;
+    		set_start();
+    		ret = volprob_->solve(*this, true);
+ 		}
+    	
+ 		
+		if(ret<0 ||  volprob_->value<=0 || volprob_->value>bestsolv){
+ 			 ret = -1;
+		}
+		
+		std::cout<<arc<<" OsiVolSolverInterface::test_opposites "<<volprob_->value<<std::endl;
+ 		if( ret<0 ){
+			if(solution[arc]>0.9){
+				std::cout<<arc<<" OsiVolSolverInterface::test_opposites FIX 1 "<<solution[arc]<<std::endl;
+				yfix[arc]=1;
+				collb[arc]=1;
+ 				colub[arc]=1;
+ 				changed_pos.push_back(arc);
+				new_bd.push_back(1.0);
+				new_bd.push_back(1.0);
+			}else{
+				std::cout<<arc<<" OsiVolSolverInterface::test_opposites FIX 0 "<<solution[arc]<<std::endl;
+				yfix[arc]=0;
+				collb[arc]=0;
+ 				colub[arc]=0;
+ 				changed_pos.push_back(arc);
+				new_bd.push_back(0.0);
+				new_bd.push_back(0.0);
+			}
+		}else{
+			collb[arc]= vars[arc]->lb();
+ 			colub[arc]= vars[arc]->ub();
+		}
+		 
+	}
+	has_checked=true;
+	volprob_->value = currlb;
     unmarkHotStart();
+    
 }
 
 
@@ -437,6 +471,8 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
           VOL_dvector& rc, VOL_dvector& h, int & actvSSz){
     //return 0;
     bool letgen=false;
+    if(mode == 0) return 0;
+    
     if(lcost >= VItt ){
         VItt = lcost;
         letgen = true;
@@ -444,8 +480,6 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
         //std::cout<<"iter: "<<iter<<" lb: "<<lcost<<std::endl;
         //for(int a=szunfxd; a--; ){ std::cout<<"rc:  "<<nz_arcs[a]<<" "<<rc_[nz_arcs[a]]<<std::endl;}
     }
-    
-    if(mode == 0) return 0;
     
     if( (mode == 1) && iter>0 && iter%intvlVI==0){
         translate_primal(xstar);
@@ -765,7 +799,7 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
         if(xval>0){
         	fillUp += xval;
         	xval /= data->d_k[k].quantity;
-        	if(xval>1){ std::cout<<"ATENCAO!! "<<xval<<std::endl; xval = 1.0; }
+        	if(xval>1){   xval = 1.0; }
         	kpsack += rcost * xval;
         	x[szunfxd + k*sznz + a] = xval;
         }else x[szunfxd + k*sznz + a] = 0;
@@ -790,7 +824,7 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
         	// std::cout<<narcs+comm*narcs+arc<<" confirm: "<<arc+1<<" comm: "<<comm+1<<" "<<colub[narcs+comm*narcs+arc]<<std::endl;
         	flow = std::min((capa - fillUp), (colub[narcs+comm*narcs+arc]-collb[narcs+comm*narcs+arc]));
         	xval = flow/data->d_k[comm].quantity;
-        	if(xval>1){ std::cout<<"ATENCAO!! "<<xval <<std::endl; xval =1.0; }
+        	if(xval>1){  xval =1.0; }
 
             x[basex + a] += xval;
             fillUp += flow;
@@ -946,37 +980,22 @@ OsiVolSolverInterface::translate_sol(){
     CoinFillN(solution, getNumCols(), 0.0);
 
     int arc;
-    if(exact_solve){
-    	for(int a=szunfxd; a--;){
-			arc = nz_arcs[a];
-			solution[arc] = lpchecker->y_[arc];
-			//std::cout<<arc<<" "<<volprob_->psol[a]<<std::endl;// /double(volprob_->iter())<<std::endl;
-			for(int k=ndemands; k--; )
-				solution[narcs+k*narcs+arc] = lpchecker->x_[arc*ndemands+k];
-		}
-		for(int a=szunfxd; a<sznz;++a){
-			arc = nz_arcs[a];
-			solution[arc] = 1;
-			for(int k=ndemands; k--; )
-				solution[narcs+k*narcs+arc] = lpchecker->x_[arc*ndemands+k];
-		}
-    	reset_dualsol(lpchecker->dual_map);
-    }else{
-		for(int a=szunfxd; a--;){
-			arc = nz_arcs[a];
-			solution[arc] = volprob_->psol[a];
-			//std::cout<<arc<<" "<<volprob_->psol[a]<<std::endl;// /double(volprob_->iter())<<std::endl;
-			for(int k=ndemands; k--; )
-				solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
-		}
-		for(int a=szunfxd; a<sznz;++a){
-			arc = nz_arcs[a];
-			solution[arc] = 1;
-			for(int k=ndemands; k--; )
-				solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
-		}
-		translate_dualsol();
-    }
+     
+	for(int a=szunfxd; a--;){
+		arc = nz_arcs[a];
+		solution[arc] = volprob_->psol[a];
+		//std::cout<<arc<<" "<<volprob_->psol[a]<<std::endl;// /double(volprob_->iter())<<std::endl;
+		for(int k=ndemands; k--; )
+			solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
+	}
+	for(int a=szunfxd; a<sznz;++a){
+		arc = nz_arcs[a];
+		solution[arc] = 1;
+		for(int k=ndemands; k--; )
+			solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
+	}
+	translate_dualsol();
+    
     
 }
 
@@ -1398,8 +1417,7 @@ volprob_(0)
     mode =1;
     num_purgbl=0;
     min_lower_bound=0;
-    recheck_collct=in_strong_branch = HotStartSet = false;
-    exact_solve=false;
+    has_checked= recheck_collct=in_strong_branch = HotStartSet = false;
 }
 
 
@@ -1487,6 +1505,7 @@ OsiVolSolverInterface::OsiVolSolverInterface(const OsiVolSolverInterface& x) :
 OsiSolverInterface(x),
 volprob_()
 {
+	has_checked = x.has_checked;
 	HotStart_ = x.HotStart_;
     maxNumrows_ = x.maxNumrows_;
     maxNumcols_ = x.maxNumcols_;
@@ -1516,7 +1535,7 @@ volprob_()
     globalc_manager = x.globalc_manager;
     volprob_ = x.volprob_;
     lpchecker = x.lpchecker;
-
+	
 }
 
 //-----------------------------------------------------------------------
@@ -1540,6 +1559,8 @@ OsiVolSolverInterface::operator=(const OsiVolSolverInterface& x){
 	addrc = x.addrc;
 	actv = x.actv;
 	HotStart_ = x.HotStart_;
+	has_checked = x.has_checked;
+	
     mode = x.mode;
     data = x.data;   
     

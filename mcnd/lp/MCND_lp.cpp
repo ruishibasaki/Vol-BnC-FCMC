@@ -90,6 +90,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     
     //std::cout<<"initialize_new_search_tree_node "<<cuts.size()<<std::endl;
     ++num_nodes;
+    getOsiVolBabSolver()->has_checked=false;
     lpfeaschecker.lbtested=false;
     if(has_sol){
     	double ub = upper_bound();
@@ -108,7 +109,10 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 			}
 			times_dived=0;
 			//max_cand = 5 ;
-		}else{ reduced_run=true;}//max_cand = 1;}
+		}else{
+			if(times_dived >=3){ reduced_run=false;}
+			else{ reduced_run=true;}
+		}//max_cand = 1;}
 		double gap = (ub  - lower_bound)/ub;
 		if(gap<0.005){
 			maxszunfx=0;
@@ -235,14 +239,12 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = AppVolData.volprob.parm;
     if(lp_mode & LP_ForceNodeAbort){ vollp->mode=-2;  return;}
-
+	
     vollp->has_sol = has_sol;
     vollp->recheck_collct=false;
     vollp->upper_bound = LBi >0 ? fmin(upper_bound(), LBi*5) : upper_bound();
     par.dual_limit = vollp->upper_bound*5; 
-    //if(no_gap_reduct >3 && !lpchecker.solved && !in_strong_branching) vollp->exact_solve=true;
-    //else 
-    vollp->exact_solve=false;
+    
     //std::cout<<"limit: "<<par.dual_limit<<" "<<vollp->upper_bound<<" strongbranching:"<<in_strong_branching<<std::endl;     
     
     if(current_level()>0){ 
@@ -263,6 +265,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
      	vollp->mode=2;
     }else vollp->mode=1;
    
+    vollp->in_strong_branch = in_strong_branching;
     if(in_strong_branching){
     	vollp->recheck_collct=true; 
     	vollp->min_lower_bound = LBi;  
@@ -279,7 +282,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
 		if(lp_mode & LP_SecondIter){vollp->mode=3;}
 		lp_mode &= ~LP_LogicalFixed; /*vollp->mode=3; par.maxsgriters = 100;*/
 	}
-    vollp->in_strong_branch = in_strong_branching;
+    
     lp_mode |= LP_SecondIter;
 }
 
@@ -301,7 +304,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 	double gap = (ub  - LBi)/ub;
-    if(((gap < 0.01) || times_dived>=3) && !(lp_mode & LP_OptSolved)){
+    if(((gap < 0.01 && !reduced_run)) && !(lp_mode & LP_OptSolved)){
     	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;

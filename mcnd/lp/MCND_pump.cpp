@@ -125,10 +125,10 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
             topo[a]=-2;
             fxone[szfxone++] = a;
          }else if(vars[a]->ub()==1.0){
-            if(x[a]>=0.99){ 
+            /*if(x[a]>=0.99){ 
             	topo[a]=-2;
             	fxone[szfxone++] = a;
-            }else if(x[a]>=0.01){
+            }else*/ if(x[a]>=0.01){
             	rnd = rand()%2;
 				if((rnd==1 && pertbd<maxpertbd) || (besttopo==0)){
 					rnd = ((rand()%101)/100.0 <= x[a]) ? 1 : 0;

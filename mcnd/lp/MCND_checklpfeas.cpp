@@ -267,7 +267,7 @@ LPFeasChecker::test_high_lowerbounds( BCP_vec<int>& changed_pos, BCP_vec<double>
    	apply_bounds(vars);
    	int ret=0;
    	cplex.setParam(IloCplex::Param::Advance, 0);
-	//cplex.setParam(IloCplex::RootAlg, 2);
+	cplex.setParam(IloCplex::RootAlg, 0);
 	
 	if(!lbtested){ 
 		ret= solve();

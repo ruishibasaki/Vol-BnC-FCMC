@@ -20,6 +20,9 @@
 #include "CoinPackedMatrix.hpp"
 #include "OsiSolverInterface.hpp"
 #include "WarmStartDual.hpp"
+#include "BCP_vector.hpp"
+#include "BCP_var.hpp"
+
 
 static const double OsiVolInfinity = 1.0e31;
 
@@ -448,7 +451,7 @@ private:
     
     int mark_topo( VOL_dvector& x, double lcost);
     void translate_primal(const VOL_dvector& xhist);
-    void translate_hotstart(const std::map<int, double>& dual_map, bool reset_ws);
+    void translate_hotstart();
     void translate_sol();
     void translate_dualsol();
     void set_start();
@@ -461,7 +464,8 @@ public:
     void add_external_cover(const std::deque<Pair2>& c);
     int add_external_localc( const int * y, const double * sol, int sz, int type);
     int add_external_globalc( const int * y, int cont0);
-    void direct_solve(const std::deque<int>& topo, const CoinWarmStart* warmstart);
+    void test_opposites(BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix,
+										 const BCP_vec<BCP_var*>& vars,  double bestsolv);
     void reset_dualsol(const std::map<int, double>& dual_map);
 
     
@@ -479,8 +483,7 @@ public:
     bool in_strong_branch;
     bool recheck_collct;
     bool has_sol;
-    bool exact_solve;
-    
+    bool has_checked;
     //Volume attributes
     double VIub, VItt, B0;
     double * VItopo;

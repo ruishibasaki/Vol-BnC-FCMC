@@ -68,33 +68,17 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 
     //if(no_gap_reduct >5) max_cand=1;
     if(reduced_run)max_cand=1;
-    else max_cand=5;
-    
-    if(max_cand==1){
-		for (int a=data.narcs; a--;) {
-			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
-				if(min(ninsp[a].fst, ninsp[a].snd) >= 10 ){
-					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
-					psc1 = (1.0-psol[a]); psc1 = psc1<0 ? 0: psc1;
-					psc1 = psc1*psdcost[a].snd/double(ninsp[a].snd);
-					if(fmin(psol[a], (1.0-psol[a]))<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)*fmin(psol[a], (1.0-psol[a]))));
-					else candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-				}
-			}
+    else max_cand=3;
+  
+	for (int a=data.narcs; a--;) {
+		if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
+			psc0 =  psol[a];
+			psc1 =  (1.0-psol[a]);  psc1 = psc1<0 ? 0: psc1;
+			if(fmin(psc0, psc1)<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+			else candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
 		}
 	}
-	if(candidates.empty()){
-		for (int a=data.narcs; a--;) {
-			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
-				psc0 =  psol[a];
-				psc1 =  (1.0-psol[a]);  psc1 = psc1<0 ? 0: psc1;
-				if(fmin(psc0, psc1)<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-				else candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
-			}
-		}
-		//max_cand=5;
-	}
-	
+		
     std::stable_sort(candidates.begin(), candidates.end(), compPair2());
 	 
 	int arc;
@@ -116,20 +100,6 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 							  0, 0, 0, 0 /* implied parts */));
 		
 		++ncands;
-		if(psol[arc]<0.1 || psol[arc]>0.9){        	
-        	std::cout<<"OPA!"<<std::endl;
-        	++max_cand;
-        	if(max_cand>5)max_cand=5;
-        }
-		/*if(psol[arc]<0.1){
-			while(!candidates.empty()){
-				arc = candidates.front().fst;
-				std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd
-				<<" "<<min(ninsp[arc].fst, ninsp[arc].snd)<<std::endl;
-				candidates.pop_front();		
-			}
-			abort();
-		}*/
 	}
 	
 	
@@ -190,7 +160,14 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				new_bd.push_back(1.0);
 				yfix[a]=1;
 				arcfx=true;
-			}
+			}/*else if(psol[a]==0){
+				std::cout<<a<<" SOLUTION FIX 0 "<<std::endl;
+				changed_pos.push_back(a);
+ 				new_bd.push_back(0.0);
+				new_bd.push_back(0.0);
+				yfix[a]=0;
+				arcfx=true;
+			}*/
 			unfix++;
 		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
@@ -209,9 +186,11 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
  		
  	unfix -= changed_pos.size();
  	double gap= (ub  - LBi)/ub;
-	if(lpchecker.solved && gap<0.005){
-		lpchecker.test_high_lowerbounds( changed_pos, new_bd,  yfix, vars, psol, ub);
-	}else if((unfix < maxszunfx || gap<0.005)){
+ 	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked){
+ 		double prev = changed_pos.size();
+ 		getOsiVolBabSolver()->test_opposites( changed_pos, new_bd,  yfix, vars,  ub);
+ 		arcfx = (prev < changed_pos.size()) ?  true: arcfx;
+ 	}/*else if((unfix < maxszunfx || gap<0.005)){
 		double prev = changed_pos.size();
 		lpfeaschecker.lbtested=true;
 		if(lpfeaschecker.test_high_lowerbounds(changed_pos, new_bd, yfix, vars,  psol, ub)<0){
@@ -223,7 +202,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			return;
 		}
 		arcfx = (prev < changed_pos.size()) ?  true: arcfx;
-	}
+	}*/
  	
 	double tt, bd, dk;
 	double lpbd;

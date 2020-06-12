@@ -286,7 +286,7 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 
 
 int 
-LPChecker::test_high_lowerbounds(  BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix,
+LPChecker::test_high_lowerbounds(BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix,
 										 const BCP_vec<BCP_var*>& vars,  const double* volsol, double bestsolv){
 	
 	topo_ctrnt.endElements();
@@ -340,7 +340,7 @@ LPChecker::test_high_lowerbounds(  BCP_vec<int>& changed_pos, BCP_vec<double>& n
 			cplex.getValues(xb,x);
 			cplex.getValues(yb,y);
 			while(cut( vars, yb, xb, xbdtemp,  addctrnt)){
- 				cplex.solve();
+				cplex.solve();
 			
 				if(cplex.getStatus() != IloAlgorithm::Optimal){ 
 					ret = -1;
