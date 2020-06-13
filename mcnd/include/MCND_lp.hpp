@@ -86,6 +86,7 @@ public:
 	double maxszunfx;
 	
     bool reduced_run;
+    bool dive_for_sol;
     bool has_sol;
     bool no_heur;
     MCND_solution best_sol;
@@ -107,7 +108,7 @@ public:
 public:
     inline MCND_lp() : LBi(0), has_sol(false), track(0), reduced_run(false) { 
     	lp_mode = LP_Normal;  no_gap_reduct=num_nodes=0; lower_bound=0;
-    	nomgap = 1e30;  
+    	nomgap = 1e30;  dive_for_sol=false;
     }
     ~MCND_lp();
     

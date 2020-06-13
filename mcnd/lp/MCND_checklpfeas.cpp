@@ -88,8 +88,8 @@ LPFeasChecker::apply_bounds(const BCP_vec<BCP_var*>& vars){
 		if(vars[a]->ub()<=0.5){  continue; }
 		for(int k=0;k<ndemands;++k){
 			IloExpr constraint(env);
-    		constraint += x[a*ndemands+k];
-    		xbd.add((constraint<=vars[narcs+k*narcs+a]->ub()));
+    		constraint += x[a*ndemands+k] - vars[narcs+k*narcs+a]->ub();
+    		xbd.add((constraint <=0));
     		model.add(xbd[addbd++]);
     		constraint.end();
 		}
@@ -104,8 +104,8 @@ LPFeasChecker::apply_bounds(const double * colub){
 		if(colub[a]<=0.5){  continue; }
 		for(int k=0;k<ndemands;++k){
 			IloExpr constraint(env);
-    		constraint += x[a*ndemands+k];
-    		xbd.add((constraint<=colub[narcs+k*narcs+a]));
+    		constraint += x[a*ndemands+k]-colub[narcs+k*narcs+a];
+    		xbd.add((constraint<=0));
     		model.add(xbd[addbd++]);
     		constraint.end();
 		}

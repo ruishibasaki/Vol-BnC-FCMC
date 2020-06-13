@@ -27,7 +27,9 @@ public:
 	IloRangeArray cutstrong;
 	 
 	double factory;
-	double round;
+	double roundup;
+	double roundwn;
+
  	//--------------------------
 	double altsolval;
 	double * altsol;

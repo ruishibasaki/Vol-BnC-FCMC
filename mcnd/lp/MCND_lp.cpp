@@ -23,9 +23,9 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     y.resize(data.narcs,0);
     yfix = new int[data.narcs];
     std::fill(yfix,yfix+data.narcs, -1);
-    ninsp.resize(data.narcs,Pair(0,0));
-    psdcost.resize(data.narcs,PairF(0,0));
-    tabu.resize(data.narcs,0);
+    //ninsp.resize(data.narcs,Pair(0,0));
+    //psdcost.resize(data.narcs,PairF(0,0));
+    //tabu.resize(data.narcs,0);
     
     cover_manager.initialize(&data, 20);
     localc_manager.initialize(&data, 50);
@@ -239,6 +239,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = AppVolData.volprob.parm;
     if(lp_mode & LP_ForceNodeAbort){ vollp->mode=-2;  return;}
+	else if(dive_for_sol && in_strong_branching ){ vollp->mode=-1; return;}
 	
     vollp->has_sol = has_sol;
     vollp->recheck_collct=false;
@@ -246,7 +247,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     par.dual_limit = vollp->upper_bound*5; 
     
     //std::cout<<"limit: "<<par.dual_limit<<" "<<vollp->upper_bound<<" strongbranching:"<<in_strong_branching<<std::endl;     
-    
+    par.ascent_first_check = 100;
     if(current_level()>0){ 
 		par.lambdainit=1.0;
 		par.alphainit=0.5;
@@ -256,10 +257,8 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
 		AppVolData.minIterVI = 50;
      	AppVolData.intvlVI = 200; 
      	if(reduced_run){
-     		//par.ascent_first_check = 50;
     		par.ascent_check_invl = 50;
      	}else{
-     		//par.ascent_first_check = 100;
     		par.ascent_check_invl = 100;
      	}
      	vollp->mode=2;
@@ -304,7 +303,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 	double gap = (ub  - LBi)/ub;
-    if(((gap < 0.01 && !reduced_run)) && !(lp_mode & LP_OptSolved)){
+    if(((gap < 0.01 && !reduced_run) || (times_dived >=3) || (no_gap_reduct>=3)) && !(lp_mode & LP_OptSolved)){
     	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
@@ -669,7 +668,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
  		//std::cout<<"Pump::solve trypump? "<<cont<<" "<<maxszunfx<<std::endl;
  		if(no_heur) return 0; 
     	else if((lp_mode & LP_HeuristicRunned) && (current_level()>0 || current_iteration()>15)) return 0;
-    	else if( current_level()%20>0 || (current_iteration()>15)) return 0;
+    	else if( current_level()%5>0 || (current_iteration()>15)) return 0;
     	
 	}
     //if(pump_heur.validate_topology()< 0) return 0;

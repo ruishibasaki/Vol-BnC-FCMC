@@ -91,7 +91,7 @@ void MCND_read_data(std::string fname, Data & data) {
             ss>>data.arcs[i].i;
             ss>>data.arcs[i].j;
             ss>>data.arcs[i].f;
-            ss>>data.arcs[i].capa;
+            ss>>data.arcs[i].capa; //std::cout<<data.arcs[i].capa<<std::endl;
             ss>>pk;
             data.grid[(data.arcs[i].i-1)*nnodes+(data.arcs[i].j-1)]=i;
             ss.clear();

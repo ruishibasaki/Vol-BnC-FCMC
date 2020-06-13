@@ -312,8 +312,8 @@ OsiVolSolverInterface::set_start(){
     
     
     if(HotStartSet){
-    	if(volprob_->parm.maxsgriters>250)
-    		volprob_->parm.maxsgriters=250;
+    	if(volprob_->parm.maxsgriters>500)
+    		volprob_->parm.maxsgriters=500;
 		translate_hotstart();
     }else volprob_->parm.maxsgriters=1000;
 }

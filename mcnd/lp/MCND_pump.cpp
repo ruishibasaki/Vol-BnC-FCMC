@@ -22,7 +22,8 @@ Pump::set_data(const Data * d){
 	topo.resize(narcs);
   	
  	szunfix=0;
- 	round =0.3;
+ 	roundup =0.3;
+ 	roundwn = 0.3;
 	maxunfix = narcs*0.3;
 	set_parameters();
 	
@@ -125,10 +126,10 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
             topo[a]=-2;
             fxone[szfxone++] = a;
          }else if(vars[a]->ub()==1.0){
-            /*if(x[a]>=0.99){ 
+            if(x[a]>=0.99){ 
             	topo[a]=-2;
             	fxone[szfxone++] = a;
-            }else*/ if(x[a]>=0.01){
+            }else if(x[a]>=0.01){
             	rnd = rand()%2;
 				if((rnd==1 && pertbd<maxpertbd) || (besttopo==0)){
 					rnd = ((rand()%101)/100.0 <= x[a]) ? 1 : 0;
@@ -270,13 +271,13 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 			int arc = unfx[a];
 			if(topo[arc]<0)solpump += factory - factory*volsolver.psol[a];
 			else solpump += factory*volsolver.psol[a];
-			if(volsolver.psol[a] <= round && topo[arc]<0 && tabu[arc]<3){
+			if(volsolver.psol[a] <= roundup && topo[arc]<0 && tabu[arc]<3){
 				//std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], factory);
 				tabu[arc]++;
 				topo[arc] = 1;
 				dontbreak = true;
-			}else if(volsolver.psol[a] >= 0.3 && topo[arc]>0 && tabu[arc]<3){
+			}else if(volsolver.psol[a] >= roundwn && topo[arc]>0 && tabu[arc]<3){
 				//std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], -factory);
 				topo[arc] = -1;
@@ -298,12 +299,13 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		return -10;
 	}
 	if(feas){
+		roundwn*=1.8; if(roundup>0.3) roundup=0.3;
 		IloNumArray x_(env);
 		cplex.getValues(x_,x);
 		getSolution(  x_, mipsol );
 		x_.end(); 
 		if(best_sol != 0 && mipsol->cost > best_sol->cost)
-			round*=1.8; if(round>0.5) round=0.5;
+			roundup*=1.8; if(roundup>0.5) roundup=0.5;
 		else if(best_sol ==0) return 1;
 		if(best_sol->onlyvalue && mipsol->cost < altsolval){
 			altsolval = mipsol->cost;
@@ -313,7 +315,8 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
   		return 1;
 	}else{ 
 		get_closed(fixd0, closed, true); 
-		round*=0.8; if(round<0.3) round=0.3;
+		roundup*=0.8; if(roundup<0.3) roundup=0.3;
+		roundwn*=0.8; if(roundup<0.1) roundup=0.1;
 		return 0;
 	}
 	
