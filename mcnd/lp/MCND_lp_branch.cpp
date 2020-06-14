@@ -68,9 +68,9 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 
     //if(no_gap_reduct >5) max_cand=1;
     if(reduced_run)max_cand=1;
-    else max_cand=5;
+    else max_cand=3;
     dive_for_sol=false;
-    if((upper_bound() - LBi)/upper_bound() > 0.02 && !no_heur){dive_for_sol=true; max_cand=1; std::cout<<"force dive: chase for better sol"<<std::endl; }
+    //if((upper_bound() - LBi)/upper_bound() > 0.02 && !no_heur){dive_for_sol=true; max_cand=1; std::cout<<"force dive: chase for better sol"<<std::endl; }
 	
   
 	for (int a=data.narcs; a--;) {
@@ -171,7 +171,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				yfix[a]=0;
 				arcfx=true;
 			}*/
-			unfix++;
+			
 		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
 	}
@@ -193,6 +193,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	Arc * item;
 	for(int a=data.narcs; a--;){
 		if(yfix[a]==0){ if(vars[a]->ub()==1.0){lp_mode |= LP_TestConnectivity;} continue;}
+		else if(yfix[a]==-1) unfix++;
 		
 		item  =  &data.arcs[a];
 		gij = rcsol[a];
@@ -256,7 +257,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		lpchecker.bound_red.assign(data.narcs*data.ndemands,-1);
 	}
 	
-	unfix -= changed_pos.size();
+	
  	double gap= (ub  - LBi)/ub;
  	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked){
  		double prev = changed_pos.size();
