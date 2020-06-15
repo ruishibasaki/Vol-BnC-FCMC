@@ -410,12 +410,13 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
 			collb[arc]=1;
  			colub[arc]=1;
 		}
-  		
+  		recheck_collct=true;
   		map_topology();
     	map_duals();
 		ret=1;
  		if(mode==-2){ ret=-1;}
  		else{
+ 			mode=0;
  			volprob_->active_size = fsize + csize;
     		volprob_->psize = szunfxd + data->ndemands*sznz;
     		volprob_->active_psize = szunfxd;
@@ -446,6 +447,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
  				changed_pos.push_back(arc);
 				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
+				if(arc==32) abort();
 			}
 		}else{
 			collb[arc]= vars[arc]->lb();
@@ -818,6 +820,7 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
         	//if(colub[narcs+comm*narcs+arc]<data->arcs[arc].b[comm])
         	// std::cout<<narcs+comm*narcs+arc<<" confirm: "<<arc+1<<" comm: "<<comm+1<<" "<<colub[narcs+comm*narcs+arc]<<std::endl;
         	flow = std::min((capa - fillUp), (colub[narcs+comm*narcs+arc]-collb[narcs+comm*narcs+arc]));
+        	if(flow<0)flow=0;
         	xval = flow/data->d_k[comm].quantity;
         	if(xval>1){  xval =1.0; }
 
