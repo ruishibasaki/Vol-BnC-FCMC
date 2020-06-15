@@ -212,7 +212,7 @@ LocalCCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_
 			for(;ntofx--;){
 				arc = tofix[ntofx];
 				fixd[arc] = 1;
-				std::cout<<"localfix "<<arc<<" to 1 "<<std::endl;
+				std::cout<<"localfix "<<localc->type<<" "<<arc<<" to 1 "<<std::endl;
 				var_changed_pos.push_back(arc);
 				var_new_bd.push_back(1.0);
 				var_new_bd.push_back(1.0);
@@ -226,7 +226,7 @@ LocalCCut::check_viol_updt_fix(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& var_
 				arc = tofix[ntofx];
 				fixd[arc] = 0;
 				zrofx=true;
-				std::cout<<"localfix "<<arc<<" to 0"<<std::endl;
+				std::cout<<"localfix "<<localc->type<<" "<<arc<<" to 0"<<std::endl;
 				var_changed_pos.push_back(arc);
 				var_new_bd.push_back(0.0);
 				var_new_bd.push_back(0.0);

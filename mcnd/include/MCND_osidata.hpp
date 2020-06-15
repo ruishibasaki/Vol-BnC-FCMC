@@ -67,7 +67,7 @@ public:
 
     OsiVolAuxInfo():volprob("volmcnd.par") {
         maxNumVI =1000;
-		maxPos = 100000000;
+		maxPos = 100000;
         intvlVI =50;
         minIterVI=100;
         appData_ = this;

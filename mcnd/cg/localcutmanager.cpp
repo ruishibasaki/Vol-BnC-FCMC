@@ -40,10 +40,9 @@ LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double 
         put=true;
         infeas=false;
         //if(vi->type==0)std::cout<<"try: type "<<vi->type<<" "<<vi->prgbl<<std::endl;
-		//if(vi->type==2) put=false;
         if(recheck_collct) put = vi->check_updt_Viol(topo, infeas);
         if(infeas) return -1;
-
+		if(vi->type==2 || vi->type==0) put=false;
         
         if(put && !vi->prgbl){
             actvS[vi->id_vi] = fsize+csize;
@@ -413,7 +412,7 @@ LocalCutManager::compute_localc_sg( const double * x, const int * actvS, int act
 		if(index>=actvSSz){ std::cout<<"localindex: "<<index<<"/"<<actvSSz<<std::endl; abort(); }
 		v[index] *= vi->sense;
 		
-		//if(vi->type==2){vi->print(); std::cout<<"viol "<<v[index]<<" rhs: "<<vi->get_total_rhs()<<" type "<<vi->type<<std::endl;}
+		//if(vi->type!=1){vi->print(); std::cout<<"viol "<<v[index]<<" rhs: "<<vi->get_total_rhs()<<" type "<<vi->type<<std::endl;}
 
         if(v[index]<=0){
             ++vi->n_nviol;

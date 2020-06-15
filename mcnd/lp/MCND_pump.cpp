@@ -16,14 +16,16 @@ Pump::set_data(const Data * d){
 	volsolver.ext_initializer(narcs+narcs*ndemands, nnodes*ndemands);
 	volsolver.dual_ub = 1e31;
 	volsolver.dual_lb = -1e31;
- 
+ 	volsolver.parm.ascent_check_invl = 100;
+ 	volsolver.parm.ascent_first_check =100;
+ 	
     fxone.resize(narcs);
  	unfx.resize(narcs);
 	topo.resize(narcs);
   	
  	szunfix=0;
- 	roundup =0.3;
- 	roundwn = 0.3;
+ 	roundup = 0.5;
+ 	roundwn = 0.5;
 	maxunfix = narcs*0.3;
 	set_parameters();
 	
@@ -32,6 +34,18 @@ Pump::set_data(const Data * d){
 		 if(factory<data->arcs[a].f)factory = data->arcs[a].f;
 	}
  	//factory *= 100;
+ 	tabu.resize(1000,0);
+	tabusz = tern=0;
+	int sizeOfInt=8*sizeof(unsigned int);
+    sizeOfIdSeq = (narcs/sizeOfInt)+1;
+    
+	map = new Pair2[narcs];
+    for(int i=0;i<narcs;++i){
+        map[i].fst = i/sizeOfInt;
+        map[i].snd = i%sizeOfInt;
+    }
+
+
 }
 
 //-------------------------------------------------------------------------------------------
@@ -163,6 +177,90 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
 //-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------
 
+int
+Pump::validate_topology( ){
+	unsigned int* seqtopo = new unsigned int[sizeOfIdSeq];
+	std::fill(seqtopo, seqtopo+sizeOfIdSeq, 0);
+	Pair2* maptitem=0;
+ 	for(int a=narcs; a--;){
+		maptitem = &map[a];
+        if(topo[a]<0.0){
+             setBit(seqtopo, maptitem->fst, maptitem->snd);
+        }
+    }
+     
+    if(check_tabu(seqtopo)){
+    	try_perturbation(seqtopo);
+    	if(check_tabu(seqtopo)){
+    		delete [] seqtopo;
+     		return -1;
+     	}
+    }
+    return 1;
+}
+
+//-------------------------------------------------------------------------------------------
+
+bool
+Pump::check_tabu(unsigned int* seqtopo){
+	unsigned int* titem;
+	bool equal;
+	Pair2* maptitem=0;
+
+	for(int i=tabusz;i--;){
+		titem = tabu[i];
+		equal=true;
+		for(int id=0;id<sizeOfIdSeq;++id){
+			if(titem[id] != seqtopo[id]){
+				equal=false;
+				break;
+			}
+		}
+		if(equal){
+			return true;
+		}
+    }  
+    if(tern==tabu.size()){ tern=0;}
+    unsigned int*& tabuitem = tabu[tern];
+	if(tabuitem) { delete [] tabuitem;}
+	tabuitem = seqtopo;
+	if(tabusz<tabu.size())++tabusz;
+	++tern;
+
+	
+    return false;
+}
+
+//-------------------------------------------------------------------------------------------
+
+void
+Pump::try_perturbation(unsigned int* seqtopo){
+	int arc;
+	Pair2* maptitem=0;
+	std::cout<<"Pump::try_perturbation"<<std::endl;
+	std::random_shuffle(unfx.begin(), unfx.begin()+szunfix);
+ 	for(int a=0;a<szunfix;++a){
+		arc = unfx[a];
+		//std::cout<<"arc: "<<arc<<std::endl;
+		if(topo[arc]==-1){
+			topo[arc]=1;
+			maptitem = &map[arc];
+			clearBit(seqtopo, maptitem->fst, maptitem->snd);
+		}else if(topo[arc]==1){
+			topo[arc]=-1;
+			maptitem = &map[arc];
+			setBit(seqtopo, maptitem->fst, maptitem->snd);
+		}
+		if(rand()%2)++a;
+	}
+
+}
+
+
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+
 void Pump::create_model( ) {	
 	Pair2 item;
 	int arc;
@@ -253,16 +351,19 @@ Pump::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArr
 int 
 Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_solution*& mipsol){
 	bool feas=true;
+	varsp = &vars;
 	if(best_sol->onlyvalue && altsol==0){
     	altsolval=1e30;
     }
-     
+    if(validate_topology()<0)return -10;
+    
 	bool dontbreak = true;
-	std::vector<int>tabu(narcs,0);
+	std::vector<int>modtabu(narcs,0);
     while(dontbreak){
 		if(volsolve()<0){
+			modtabu.clear();
 			get_closed(fixd0, closed, false);
-			return -1;
+			return 0;
 		}
 		
 		dontbreak = false;
@@ -271,23 +372,23 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 			int arc = unfx[a];
 			if(topo[arc]<0)solpump += factory - factory*volsolver.psol[a];
 			else solpump += factory*volsolver.psol[a];
-			if(volsolver.psol[a] <= roundup && topo[arc]<0 && tabu[arc]<3){
+			if(volsolver.psol[a] <= roundwn && topo[arc]<0 && modtabu[arc]<1){
 				//std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], factory);
-				tabu[arc]++;
+				modtabu[arc]++;
 				topo[arc] = 1;
 				dontbreak = true;
-			}else if(volsolver.psol[a] >= roundwn && topo[arc]>0 && tabu[arc]<3){
+			}else if(volsolver.psol[a] >= roundwn && topo[arc]>0 && modtabu[arc]<1){
 				//std::cout<<"y "<<arc<<" : "<<volsolver.psol[a]<<" topo: "<<topo[arc]<<std::endl;
 				//cplex.getObjective().setLinearCoef(y[arc], -factory);
 				topo[arc] = -1;
-				tabu[arc]++;
+				modtabu[arc]++;
 				dontbreak = true;
 			}
 		}
-		std::cout<<"final pump "<<solpump<<" volume: "<<volsolver.value<<std::endl;
+		std::cout<<"final pump "<<solpump<<" volume: "<<volsolver.value<<" "<<roundwn<<std::endl;
     }
-    
+    modtabu.clear();
 	 
  	check_feas_model();
 	cplex.solve();
@@ -299,14 +400,15 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		return -10;
 	}
 	if(feas){
-		roundwn*=1.8; if(roundup>0.3) roundup=0.3;
+		roundwn*=1.8; if(roundwn>0.5) roundwn=0.5;
 		IloNumArray x_(env);
 		cplex.getValues(x_,x);
 		getSolution(  x_, mipsol );
 		x_.end(); 
-		if(best_sol != 0 && mipsol->cost > best_sol->cost)
-			roundup*=1.8; if(roundup>0.5) roundup=0.5;
-		else if(best_sol ==0) return 1;
+		//if(best_sol != 0 && mipsol->cost > best_sol->cost)
+			//roundup*=1.8; if(roundup>0.5) roundup=0.5;
+		//else 
+		if(best_sol ==0) return 1;
 		if(best_sol->onlyvalue && mipsol->cost < altsolval){
 			altsolval = mipsol->cost;
 			if(altsol==0) altsol = new double [narcs];
@@ -315,8 +417,8 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
   		return 1;
 	}else{ 
 		get_closed(fixd0, closed, true); 
-		roundup*=0.8; if(roundup<0.3) roundup=0.3;
-		roundwn*=0.8; if(roundup<0.1) roundup=0.1;
+		//roundup*=0.8; if(roundup<0.3) roundup=0.3;
+		roundwn*=0.8; if(roundwn<0.1) roundwn=0.1;
 		return 0;
 	}
 	
@@ -445,6 +547,7 @@ Pump::solve_subproblem(const VOL_dvector& xstar,
     	//if(xstar[a]>1)std::cout<<"WHAT? "<<xstar[a]<<std::endl;
         arc = unfx[a];
         cost_a = knapsack(a, true, rc.v, x.v);
+        if(cost_a>1e30) return -1;
         rc[a] += cost_a; 
         if( rc[a] < 0.0){
             x[a] =1.0;
@@ -471,33 +574,40 @@ double
 Pump::knapsack(int a, bool none, const double * rc, double* x){
     double kpsack =0;
     double fillUp =0;
-    double rcost, flow;
+    double rcost, flow, xval;
     int arc, base;
     if(none){ arc = unfx[a]; base = szunfix;}
     else{  arc = fxone[a];  ; base = 2*szunfix;}
     std::list<HeapCell> heap;
+    const BCP_vec<BCP_var*>& vars = *varsp;
     //get reduced cost for each commodity in arc e
     for(int k=ndemands; k--; ){
     	rcost = rc[base + k*sznz + a];
-        if(rcost<0.0){
+        if(rcost<0.0 &&  vars[narcs + k*narcs + arc]->ub()>0.0){
             heap.push_back(HeapCell(k, rcost));
+        } 
+        xval= vars[narcs + k*narcs + arc]->lb();
+        if(xval>1e-4){
+         	fillUp += xval;
+        	kpsack += rcost * xval;
+        	x[base + k*sznz + a] = xval;
         }else x[base + k*sznz + a] = 0;
+    } 
         
-    }
     
-    if(  heap.empty() ){ 
-    	 return 0;
+    double capa = data->arcs[arc].capa;
+    if(fillUp >= capa || heap.empty() ){ 
+    	if(fillUp > capa) kpsack = 1e31;
+    	heap.clear(); return kpsack;
     }
+   
     heap.sort(comp());
-    //std::stable_sort(heap.begin(), heap.end(), comp());
-    
     
     int comm;
-    double capa = data->arcs[arc].capa;
     while(heap.size()>0){ 
         comm = heap.back().k;
         if(fillUp < capa){
-        	flow = std::min((capa - fillUp), data->arcs[arc].b[comm]);
+        	flow = std::min((capa - fillUp), (vars[narcs + comm*narcs + arc]->ub()-vars[narcs + comm*narcs + arc]->lb()));
             x[base + comm*sznz + a] = flow;
             fillUp += flow;
             kpsack += heap.back().rc_ * flow;

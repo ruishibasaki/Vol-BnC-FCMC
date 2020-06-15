@@ -93,8 +93,9 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    tm->init_sol.size = tm->data.narcs;
    tm->init_sol.xy = new double [tm->data.narcs];
    std::fill(tm->init_sol.xy, tm->init_sol.xy+tm->data.narcs,0.0);
-   int ret = read_init_sol("optimal.txt", inst, tm->init_sol.xy, tm->init_sol.cost);
+   int ret = read_init_sol("optimal.txt", inst, 0/*tm->init_sol.xy*/, tm->init_sol.cost);
    if(ret>=0){
+   		tm->init_sol.cost = 1e30;
     	if(ret==0) tm->init_sol.onlyvalue=true;
 		p.upper_bound = tm->init_sol.cost;
 		MCND_solution * sol = new MCND_solution();
@@ -125,7 +126,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    p.par.set_entry(BCP_tm_par::QualityRatioToAllowDiving_NoUB, -1.0);
    p.par.set_entry(BCP_tm_par::RemoveExploredBranches, true);
    p.par.set_entry(BCP_tm_par::MessagePassingIsSerial, true);
-	tm->time_lim = 10*3600.0;
+	tm->time_lim = 3*3600.0;
    p.par.set_entry(BCP_tm_par::MaxRunTime, tm->time_lim);
 
    tm->t_start = clock();

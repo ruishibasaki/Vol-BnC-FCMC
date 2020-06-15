@@ -68,17 +68,30 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 
     //if(no_gap_reduct >5) max_cand=1;
     if(reduced_run)max_cand=1;
-    else max_cand=3;
+    else max_cand=1;
     dive_for_sol=false;
     //if((upper_bound() - LBi)/upper_bound() > 0.02 && !no_heur){dive_for_sol=true; max_cand=1; std::cout<<"force dive: chase for better sol"<<std::endl; }
 	
-  
-	for (int a=data.narcs; a--;) {
-		if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
-			psc0 =  psol[a];
-			psc1 =  (1.0-psol[a]);  psc1 = psc1<0 ? 0: psc1;
-			if(fmin(psc0, psc1)<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-			else candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
+  	if(max_cand==0){
+		for (int a=data.narcs; a--;) {
+			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
+				if(min(ninsp[a].fst, ninsp[a].snd) >= 5 && (psol[a]>=0.1 && psol[a]<=0.9) ){
+					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
+					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
+					candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+				}
+			}
+		}
+	}
+
+	if(candidates.empty()){
+		for (int a=data.narcs; a--;) {
+			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
+				psc0 =  psol[a];
+				psc1 =  (1.0-psol[a]);  psc1 = psc1<0 ? 0: psc1;
+				if(fmin(psc0, psc1)<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+				else candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
+			}
 		}
 	}
 		
@@ -147,7 +160,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
     
  	for (int a=data.narcs; a--;){
 		if(vars[a]->lb()==0.0 && vars[a]->ub()==1.0 && yfix[a]==-1){
-			//std::cout<<"penalty test: "<<a<<" "<<gij<<" lbs: "<<lb<<" "<<LBi<<std::endl;
+			//std::cout<<"penalty test: "<<a<<" rc: "<<gij<<" y: "<<psol[a]<<std::endl;
 			gij = rcsol[a];
 			if(gij>0 && (lb+gij)>=ub){
 				std::cout<<a<<" LOGFIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<ub<<std::endl;
@@ -163,12 +176,19 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				new_bd.push_back(1.0);
 				yfix[a]=1;
 				arcfx=true;
-			}/*else if(psol[a]<1e-10){
+			}else if(psol[a]<1e-10){
 				std::cout<<a<<" SOLUTION FIX 0 "<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0;
+				arcfx=true;
+			}/*else if(psol[a]>1.0-1e-10){
+				std::cout<<a<<" SOLUTION FIX 1 "<<std::endl;
+				changed_pos.push_back(a);
+ 				new_bd.push_back(1.0);
+				new_bd.push_back(1.0);
+				yfix[a]=1;
 				arcfx=true;
 			}*/
 			
@@ -259,7 +279,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	
 	
  	double gap= (ub  - LBi)/ub;
- 	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked){
+ 	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked && !dive_for_sol){
  		double prev = changed_pos.size();
  		getOsiVolBabSolver()->test_opposites( changed_pos, new_bd,  yfix, vars,  ub);
  		arcfx = (prev < changed_pos.size()) ?  true: arcfx;
@@ -491,38 +511,43 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
     double diff1 = (child1.objval() - LBi); if(diff1<0)diff1=0;
     double lbdev = (fmin(child0.objval(), child1.objval()) - lower_bound)/lower_bound;
     std::cout<<"branching variable: "<<var_branch<<" lp: "<<(lpchecker.solved ? lpchecker.y_[var_branch]:-1.0)<<
-    " y: "<<y[var_branch]<</*" nbranch: "<<min(ninsp[var_branch].fst, ninsp[var_branch].snd)<<*/" capa: "<<data.arcs[var_branch].capa<<std::endl;
+    " y: "<<y[var_branch]<<" nbranch: "<<min(ninsp[var_branch].fst, ninsp[var_branch].snd)<<" capa: "<<data.arcs[var_branch].capa<<std::endl;
     std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl;
  	
  	bool dive=false;
- 	if(lbdev<0.001){ dive=true;  ++times_dived; std::cout<<"force dive: childsol closed to lb"<<std::endl;}
+ 	if(dive_for_sol){
+ 		dive=true;
+ 		diff0 = -ybar_branch;
+ 		diff1 = -1.0 + ybar_branch; if(diff1>0)diff1=0;
+ 	}else if(lbdev<0.001){ dive=true;  ++times_dived; std::cout<<"force dive: childsol closed to lb"<<std::endl;}
+		
 	if(!feas0){
 		childs_action[0] = BCP_FathomChild;
 	}else{
-		/*++ninsp[var_branch].fst;
+		++ninsp[var_branch].fst;
 		if((ybar_branch)>1e-8) psdcost[var_branch].fst+=diff0/ybar_branch;
-		else psdcost[var_branch].fst+=diff0*1e8;*/
+		else psdcost[var_branch].fst+=diff0*1e8;
 		
-		if(((dive) && diff0<diff1) || dive_for_sol) childs_action[0] = BCP_KeepChild;
+		if(((dive) && diff0<diff1)) childs_action[0] = BCP_KeepChild;
 		else childs_action[0] = BCP_ReturnChild;
 	}
 	
 	double ybar_branch_ = (1.0- ybar_branch);
 	ybar_branch_ = ybar_branch_< 0 ? 0: ybar_branch_;
 	if(!feas0 && feas1){
-		/*++ninsp[var_branch].snd;
+		++ninsp[var_branch].snd;
 		if(ybar_branch_>1e-8)psdcost[var_branch].snd+=diff1/ybar_branch_;
-		else psdcost[var_branch].snd+=diff1*1e8;*/
+		else psdcost[var_branch].snd+=diff1*1e8;
 		
 		childs_action[1] = BCP_KeepChild;
 	}else if(!feas1){
 		childs_action[1] = BCP_FathomChild;
 	}else{
-		/*++ninsp[var_branch].snd;
+		++ninsp[var_branch].snd;
 		if(ybar_branch_>1e-8)psdcost[var_branch].snd+=diff1/ybar_branch_;
-		else psdcost[var_branch].snd+=diff1*1e8;*/
+		else psdcost[var_branch].snd+=diff1*1e8;
 		
-		if((dive) && diff0>=diff1 && !dive_for_sol) childs_action[1] = BCP_KeepChild;
+		if((dive) && diff0>=diff1) childs_action[1] = BCP_KeepChild;
 		else childs_action[1] = BCP_ReturnChild;
 	}
 	if(childs_action[1] == BCP_KeepChild || childs_action[0] == BCP_KeepChild) 

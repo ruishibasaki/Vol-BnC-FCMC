@@ -362,7 +362,6 @@ OsiVolSolverInterface::resolve(){
     volprob_->active_psize = szunfxd;
     set_start();
     retval = volprob_->solve(*this, true);
-    if(mode ==3) std::cout<<std::setprecision(10)<<"volresult: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<std::endl;
 
     if(volprob_->value< min_lower_bound && in_strong_branch){
      	volprob_->value = min_lower_bound;
@@ -398,6 +397,8 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
 	}
 	
     volprob_->parm.ascent_check_invl = 50;
+	volprob_->parm.ascent_first_check = 50;
+
     int arc, ret;
     while(!totest.empty()){
 		arc = totest.back();
@@ -798,7 +799,6 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
         	kpsack += rcost * xval;
         	x[szunfxd + k*sznz + a] = xval;
         }else x[szunfxd + k*sznz + a] = 0;
-        
     }
     
     double capa = data->arcs[arc].capa;
@@ -976,9 +976,14 @@ OsiVolSolverInterface::translate_sol(){
 
     int arc;
     double addvalue;
+    double coeff = volprob_->iter()/double(volprob_->parm.maxsgriters);
+    if(coeff>0.7) coeff=0.7;
+	if(!in_strong_branch)std::cout<<std::setprecision(10)<<"OsiVolSolverInterface::translate_sol: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "
+	<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<" coef: "<<coeff<<std::endl;
+
 	for(int a=szunfxd; a--;){
 		arc = nz_arcs[a];
-		if(HotStartSet) solution[arc] = (0.7*volprob_->psol[a] + 0.3*HotStart_->primal[arc]);
+		if(HotStartSet) solution[arc] = (coeff*volprob_->psol[a] + (1.0-coeff)*HotStart_->primal[arc]);
 		else solution[arc] = volprob_->psol[a];
 		
 		//std::cout<<arc<<" "<<volprob_->psol[a]<<std::endl;// /double(volprob_->iter())<<std::endl;

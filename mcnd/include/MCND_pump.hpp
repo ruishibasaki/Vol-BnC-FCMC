@@ -15,7 +15,7 @@
 class Pump : public VOL_user_hooks{
 
 public:
-	 
+
 	IloEnv env;
 	IloCplex cplex;
 	IloModel model;
@@ -29,6 +29,12 @@ public:
 	double factory;
 	double roundup;
 	double roundwn;
+	 
+	//--------------------------
+	int tern, tabusz;
+	int sizeOfIdSeq;
+    Pair2 *map;
+ 	std::vector<unsigned int *> tabu;
 
  	//--------------------------
 	double altsolval;
@@ -40,7 +46,7 @@ public:
 	int szunfix, maxunfix;
   	std::vector<int> unfx;
  	std::vector<int> topo;
- 
+    const BCP_vec<BCP_var*>* varsp;
 	//--------------------------
 	Pump(): cplex(env), x(env), y(env), model(env), fobj(env), cutstrong(env), volsolver("volmcnd.par") {data =0; altsolval=0; altsol=0; }
 	void set_data(const Data * d);
@@ -49,7 +55,10 @@ public:
 	
 	//--------------------------
 	int make_topo( const double * x  , const BCP_vec<BCP_var*>& vars);
-	 
+	int validate_topology( );
+	bool check_tabu(unsigned int* seqtopo);
+	void try_perturbation(unsigned int* seqtopo);
+
 	//--------------------------
 
  	void create_model();

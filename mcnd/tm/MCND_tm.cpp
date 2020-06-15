@@ -31,7 +31,7 @@ MCND_tm::pack_module_data(BCP_buffer& buf, BCP_process_t ptype)
           data.pack(buf);
           if((instance.find("C/c") != std::string::npos) ||
           	(instance.find("R/r") != std::string::npos))
-          		buf.pack(true);
+          		buf.pack(false);
           else buf.pack(false);
           buf.pack(getTmProblemPointer()->has_ub());
           init_sol.pack(buf);
@@ -84,9 +84,9 @@ MCND_tm::initialize_core(BCP_vec<BCP_var_core*>& vars,
 	for (int a = 0; a < narcs; ++a){
 		if(data.d_k[k].O == data.arcs[a].j || data.d_k[k].D == data.arcs[a].i)
 		 	vars.unchecked_push_back(new BCP_var_core(BCP_ContinuousVar,
-					      data.arcs[a].c[k], 0, 0));
+					      data.arcs[a].c[k], 0.0, 0.0));
 		else vars.unchecked_push_back(new BCP_var_core(BCP_ContinuousVar,
-					      data.arcs[a].c[k], 0, data.arcs[a].b[k]));
+					      data.arcs[a].c[k], 0.0, data.arcs[a].b[k]));
 	}
 	     
   
