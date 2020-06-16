@@ -49,6 +49,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     max_cand = 5 ;
     maxszunfx=0.3*data.narcs;
 	pump_heur.maxunfix = maxszunfx;
+	pump_mode=true;
      
 }
 
@@ -239,7 +240,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = AppVolData.volprob.parm;
     if(lp_mode & LP_ForceNodeAbort){ vollp->mode=-2;  return;}
-	else if(in_strong_branching ){ vollp->mode=-1; return;}
+	else if(in_strong_branching && pump_mode){ vollp->mode=-1; return;}
 	
     vollp->has_sol = has_sol;
     vollp->recheck_collct=false;
@@ -303,7 +304,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 	double gap = (ub  - LBi)/ub;
-    if(((gap < 0.01 && !reduced_run) || (times_dived >=3)) && !(lp_mode & LP_OptSolved)){
+    if((unfix < 500) && ((gap < 0.01 && !reduced_run) || (times_dived >=3)) && !(lp_mode & LP_OptSolved) && !pump_mode){
     	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
@@ -556,25 +557,26 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 	const double *sol = lp_result.x();
 	int *fixd = new int [data.narcs];  
 	double fathmval=0; 
-	int cont=0;
 	int closed=0;	
     bool integer=true;
+    unfix=0;
+
 	for (int a=data.narcs; a--;){
 		if(vars[a]->lb()>0.5){fathmval += data.arcs[a].f; 
 		}else if(vars[a]->ub()>0.5){ 
-			++cont;
+			++unfix;
 			if(sol[a]>0.1 && sol[a]<(1-0.1)) integer=false;
 		} 
     }
-	std::cout<<"test_feasibility unfx: "<<cont<<std::endl;
+	std::cout<<"test_feasibility unfx: "<<unfix<<std::endl;
     int ret=10;
     if(getOsiVolBabSolver()->getViolation()==0 && integer) {
-    	ret = lpfeaschecker.solve_opt(cont, vars, sol, fixd, closed, mipsol, fathmval, upper_bound());
+    	ret = lpfeaschecker.solve_opt(unfix, vars, sol, fixd, closed, mipsol, fathmval, upper_bound());
     	std::cout<<"MCND_lp::test_feasibility intger && no violation"<<std::endl;
     	lp_mode |= LP_ForceNodeAbort ;
-    }else if(cont<= maxszunfx || integer ){ 
-    	ret = lpfeaschecker.solve_opt(cont, vars, 0, fixd, closed, mipsol, fathmval, upper_bound());
-    	if(cont ==0){ lp_mode |= LP_ForceNodeAbort; std::cout<<"MCND_lp::test_feasibility allfixed"<<std::endl;}
+    }else if(unfix<= maxszunfx || integer ){ 
+    	ret = lpfeaschecker.solve_opt(unfix, vars, 0, fixd, closed, mipsol, fathmval, upper_bound());
+    	if(unfix ==0){ lp_mode |= LP_ForceNodeAbort; std::cout<<"MCND_lp::test_feasibility allfixed"<<std::endl;}
     }else {
     	delete []fixd;
     	return 0;
@@ -595,8 +597,8 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 	delete []fixd;
 	
 	 
-    //std::cout<<"test_feasibility: "<<getOsiVolBabSolver()->getViolation()<<" integ: "<<integer<<" unfx: "<<cont<<std::endl;
-    std::cout<<"test_feasibility: sol: "<<mipsol->cost<<" "<<cont<<" ub: "<<upper_bound()<<std::endl;
+    //std::cout<<"test_feasibility: "<<getOsiVolBabSolver()->getViolation()<<" integ: "<<integer<<" unfx: "<<unfix<<std::endl;
+    std::cout<<"test_feasibility: sol: "<<mipsol->cost<<" "<<unfix<<" ub: "<<upper_bound()<<std::endl;
     lp_mode |= LP_HeuristicRunned;
 	if(upper_bound() >= mipsol->cost){
 		if(!(lp_mode & LP_ForceNodeAbort)){
@@ -661,10 +663,10 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
     const double * x = lpres.x();
     int * fixd0 = 0;
     int closed=0;
-	int cont= pump_heur.make_topo( x, vars);
-    
+	
+	unfix= pump_heur.make_topo( x, vars);
 	//if(cont!=0) return 0; //
- 	if(cont > 0){
+ 	if(unfix > 0){
  		//std::cout<<"Pump::solve trypump? "<<cont<<" "<<maxszunfx<<std::endl;
  		if(no_heur) return 0; 
     	else if((lp_mode & LP_HeuristicRunned) && (current_level()>0 || current_iteration()>15)) return 0;

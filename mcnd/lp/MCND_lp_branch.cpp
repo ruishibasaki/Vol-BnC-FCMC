@@ -68,11 +68,9 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 
     //if(no_gap_reduct >5) max_cand=1;
     if(reduced_run)max_cand=1;
-    else max_cand=1;
-    dive_for_sol=false;
-    //if((upper_bound() - LBi)/upper_bound() > 0.02 && !no_heur){dive_for_sol=true; max_cand=1; std::cout<<"force dive: chase for better sol"<<std::endl; }
+    else max_cand=3;
 	
-  	if(max_cand==0){
+  	if(max_cand==1 && !pump_mode){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
 				if(min(ninsp[a].fst, ninsp[a].snd) >= 5 && (psol[a]>=0.1 && psol[a]<=0.9) ){
@@ -154,7 +152,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
     double lb = lpres.objval();
     double gij, ckij;
     bool arcfx=false;
-    int unfix=0;
+    unfix=0;
     std::fill(yfix,yfix+data.narcs, -1);
     double ub = upper_bound();
     
@@ -176,22 +174,23 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				new_bd.push_back(1.0);
 				yfix[a]=1;
 				arcfx=true;
-			}else if(psol[a]<1e-10){
+			} 
+			if(!pump_mode) continue;
+			if(psol[a]<1e-10){
 				std::cout<<a<<" SOLUTION FIX 0 "<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0;
 				arcfx=true;
-			}/*else if(psol[a]>1.0-1e-10){
+			}else if(psol[a]>1.0-1e-10){
 				std::cout<<a<<" SOLUTION FIX 1 "<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
 				yfix[a]=1;
 				arcfx=true;
-			}*/
-			
+			}
 		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
 	}
@@ -279,7 +278,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	
 	
  	double gap= (ub  - LBi)/ub;
- 	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked && !dive_for_sol){
+ 	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked){
  		double prev = changed_pos.size();
  		getOsiVolBabSolver()->test_opposites( changed_pos, new_bd,  yfix, vars,  ub);
  		arcfx = (prev < changed_pos.size()) ?  true: arcfx;
@@ -314,7 +313,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			MCND_Cut * cut = dynamic_cast<MCND_Cut*>(cuts[i]);
 			if(cut->purgbl()) continue;
 			if(!cut->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
-				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; cut->print();
+				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; //cut->print();
 				if(cut->cut_type==1){
 					globalc_manager.globalc_generation_main2(0, yfix);
 				}
@@ -337,7 +336,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			//std::cout<<"gloc_updt "<<gloc->serial_nmbr<<" "<<gloc->purgbl<<std::endl;
 			if(gloc->purgbl) continue;
 			if(!gloc->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
-				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; gloc->print();
+				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; //gloc->print();
 				globalc_manager.globalc_generation_main2(0, yfix);
 				var_changed_pos.clear();
 				var_new_bd.clear();
@@ -515,11 +514,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
     std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl;
  	
  	bool dive=false;
- 	if(dive_for_sol){
- 		dive=true;
- 		diff0 = -ybar_branch;
- 		diff1 = -1.0 + ybar_branch; if(diff1>0)diff1=0;
- 	}else if(lbdev<0.001){ dive=true;  ++times_dived; std::cout<<"force dive: childsol closed to lb"<<std::endl;}
+ 	if(lbdev<0.001 && !pump_mode){ dive=true;  ++times_dived; std::cout<<"force dive: childsol closed to lb"<<std::endl;}
 		
 	if(!feas0){
 		childs_action[0] = BCP_FathomChild;

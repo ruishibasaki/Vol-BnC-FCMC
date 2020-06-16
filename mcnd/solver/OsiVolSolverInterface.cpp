@@ -447,7 +447,6 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
  				changed_pos.push_back(arc);
 				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
-				if(arc==32) abort();
 			}
 		}else{
 			collb[arc]= vars[arc]->lb();
@@ -981,7 +980,7 @@ OsiVolSolverInterface::translate_sol(){
     double addvalue;
     double coeff = volprob_->iter()/double(volprob_->parm.maxsgriters);
     if(coeff>0.7) coeff=0.7;
-	if(!in_strong_branch)std::cout<<std::setprecision(10)<<"OsiVolSolverInterface::translate_sol: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "
+	if(!in_strong_branch)std::cout<<std::setprecision(10)<<"OsiVolSolverInterface::translate_sol: "<<volprob_->value<<" hs: "<<HotStartSet<<" iters: "
 	<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<" coef: "<<coeff<<std::endl;
 
 	for(int a=szunfxd; a--;){

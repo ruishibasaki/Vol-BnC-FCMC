@@ -400,7 +400,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		return -10;
 	}
 	if(feas){
-		roundwn*=1.8; if(roundwn>0.5) roundwn=0.5;
+		roundwn*=1.2; if(roundwn>0.7) roundwn=0.7;
 		IloNumArray x_(env);
 		cplex.getValues(x_,x);
 		getSolution(  x_, mipsol );
