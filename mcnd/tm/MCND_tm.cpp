@@ -31,7 +31,7 @@ MCND_tm::pack_module_data(BCP_buffer& buf, BCP_process_t ptype)
           data.pack(buf);
           if((instance.find("C/c") != std::string::npos) ||
           	(instance.find("R/r") != std::string::npos))
-          		buf.pack(false);
+          		buf.pack(true);
           else buf.pack(false);
           buf.pack(getTmProblemPointer()->has_ub());
           init_sol.pack(buf);

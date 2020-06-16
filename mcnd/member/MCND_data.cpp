@@ -163,8 +163,8 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     arc_unique = arc;
                     ++comm_sat;
                 }else{
-                    //std::cout<<"set x_"<<arc+1<<"^"<<k+1<<" to zero. "<<vars[narcs+k*narcs+arc]->lb()<<" "<<vars[narcs+k*narcs+arc]->ub()<<std::endl;
                     if(vars[id]->ub()>0 && vars[id]->lb()==0){
+                        //std::cout<<"set x_"<<arc+1<<"^"<<k+1<<" to zero. "<<vars[narcs+k*narcs+arc]->lb()<<" "<<vars[narcs+k*narcs+arc]->ub()<<std::endl;
                     	set_bd(id, 0.0, 0.0,  changed_pos, new_bd);
                     	bound_red[k*narcs+arc] = 0.0;
                     	redone=true;

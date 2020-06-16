@@ -68,11 +68,11 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 
     //if(no_gap_reduct >5) max_cand=1;
     if(reduced_run)max_cand=1;
-    else max_cand=1;
+    else max_cand=3;
     dive_for_sol=false;
     //if((upper_bound() - LBi)/upper_bound() > 0.02 && !no_heur){dive_for_sol=true; max_cand=1; std::cout<<"force dive: chase for better sol"<<std::endl; }
 	
-  	if(max_cand==0){
+  	if(max_cand==1){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
 				if(min(ninsp[a].fst, ninsp[a].snd) >= 5 && (psol[a]>=0.1 && psol[a]<=0.9) ){
@@ -207,7 +207,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		for (int k=data.ndemands; k--;){
 			id = data.narcs+k*data.narcs+a;
 			dk = data.d_k[k].quantity;
-			if(vars[id]->ub()==0.0 || flwconnect.bound_red[k*data.narcs+a] == 0.0) continue;
+ 			if(vars[id]->ub()==0.0 || flwconnect.bound_red[k*data.narcs+a] == 0.0) continue;
  
 			ckij = item->c[k]*dk - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
 			bd =-1;
@@ -216,7 +216,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				if(tt + ckij*vars[id]->ub()/dk > (ub+1e-4) ){
 					bd = (ub - tt)/ckij;
 					bd*=dk;
-					if(bd<1e-8)bd=0.0;
+					//if(bd<1e-8)bd=0.0;
 					//else if(vars[id]->ub()-bd <= 1e-4) continue;
 					//if(bd < lpchecker.bound_red[a*data.ndemands+k])
 					//	std::cout<<"flowlogfix: "<<id<<" "<<bd<<" "<<lpchecker.bound_red[a*data.ndemands+k]<<std::endl;
@@ -235,6 +235,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				if(lp_mode & LP_TestConnectivity || flwconnect.redone) flwconnect.clear_memory();
 				return;
 			}
+			if(bd<1e-4){bd=0;}
 			changed_pos.push_back(id);
 			new_bd.push_back(0.0);
 			new_bd.push_back(bd);

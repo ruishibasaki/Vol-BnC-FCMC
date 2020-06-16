@@ -24,8 +24,8 @@ Pump::set_data(const Data * d){
 	topo.resize(narcs);
   	
  	szunfix=0;
- 	roundup = 0.5;
- 	roundwn = 0.5;
+ 	roundup = 0.3;
+ 	roundwn = 0.3;
 	maxunfix = narcs*0.3;
 	set_parameters();
 	

@@ -171,10 +171,10 @@ OsiVolSolverInterface::map_duals(){
             for(int a=sznz; a--;){
                 int arc = nz_arcs[a];
                 item = &data->arcs[arc];
-                if((i+1) == item->i){
+                if((i+1) == item->i && (colub[narcs+k*narcs+arc]>0)){
                     flag = true;
                     break;
-                }else if((i+1) == item->j){
+                }else if((i+1) == item->j && (colub[narcs+k*narcs+arc]>0)){
                     flag = true;
                     break;
                 }
@@ -192,7 +192,7 @@ OsiVolSolverInterface::map_duals(){
              }*/
         }
     }
-	
+	//std::cout<<"dual size: "<<fsize<<" < "<<nnodes*ndemands<<std::endl;
     int ret = cover_manager->reset_and_map_collection(fsize, yhit, dual, actv, csize, recheck_collct);
     int ret2 = localc_manager->reset_and_map_collection(fsize, yhit, dual, actv, csize, recheck_collct);
     int ret3 = globalc_manager->reset_and_map_collection(fsize, yhit, dual, actv, csize, recheck_collct);
@@ -792,6 +792,7 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
     	rcost = rc[szunfxd + k*sznz + a];
         if(rcost<0.0 && colub[narcs+k*narcs+arc]>0.0){
             heap.push_back(HeapCell(k, double(rcost/data->d_k[k].quantity)));
+            if(colub[narcs+k*narcs+arc]<0.1) std::cout<<"opa realmente"<<std::endl; 
         }
         xval= collb[narcs+k*narcs+arc];
         if(xval>0){

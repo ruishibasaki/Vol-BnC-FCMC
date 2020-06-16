@@ -239,8 +239,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = AppVolData.volprob.parm;
     if(lp_mode & LP_ForceNodeAbort){ vollp->mode=-2;  return;}
-	else if(in_strong_branching ){ vollp->mode=-1; return;}
-	
+ 	
     vollp->has_sol = has_sol;
     vollp->recheck_collct=false;
     vollp->upper_bound = LBi >0 ? fmin(upper_bound(), LBi*5) : upper_bound();
@@ -303,7 +302,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 	double gap = (ub  - LBi)/ub;
-    if(((gap < 0.01 && !reduced_run) || (times_dived >=3)) && !(lp_mode & LP_OptSolved)){
+    if((unfix < 500) && ((gap < 0.01 && !reduced_run) || (times_dived >=3)) && !(lp_mode & LP_OptSolved)){
     	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
@@ -668,7 +667,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
  		//std::cout<<"Pump::solve trypump? "<<unfix<<" "<<maxszunfx<<std::endl;
  		if(no_heur) return 0; 
     	else if((lp_mode & LP_HeuristicRunned) && (current_level()>0 || current_iteration()>15)) return 0;
-    	else if( current_level()%2>0 || (current_iteration()>15)) return 0;
+    	else if( current_level()%20>0 || (current_iteration()>15)) return 0;
     	
 	}
     //if(pump_heur.validate_topology()< 0) return 0;
