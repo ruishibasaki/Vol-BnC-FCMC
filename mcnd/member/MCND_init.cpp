@@ -93,9 +93,9 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    tm->init_sol.size = tm->data.narcs;
    tm->init_sol.xy = new double [tm->data.narcs];
    std::fill(tm->init_sol.xy, tm->init_sol.xy+tm->data.narcs,0.0);
-   int ret = read_init_sol("optimal.txt", inst, 0/*tm->init_sol.xy*/, tm->init_sol.cost);
+   int ret = read_init_sol("optimal.txt", inst, tm->init_sol.xy, tm->init_sol.cost);
    if(ret>=0){
-   		tm->init_sol.cost = 1e30;
+   		//tm->init_sol.cost = 1e30;
     	if(ret==0) tm->init_sol.onlyvalue=true;
 		p.upper_bound = tm->init_sol.cost;
 		MCND_solution * sol = new MCND_solution();

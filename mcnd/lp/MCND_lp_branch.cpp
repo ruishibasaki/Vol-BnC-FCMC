@@ -154,7 +154,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
     double lb = lpres.objval();
     double gij, ckij;
     bool arcfx=false;
-    int unfix=0;
+    unfix=0;
     std::fill(yfix,yfix+data.narcs, -1);
     double ub = upper_bound();
     
@@ -176,21 +176,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				new_bd.push_back(1.0);
 				yfix[a]=1;
 				arcfx=true;
-			}else if(psol[a]<1e-10){
-				std::cout<<a<<" SOLUTION FIX 0 "<<std::endl;
-				changed_pos.push_back(a);
- 				new_bd.push_back(0.0);
-				new_bd.push_back(0.0);
-				yfix[a]=0;
-				arcfx=true;
-			}/*else if(psol[a]>1.0-1e-10){
-				std::cout<<a<<" SOLUTION FIX 1 "<<std::endl;
-				changed_pos.push_back(a);
- 				new_bd.push_back(1.0);
-				new_bd.push_back(1.0);
-				yfix[a]=1;
-				arcfx=true;
-			}*/
+			} 
 			
 		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}

@@ -83,6 +83,7 @@ public:
 	int times_dived;
 	int no_gap_reduct;
 	int max_cand ;
+	int unfix;
 	double maxszunfx;
 	
     bool reduced_run;
