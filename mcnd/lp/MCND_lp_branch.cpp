@@ -68,7 +68,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 
     //if(no_gap_reduct >5) max_cand=1;
     if(reduced_run)max_cand=1;
-    else max_cand=3;
+    else max_cand=1;
 	
   	if(max_cand==1 && !pump_mode){
 		for (int a=data.narcs; a--;) {
@@ -176,14 +176,14 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				arcfx=true;
 			} 
 			if(!pump_mode) continue;
-			if(psol[a]<1e-10){
+			if(psol[a]<1e-5){
 				std::cout<<a<<" SOLUTION FIX 0 "<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0;
 				arcfx=true;
-			}else if(psol[a]>1.0-1e-10){
+			}else if(psol[a]>1.0-1e-5){
 				std::cout<<a<<" SOLUTION FIX 1 "<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(1.0);
