@@ -393,7 +393,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
 			collb[narcs+k*narcs+a] = vars[narcs+k*narcs+a]->lb();
 			colub[narcs+k*narcs+a] = vars[narcs+k*narcs+a]->ub();
 		}*/
-		if(yfix[a]==-1 && (solution[a]<0.1 || solution[a]>0.9))totest.push_back(a);
+		if(yfix[a]==-1 && (solution[a]<0.01 || solution[a]>0.99))totest.push_back(a);
 	}
 	
     volprob_->parm.ascent_check_invl = 50;

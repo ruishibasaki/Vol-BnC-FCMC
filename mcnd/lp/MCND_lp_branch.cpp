@@ -68,9 +68,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 
     //if(no_gap_reduct >5) max_cand=1;
     if(reduced_run)max_cand=1;
-    else max_cand=3;
-    dive_for_sol=false;
-    //if((upper_bound() - LBi)/upper_bound() > 0.02 && !no_heur){dive_for_sol=true; max_cand=1; std::cout<<"force dive: chase for better sol"<<std::endl; }
+    else max_cand=5;
 	
   	if(max_cand==1){
 		for (int a=data.narcs; a--;) {
@@ -274,7 +272,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	}
 	
  	double gap= (ub  - LBi)/ub;
- 	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked && !dive_for_sol){
+ 	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked){
  		double prev = changed_pos.size();
  		getOsiVolBabSolver()->test_opposites( changed_pos, new_bd,  yfix, vars,  ub);
  		arcfx = (prev < changed_pos.size()) ?  true: arcfx;
@@ -314,7 +312,7 @@ MCND_lp::flow_lb_fixing(std::vector<double>& lbtigh, const BCP_vec<BCP_var*>& va
 		ckij = -rcsol[id];
 		tight=false;
 		if(lb + ckij*(psol[id]-vars[id]->lb()/dk) > (ub+1e-4)){
-			if(k-1 < 0){ std::cout<<"OPA1 "<<id<<" "<<ckij<<" "<<psol[id]<<" "<<vars[id]->lb()<<std::endl; tight=true;
+			if(k-1 < 0){ /*std::cout<<"OPA1 "<<id<<" "<<ckij<<" "<<psol[id]<<" "<<vars[id]->lb()<<std::endl;*/ tight=true;
 			}else{ 
 				sum=0; 
 				for (int kk=0; kk<k;++kk){
@@ -323,7 +321,7 @@ MCND_lp::flow_lb_fixing(std::vector<double>& lbtigh, const BCP_vec<BCP_var*>& va
 					if(sum<-1e-30) break;
 				}
 				if(sum>=0){
-					std::cout<<"OPA2 "<<sum<<std::endl;
+					//std::cout<<"OPA2 "<<sum<<std::endl;
 					tight=true;
 				}
 			}
@@ -559,11 +557,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
     std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl;
  	
  	bool dive=false;
- 	if(dive_for_sol){
- 		dive=true;
- 		diff0 = -ybar_branch;
- 		diff1 = -1.0 + ybar_branch; if(diff1>0)diff1=0;
- 	}else if(lbdev<0.001){ dive=true;  ++times_dived; std::cout<<"force dive: childsol closed to lb"<<std::endl;}
+ 	if(lbdev<0.001){ dive=true;  ++times_dived; std::cout<<"force dive: childsol closed to lb"<<std::endl;}
 		
 	if(!feas0){
 		childs_action[0] = BCP_FathomChild;
