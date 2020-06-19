@@ -49,7 +49,7 @@ MCND_lp::unpack_module_data(BCP_buffer & buf){
     max_cand = 5 ;
     maxszunfx=0.3*data.narcs;
 	pump_heur.maxunfix = maxszunfx;
-
+	
 }
 
 //-------------------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         if(nodedata->hs!=0){
             getLpProblemPointer()->lp_solver->setWarmStart(nodedata->hs);
         }
-    	std::cout<<"node comes from branch on: "<<nodedata->branch_var;
+    	std::cout<<"numn: "<<num_nodes<<" node comes from branch on: "<<nodedata->branch_var;
         std::cout<<" of "<<nodedata->pos_neg<<" side .. parent: "<<nodedata->parent<<std::endl;
         testconn = nodedata->test_conn ;
         //if(nodedata->reduced_run)lp_mode |= LP_ReducedRun;
@@ -159,7 +159,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     
     if(testconn || (lp_mode & LP_LogicalFixed)){
 		flwconnect.reset(vars, yfix);
-		ret = flwconnect.check_upperbounds(vars, var_changed_pos, var_new_bd, yfix);
+		ret = flwconnect.check_flowbounds(vars, var_changed_pos, var_new_bd, yfix);
 		flwconnect.clear_memory();
 		if(ret<0){
 			var_changed_pos.clear();

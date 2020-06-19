@@ -47,7 +47,7 @@ struct Trio1{
     }
     
     inline Trio1(int n,double p, double d):fst(n), snd(p), trd(d) {};
-    inline Trio1():fst(-1.0),snd(-1.0), trd(-1.0){};
+    inline Trio1():fst(-1),snd(-1.0), trd(-1.0){};
     inline ~Trio1(){};
 };
 
@@ -103,7 +103,7 @@ struct PairF{
         return *this;
     }
     inline PairF(double n,double p):fst(n), snd(p) {};
-    inline PairF():fst(-1),snd(-1){};
+    inline PairF():fst(-1.0),snd(-1.0){};
     inline ~PairF(){};
 };
 

@@ -312,8 +312,8 @@ OsiVolSolverInterface::set_start(){
     
     
     if(HotStartSet){
-    	if(volprob_->parm.maxsgriters>500)
-    		volprob_->parm.maxsgriters=500;
+    	if(volprob_->parm.maxsgriters>250)
+    		volprob_->parm.maxsgriters=250;
 		translate_hotstart();
     }else volprob_->parm.maxsgriters=1000;
 }
@@ -447,7 +447,6 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
  				changed_pos.push_back(arc);
 				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
-				if(arc==32) abort();
 			}
 		}else{
 			collb[arc]= vars[arc]->lb();
@@ -480,11 +479,25 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     if(lcost >= VItt ){
         VItt = lcost;
         letgen = true;
-        for(int a=szunfxd; a--; ){ rc_[nz_arcs[a]] = rc[a];}
-        //std::cout<<"iter: "<<iter<<" lb: "<<lcost<<std::endl;
-        //for(int a=szunfxd; a--; ){ std::cout<<"rc:  "<<nz_arcs[a]<<" "<<rc_[nz_arcs[a]]<<std::endl;}
+        int arc;
+        for(int a=szunfxd; a--; ){ 
+        	arc = nz_arcs[a];
+        	rc_[arc] = rc[a];
+        	for(int k=ndemands; k--; ){
+				solution[narcs+k*narcs+arc] = x[szunfxd + k*sznz + a];
+			}	
+        }
+        for(int a=szunfxd; a<sznz; ++a){ 
+        	arc = nz_arcs[a];
+        	for(int k=ndemands; k--; ){
+				solution[narcs+k*narcs+arc] = x[szunfxd + k*sznz + a];
+				//if(arc==52 || arc==8)std::cout<<"better "<<narcs+k*narcs+arc<<" "<<x[szunfxd + k*sznz + a]<<" "
+				//<<rc[szunfxd + k*sznz + a]<<" ub: "<<colub[narcs+k*narcs+arc]/data->d_k[k].quantity<<std::endl;
+ 			}
+        }
+        
     }
-    
+
     if( (mode == 1) && iter>0 && iter%intvlVI==0){
         translate_primal(xstar);
         int num_new_sets=ss_manager->cutset_generation_main( yhit, VItopo, false);
@@ -792,11 +805,10 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
     	rcost = rc[szunfxd + k*sznz + a];
         if(rcost<0.0 && colub[narcs+k*narcs+arc]>0.0){
             heap.push_back(HeapCell(k, double(rcost/data->d_k[k].quantity)));
-            if(colub[narcs+k*narcs+arc]<0.1) std::cout<<"opa realmente"<<std::endl; 
-        }
+       }
         xval= collb[narcs+k*narcs+arc];
         if(xval>0){
-        	fillUp += xval;
+         	fillUp += xval;
         	xval /= data->d_k[k].quantity;
         	if(xval>1){   xval = 1.0; }
         	kpsack += rcost * xval;
@@ -811,8 +823,7 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
     }
     heap.sort(comp());
     //std::stable_sort(heap.begin(), heap.end(), comp());
-    
-    
+     
     int comm;
     while(heap.size()>0){ 
         comm = heap.back().k;
@@ -828,7 +839,7 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
             x[basex + a] += xval;
             fillUp += flow;
             kpsack += rc[basex + a] * xval;
-            //std::cout<<"in"<<std::endl;
+            
         } 
         heap.pop_back();
     }
@@ -976,7 +987,7 @@ OsiVolSolverInterface::add_external_globalc( const int * y, int cont0){
 void 
 OsiVolSolverInterface::translate_sol(){
     
-    CoinFillN(solution, getNumCols(), 0.0);
+    CoinFillN(solution, narcs, 0.0);
 
     int arc;
     double addvalue;
@@ -991,8 +1002,7 @@ OsiVolSolverInterface::translate_sol(){
 		else solution[arc] = volprob_->psol[a];
 		
 		//std::cout<<arc<<" "<<volprob_->psol[a]<<std::endl;// /double(volprob_->iter())<<std::endl;
-		//for(int k=ndemands; k--; )
-			//solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
+		
 	}
 	for(int a=szunfxd; a<sznz;++a){
 		arc = nz_arcs[a];
@@ -1002,7 +1012,13 @@ OsiVolSolverInterface::translate_sol(){
 	}
 	translate_dualsol();
     
-    
+    const Arc* item;
+    for(int a=sznz; a--;){
+		arc = nz_arcs[a];
+		item = &data->arcs[arc];
+		for(int k=ndemands; k--; )
+			rc_[narcs+k*narcs+arc] = item->c[k]*data->d_k[k].quantity - dual[k*nnodes + item->j-1] + dual[k*nnodes + item->i-1];
+	}
 }
 
 //-----------------------------------------------------------------------

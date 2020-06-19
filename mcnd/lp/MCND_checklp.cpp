@@ -255,7 +255,7 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 	
 	cplex.getValues(x_,x);
 	cplex.getValues(y_,y);
-	while(cut(vars, colub)){
+	while(cut(vars,collb, colub)){
 		cplex.setParam(IloCplex::RootAlg, 2);
 		cplex.setParam(IloCplex::Param::Advance, 1);
 		cplex.solve();
@@ -400,12 +400,12 @@ LPChecker::test_high_lowerbounds(BCP_vec<int>& changed_pos, BCP_vec<double>& new
 
 
 int 
-LPChecker::cut(const BCP_vec<BCP_var*>& vars, const double *colub){
+LPChecker::cut(const BCP_vec<BCP_var*>& vars, const double *collb, const double *colub){
 	int arc, sz;
 	int cont=0;
-	double ub;
-	for(int a=0;a<szunfx;++a){
-		arc = unfixd[a];
+	double ub, lb;
+	for(int a=0;a<narcs;++a){
+		arc = a;//unfixd[a];
 		for (int k = 0; k < ndemands; ++k){
 			if(colub!=0) ub = colub[narcs+k*narcs+arc];
 			else ub = vars[narcs+k*narcs+arc]->ub();
@@ -417,6 +417,18 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const double *colub){
  				add_strong_force.add((constraint <= 0));
 				model.add(add_strong_force[numaddstrong++]);
 				constraint.end();
+				++cont;
+			}
+			if(collb!=0) lb = collb[narcs+k*narcs+arc];
+			else lb = vars[narcs+k*narcs+arc]->lb();
+ 			if(lb - data->d_k[k].quantity*x_[arc*ndemands+k]> 1e-2 ){
+				IloExpr constraint(env);
+				constraint += x[arc*ndemands+k];
+				constraint -= (lb/data->d_k[k].quantity);
+  				add_strong_force.add((constraint >= 0));
+				model.add(add_strong_force[numaddstrong++]);
+				constraint.end();
+				std::cout<<"LPChecker::cut::add "<<narcs+k*narcs+arc<<" "<<lb<<" "<<data->d_k[k].quantity*x_[arc*ndemands+k]<<std::endl;
 				++cont;
 			}
 		}
@@ -488,7 +500,7 @@ int
 LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & yb, const IloNumArray & xb, IloRangeArray& tempcnstrt, int& addtemp){
 	int arc, sz;
 	int cont=0;
-	double ub;
+	double ub, lb;
 	for(int a=0;a<szunfx;++a){
 		arc = unfixd[a];
 		for (int k = 0; k < ndemands; ++k){
@@ -502,6 +514,16 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & yb, const IloN
 				model.add(tempcnstrt[addtemp++]);
 				constraint.end();
 				++cont;
+			}
+			lb = vars[narcs+k*narcs+arc]->lb();
+			if(lb - data->d_k[k].quantity*xb[arc*ndemands+k]> 1e-2 ){
+				IloExpr constraint(env);
+				constraint += x[arc*ndemands+k];
+				constraint -= (lb/data->d_k[k].quantity);
+  				tempcnstrt.add((constraint >= 0));
+				model.add(tempcnstrt[addtemp++]);
+				constraint.end();
+ 				++cont;
 			}
 		}
 	}
@@ -649,8 +671,8 @@ LPChecker::logical_yfix(double ub, BCP_vec<int>& changed_pos, BCP_vec<double>& n
 				arcfx=true;
 				std::cout<<arc<<" LOGFIX 0 (LP optimal)"<<std::endl;
 			} 
-		} 
-		
+			continue;
+		}
 	}
 	return arcfx;
 

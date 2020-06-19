@@ -75,7 +75,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
   	if(max_cand==1){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
-				if(min(ninsp[a].fst, ninsp[a].snd) >= 5 && (psol[a]>=0.1 && psol[a]<=0.9) ){
+				if(min(ninsp[a].fst, ninsp[a].snd) >= 10 && (psol[a]>=0.1 && psol[a]<=0.9) ){
 					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
 					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
 					candidates.push_back(Pair2(a, fmin(psc0, psc1)));
@@ -89,8 +89,8 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
 				psc0 =  psol[a];
 				psc1 =  (1.0-psol[a]);  psc1 = psc1<0 ? 0: psc1;
-				if(fmin(psc0, psc1)<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-				else candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
+				/*if(fmin(psc0, psc1)<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+				else*/ candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
 			}
 		}
 	}
@@ -193,62 +193,70 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
  	if(lpchecker.solved) 
  		lpchecker.logical_xfix(ub, yfix, vars);
  	
-	double tt, bd, dk;
+	double tt, dk;
+	double bdlb, bdub;
 	double lpbd;
 	int id;
 	Arc * item;
+	std::vector<double> lbtigh(data.ndemands,0.0);
+	
 	for(int a=data.narcs; a--;){
 		if(yfix[a]==0){ if(vars[a]->ub()==1.0){lp_mode |= LP_TestConnectivity;} continue;}
 		else if(yfix[a]==-1) unfix++;
 		
 		item  =  &data.arcs[a];
 		gij = rcsol[a];
-		
+		lbtigh.assign(data.ndemands,0.0);
+		if(vars[a]->lb()==1.0)
+			flow_lb_fixing( lbtigh,  vars, psol, dsol, rcsol,  a,  lb,  ub);
+
 		for (int k=data.ndemands; k--;){
 			id = data.narcs+k*data.narcs+a;
 			dk = data.d_k[k].quantity;
- 			if(vars[id]->ub()==0.0 || flwconnect.bound_red[k*data.narcs+a] == 0.0) continue;
+ 			if(vars[id]->ub()==0.0 || flwconnect.bound_red[k*data.narcs+a].trd == 0.0) continue;
  
-			ckij = item->c[k]*dk - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
-			bd =-1;
+			ckij = rcsol[id];
+			
+			bdub =-1;
+			bdlb = fmax(vars[id]->lb(), lbtigh[k]); 
 			if(ckij>1e-4){
 				tt = ((gij > 0)&& (vars[a]->lb()==0.0)) ? (lb+ gij) : lb;
-				if(tt + ckij*vars[id]->ub()/dk > (ub+1e-4) ){
-					bd = (ub - tt)/ckij;
-					bd*=dk;
-					//if(bd<1e-8)bd=0.0;
-					//else if(vars[id]->ub()-bd <= 1e-4) continue;
-					//if(bd < lpchecker.bound_red[a*data.ndemands+k])
-					//	std::cout<<"flowlogfix: "<<id<<" "<<bd<<" "<<lpchecker.bound_red[a*data.ndemands+k]<<std::endl;
+				if(tt + ckij*(vars[id]->ub()/dk - psol[id]) > (ub+1e-4) ){
+					bdub = psol[id] + (ub - tt)/ckij;
+					bdub*=dk;
 				}
-			}
-			lpbd = lpchecker.bound_red[a*data.ndemands+k] ;
-			if(bd >=0) bd = lpbd>=0 ? fmin(lpbd, bd): bd;
-			else if(lpbd>=0) bd = lpbd;
-			else continue;
-			if(vars[id]->ub()-bd <= 1e-4) continue;
-			if(bd < dk && (flwconnect.bound_red[k*data.narcs+a]>bd || vars[id]->lb()>bd)){
+			} 
+					
+			lpbd = lpchecker.bound_red[a*data.ndemands+k];
+			if(bdub >=0) bdub = lpbd>=0 ? fmin(lpbd, bdub): bdub;
+			else if(lpbd>=0) bdub = lpbd;
+			else if(bdub<0){bdub= vars[id]->ub();}
+			
+			if(bdlb<1e-4 && bdub<1e-4){bdlb = bdub=0;}
+			if(flwconnect.bound_red[k*data.narcs+a].snd>bdub || bdlb>(bdub+1e-30)){
 				lp_mode |= LP_ForceNodeAbort;
 				changed_pos.clear();
 				new_bd.clear();
-				std::cout<<"MCND_lp::logical_fixing::flwconnect.bd conflict"<<std::endl;
+				std::cout<<"MCND_lp::logical_fixing::flwconnect.bd conflict "<<bdlb<<" "<<bdub<<std::endl;
 				if(lp_mode & LP_TestConnectivity || flwconnect.redone) flwconnect.clear_memory();
 				return;
 			}
-			if(bd<1e-4){bd=0;}
+			
+			if(vars[id]->ub()-bdub <= 1e-4 && bdlb-vars[id]->lb() <= 1e-4) continue;
 			changed_pos.push_back(id);
-			new_bd.push_back(0.0);
-			new_bd.push_back(bd);
-			flwconnect.bound_red[k*data.narcs+a] = bd;
-			flwconnect.idbound_red[k*data.narcs+a] = changed_pos.size()-1;
+			new_bd.push_back(bdlb);
+			new_bd.push_back(bdub);
+			flwconnect.bound_red[k*data.narcs+a].fst = changed_pos.size()-1;
+			flwconnect.bound_red[k*data.narcs+a].snd = bdlb;
+ 			flwconnect.bound_red[k*data.narcs+a].trd = bdub;
 			lp_mode |= LP_TestConnectivity;
 		}
 	}
-	
+	lbtigh.clear();
 	
 	if(lp_mode & LP_TestConnectivity || flwconnect.redone){
 		flwconnect.reset(vars, yfix);
-		int ret = flwconnect.check_upperbounds(vars, changed_pos, new_bd, yfix);
+		int ret = flwconnect.check_flowbounds(vars, changed_pos, new_bd, yfix);
 		flwconnect.clear_memory();
 		if(ret<0){
 			changed_pos.clear();
@@ -259,11 +267,11 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		}
 		
 	} 
+	
 	if(lpchecker.solved) {
 		getOsiVolBabSolver()->reset_dualsol(lpchecker.dual_map);
 		lpchecker.bound_red.assign(data.narcs*data.ndemands,-1);
 	}
-	
 	
  	double gap= (ub  - LBi)/ub;
  	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked && !dive_for_sol){
@@ -272,11 +280,60 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
  		arcfx = (prev < changed_pos.size()) ?  true: arcfx;
  	} 
  	
-	if(arcfx){
+	if(changed_pos.size()){
 		lp_mode |= LP_LogicalFixed;	
 		//lp_mode |= LP_TestFeasibility;
 	}
+	/*for (int a=changed_pos.size(); a--;){
+		if(vars[changed_pos[a]]->ub() < new_bd[a*2+1])std::cout<<"ub "<<vars[changed_pos[a]]->ub()<<" < "<<new_bd[a*2+1]<<std::endl;
+		if(vars[changed_pos[a]]->lb() > new_bd[a*2])std::cout<<"lb "<<vars[changed_pos[a]]->lb()<<" > "<<new_bd[a*2]<<std::endl;
+	}*/
 	
+}
+
+//-------------------------------------------------------------------------------------------
+
+void 
+MCND_lp::flow_lb_fixing(std::vector<double>& lbtigh, const BCP_vec<BCP_var*>& vars, const double * psol, 
+						const double * dsol, const double * rcsol, int arc, double lb, double ub){
+	int id, id2, idk;
+	bool tight;
+	double ckij, sum, dk;
+	std::deque<Pair2> rcx;
+	Arc * item  =  &data.arcs[arc];
+ 	for (int k=data.ndemands; k--;){
+		ckij = rcsol[data.narcs+k*data.narcs+arc];
+		if(ckij<0)rcx.push_back(Pair2(k, double(ckij/data.d_k[k].quantity)));
+	}
+	std::stable_sort(rcx.begin(), rcx.end(), compPair2());
+	//std::cout<<"outra"<<std::endl;
+	for (int k=rcx.size(); k--;){
+		idk = rcx[k].fst;
+		dk = data.d_k[idk].quantity;
+		id = data.narcs+idk*data.narcs+arc;
+		ckij = -rcsol[id];
+		tight=false;
+		if(lb + ckij*(psol[id]-vars[id]->lb()/dk) > (ub+1e-4)){
+			if(k-1 < 0){ std::cout<<"OPA1 "<<id<<" "<<ckij<<" "<<psol[id]<<" "<<vars[id]->lb()<<std::endl; tight=true;
+			}else{ 
+				sum=0; 
+				for (int kk=0; kk<k;++kk){
+					id2 = data.narcs+rcx[kk].fst*data.narcs+arc;
+					sum += rcsol[id2]*(vars[id2]->ub()/dk - psol[id2]);
+					if(sum<-1e-30) break;
+				}
+				if(sum>=0){
+					std::cout<<"OPA2 "<<sum<<std::endl;
+					tight=true;
+				}
+			}
+			if(tight){
+				lbtigh[idk] = dk*(psol[id] - (ub-lb)/ckij);
+			}
+		}
+	}
+	rcx.clear();
+	 
 }
 
 //-------------------------------------------------------------------------------------------
@@ -394,7 +451,7 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
 	 
 	if(infeas==2){
 		//std::cout<<"OPOR"<<std::endl; //abort();
-		std::cout<<"MCND_lp::compare_branching_candidates:: BOTH INFEAS OR TOO HIGHT"<<std::endl;
+		std::cout<<"MCND_lp::compare_branching_candidates:: BOTH INFEAS OR TOO HIGHT "<<var_new<<std::endl;
 		to_logical_fix.clear();
 		lp_mode |= LP_ForceNodeAbort ;
 		return BCP_NewPresolvedIsBetter_BranchOnIt;

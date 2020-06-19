@@ -90,7 +90,7 @@ public:
 	 bool coverc_viol(const IloNumArray & y_ , const Cover* cover);
 	bool localc_viol(const IloNumArray & y_ , const LocalCut* loc);
 	bool globalc_viol(const IloNumArray & y_ , const GlobalCut* gloc);
-    int cut(const BCP_vec<BCP_var*>& vars, const double *colub);
+    int cut(const BCP_vec<BCP_var*>& vars,  const double *collb, const double *colub);
     int cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & yb, const IloNumArray & xb, IloRangeArray& tempcnstrt, int& addtemp);
     //-------------------------------
 

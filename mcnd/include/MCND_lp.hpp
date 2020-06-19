@@ -285,7 +285,9 @@ public:
     virtual void pack_feasible_solution(BCP_buffer& buf, const BCP_solution* sol);
     
     //--------------------------------------------------------------------------
-
+	void flow_lb_fixing(std::vector<double>& lbtigh, const BCP_vec<BCP_var*>& vars, const double * psol, 
+						const double * dsol,  const double * rcsol, int arc, double lb, double ub);
+						
     bool cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars, 
 							const BCP_vec<BCP_cut*>& cuts,
 							BCP_vec<int>& var_changed_pos,
