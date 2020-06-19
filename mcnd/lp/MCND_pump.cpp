@@ -355,7 +355,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 	if(best_sol->onlyvalue && altsol==0){
     	altsolval=1e30;
     }
-    if(validate_topology()<0)return -10;
+    //if(validate_topology()<0)return -10;
     
 	bool dontbreak = true;
 	std::vector<int>modtabu(narcs,0);
