@@ -125,7 +125,7 @@ FlowConnect::check_flowbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chang
 					lbnew = 0;
 					if((sum_ubout-ubnew) < sum_lbin){
 						lbnew = sum_lbin-(sum_ubout-ubnew);
-						if(lbnew > lb){
+						if(lbnew -lb >1e-4){
 							id = bound_red[idvar].fst;
 							if(id>=0){
 								new_bd[id*2] = lbnew;
@@ -175,7 +175,7 @@ FlowConnect::check_flowbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chang
 					 lbnew = 0;
 					 if((sum_ubin-ubnew) < sum_lbout){
 						 lbnew = sum_lbout-(sum_ubin-ubnew);
-						 if(lbnew > lb){
+						 if(lbnew -lb >1e-4 ){
 							 id = bound_red[idvar].fst;
 							 if(id>=0){
 								 new_bd[id*2] = lbnew;
