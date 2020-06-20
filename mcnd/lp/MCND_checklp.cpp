@@ -8,7 +8,6 @@
 #include "MCND_checklp.hpp"
 
 ILOSTLBEGIN
-
  
 void LPChecker::set_parameters() {
 	cplex.setParam(IloCplex::Threads,1);
@@ -230,7 +229,7 @@ LPChecker::get_solution(MCND_solution* mipsol){
 			mipsol->cost+=data->arcs[a].f;
 		}
 	}
- 	std::cout<<"LPChecker::getSolution:: integer sol value: "<<mipsol->cost<<std::endl;
+ 	//std::cout<<"LPChecker::getSolution:: integer sol value: "<<mipsol->cost<<std::endl;
 }
 
 //---------------------------------------------------------------------------
@@ -242,14 +241,14 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 	
 	clean();
 	reset(vars, collb, colub);
-	std::cout<<"LPChecker::solve"<<std::endl;
+	//std::cout<<"LPChecker::solve"<<std::endl;
 	cplex.setParam(IloCplex::RootAlg, 0);
 	cplex.setParam(IloCplex::Param::Advance, 0);
 	cplex.solve();
 
 	//std::cout<<"LPChecker first "<<cplex.getObjValue()<<std::endl;
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 1"<<std::endl;
+		//std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 1"<<std::endl;
   		return -1;
 	} 
 	
@@ -260,13 +259,13 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 		cplex.setParam(IloCplex::Param::Advance, 1);
 		cplex.solve();
 		if(cplex.getStatus() != IloAlgorithm::Optimal){ 
-			std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 
+			//std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 
 			return -2; 
 		}
 		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
 		if(cplex.getObjValue()+1e-4>= ub){
 			new_lb = cplex.getObjValue();
-			std::cout<<"stop lpchecker "<<cplex.getObjValue()<<std::endl;
+			//std::cout<<"stop lpchecker "<<cplex.getObjValue()<<std::endl;
 			return 1;
 		}
 		cplex.getValues(y_,y);
@@ -275,7 +274,7 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 	cplex.getReducedCosts(rc_x, x);
  	cplex.getReducedCosts(rc_y, y);
 	solval = cplex.getObjValue();
-	std::cout<<"final lpchecker "<<solval<<std::endl;
+	//std::cout<<"final lpchecker "<<solval<<std::endl;
 	get_dual();
 	new_lb = solval;
 	
@@ -359,19 +358,19 @@ LPChecker::test_high_lowerbounds(BCP_vec<int>& changed_pos, BCP_vec<double>& new
 		
  		if(ret>=0){
  			new_lb =  cplex.getObjValue();
- 			std::cout<<"LPChecker::test_high_lowerbounds "<<arc<<" : "<<new_lb<<" ub: "<<bestsolv<<" "<<volsol[arc]<<std::endl;
- 		}else std::cout<<"LPChecker::test_high_lowerbounds "<<arc<<": infeasible"<<std::endl;
+ 			//std::cout<<"LPChecker::test_high_lowerbounds "<<arc<<" : "<<new_lb<<" ub: "<<bestsolv<<" "<<volsol[arc]<<std::endl;
+ 		}//else std::cout<<"LPChecker::test_high_lowerbounds "<<arc<<": infeasible"<<std::endl;
  		
  		if( ret<0 || new_lb > bestsolv){
 			if(volsol[arc]>0.9){
-				std::cout<<arc<<" LPChecker::test_high_lowerbounds FIX 1 "<<std::endl;
+				//std::cout<<arc<<" LPChecker::test_high_lowerbounds FIX 1 "<<std::endl;
 				changed_pos.push_back(arc);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
 				yfix[arc]=1;
 				valtopo=1;
 			}else{
-				std::cout<<arc<<" LPChecker::test_high_lowerbounds FIX 0 "<<std::endl;
+				//std::cout<<arc<<" LPChecker::test_high_lowerbounds FIX 0 "<<std::endl;
 				changed_pos.push_back(arc);
 				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
@@ -428,7 +427,7 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const double *collb, const double 
   				add_strong_force.add((constraint >= 0));
 				model.add(add_strong_force[numaddstrong++]);
 				constraint.end();
-				std::cout<<"LPChecker::cut::add "<<narcs+k*narcs+arc<<" "<<lb<<" "<<data->d_k[k].quantity*x_[arc*ndemands+k]<<std::endl;
+				//std::cout<<"LPChecker::cut::add "<<narcs+k*narcs+arc<<" "<<lb<<" "<<data->d_k[k].quantity*x_[arc*ndemands+k]<<std::endl;
 				++cont;
 			}
 		}
@@ -662,14 +661,14 @@ LPChecker::logical_yfix(double ub, BCP_vec<int>& changed_pos, BCP_vec<double>& n
 				new_bd.push_back(1.0);
 				yfix[arc] = 1.0;
 				arcfx=true;
-				std::cout<<arc<<" LOGFIX 1 (LP optimal)"<<std::endl;
+				//std::cout<<arc<<" LOGFIX 1 (LP optimal)"<<std::endl;
 			}else if(y_[arc] <=1e-10){
 				changed_pos.push_back(arc);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[arc] = 0.0;
 				arcfx=true;
-				std::cout<<arc<<" LOGFIX 0 (LP optimal)"<<std::endl;
+				//std::cout<<arc<<" LOGFIX 0 (LP optimal)"<<std::endl;
 			} 
 			continue;
 		}

@@ -235,7 +235,7 @@ void
 Pump::try_perturbation(unsigned int* seqtopo){
 	int arc;
 	Pair2* maptitem=0;
-	std::cout<<"Pump::try_perturbation"<<std::endl;
+	//std::cout<<"Pump::try_perturbation"<<std::endl;
 	std::random_shuffle(unfx.begin(), unfx.begin()+szunfix);
  	for(int a=0;a<szunfix;++a){
 		arc = unfx[a];
@@ -384,14 +384,14 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 				dontbreak = true;
 			}
 		}
-		std::cout<<"final pump "<<solpump<<" volume: "<<volsolver.value<<" "<<roundwn<<std::endl;
+		//std::cout<<"final pump "<<solpump<<" volume: "<<volsolver.value<<" "<<roundwn<<std::endl;
     }
     modtabu.clear();
 	 
  	check_feas_model();
 	cplex.solve();
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
+		//std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
 		feas=false;
 	} 
 	if(feas && cplex.getStatus() != IloAlgorithm::Optimal){

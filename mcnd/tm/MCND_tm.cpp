@@ -179,7 +179,7 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 	
 	BCP_buffer buf;
 	buf.pack(lower_bound());
-	std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
+	//std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
 	broadcast_message(BCP_ProcessType_LP,buf);
 	buf.clear();
 }

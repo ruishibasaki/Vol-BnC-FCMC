@@ -158,7 +158,7 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 		return 1;
 	}
 	if(fthmv >= betsolv){
-		std::cout<<"test_feasibility::fthmv >= betsolv"<<std::endl;
+		//std::cout<<"test_feasibility::fthmv >= betsolv"<<std::endl;
 		//delete mipsol;
 		return 0;
 	}else if(ret<0) return 2;
@@ -168,7 +168,7 @@ LPFeasChecker::solve_opt(int unfix, const BCP_vec<BCP_var*>& vars, const double 
 	cplex.setParam(IloCplex::Param::Advance, 1);
 	cplex.setParam(IloCplex::RootAlg, 2);
 	ret= solve();
-	std:cout<<"test_feasibility::resolve"<<std::endl;
+	//std:cout<<"test_feasibility::resolve"<<std::endl;
 	if(ret<0){
 		delete mipsol;
 		return -2;
@@ -271,8 +271,9 @@ LPFeasChecker::test_high_lowerbounds( BCP_vec<int>& changed_pos, BCP_vec<double>
 	
 	if(!lbtested){ 
 		ret= solve();
-		if(ret<0){ std::cout<<"LPFeasChecker::test_high_lowerbounds: infeasible"<<std::endl; return -1;}
-		std::cout<<"LPFeasChecker::test_high_lowerbounds: "<<cplex.getObjValue()<<" ub: "<<bestsolv<<std::endl;
+		if(ret<0){ //std::cout<<"LPFeasChecker::test_high_lowerbounds: infeasible"<<std::endl; 
+			return -1;}
+		//std::cout<<"LPFeasChecker::test_high_lowerbounds: "<<cplex.getObjValue()<<" ub: "<<bestsolv<<std::endl;
 		if(cplex.getObjValue()>bestsolv) return -1;
 	}
 	//cplex.setParam(IloCplex::Param::Advance, 0);
@@ -302,13 +303,13 @@ LPFeasChecker::test_high_lowerbounds( BCP_vec<int>& changed_pos, BCP_vec<double>
  		
  		ret= solve();
 		
- 		if(ret>=0)std::cout<<"LPFeasChecker::test_high_lowerbounds "<<arc<<" : "<<cplex.getObjValue()+additional<<" ub: "<<bestsolv<<" "<<volsol[arc]<<std::endl;
- 		else std::cout<<"LPFeasChecker::test_high_lowerbounds "<<arc<<": infeasible"<<std::endl;
+ 		//if(ret>=0)std::cout<<"LPFeasChecker::test_high_lowerbounds "<<arc<<" : "<<cplex.getObjValue()+additional<<" ub: "<<bestsolv<<" "<<volsol[arc]<<std::endl;
+ 		//else std::cout<<"LPFeasChecker::test_high_lowerbounds "<<arc<<": infeasible"<<std::endl;
  		
  		if( ret<0 || cplex.getObjValue()+additional > bestsolv){
 			
 			if(volsol[arc]>0.9){
-				std::cout<<arc<<" LPFeasChecker::test_high_lowerbounds FIX 1 "<<std::endl;
+				//std::cout<<arc<<" LPFeasChecker::test_high_lowerbounds FIX 1 "<<std::endl;
 				changed_pos.push_back(arc);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
@@ -319,7 +320,7 @@ LPFeasChecker::test_high_lowerbounds( BCP_vec<int>& changed_pos, BCP_vec<double>
 				}
 				additional+=data->arcs[arc].f;
 			}else{
-				std::cout<<arc<<" LPFeasChecker::test_high_lowerbounds FIX 0 "<<std::endl;
+				//std::cout<<arc<<" LPFeasChecker::test_high_lowerbounds FIX 0 "<<std::endl;
 				changed_pos.push_back(arc);
 				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
@@ -402,7 +403,7 @@ LPFeasChecker::getSolution(const BCP_vec<BCP_var*>& vars, double * sol, double& 
 		//else std::cout<<"solclosed: "<<a<<std::endl;
 	}
 	x_.end();
- 	std::cout<<"LPFeasChecker::getSolution::feasibiliy integer sol value: "<<solvalue<<std::endl;
+ 	//std::cout<<"LPFeasChecker::getSolution::feasibiliy integer sol value: "<<solvalue<<std::endl;
 	return ret;
 }
 

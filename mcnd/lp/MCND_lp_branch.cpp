@@ -100,7 +100,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<std::endl;
+		//std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<std::endl;
 		///*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
 		candidates.pop_front();	
 		vpos[0] = arc;
@@ -124,7 +124,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
      	lp_mode |= LP_StrongBranch;
      	return BCP_DoBranch;
     }else{
-    	std::cout<<"NO CAND"<<std::endl;
+    	//std::cout<<"NO CAND"<<std::endl;
     	//lp_mode = LP_Normal;
     	return BCP_DoNotBranch_Fathomed;
 	}
@@ -161,14 +161,14 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			//std::cout<<"penalty test: "<<a<<" rc: "<<gij<<" y: "<<psol[a]<<std::endl;
 			gij = rcsol[a];
 			if(gij>0 && (lb+gij)>=ub){
-				std::cout<<a<<" LOGFIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<ub<<std::endl;
+				//std::cout<<a<<" LOGFIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<ub<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0;
 				arcfx=true;
 			}else if(gij<0 && (lb-gij)>=ub){
-				std::cout<<a<<" LOGFIX FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<ub<<std::endl;
+				//std::cout<<a<<" LOGFIX FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<ub<<std::endl;
 				changed_pos.push_back(a);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
@@ -235,7 +235,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				lp_mode |= LP_ForceNodeAbort;
 				changed_pos.clear();
 				new_bd.clear();
-				std::cout<<"MCND_lp::logical_fixing::flwconnect.bd conflict "<<bdlb<<" "<<bdub<<std::endl;
+				//std::cout<<"MCND_lp::logical_fixing::flwconnect.bd conflict "<<bdlb<<" "<<bdub<<std::endl;
 				if(lp_mode & LP_TestConnectivity || flwconnect.redone) flwconnect.clear_memory();
 				return;
 			}
@@ -259,7 +259,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 		if(ret<0){
 			changed_pos.clear();
 			new_bd.clear();
-			std::cout<<"MCND_lp::logical_fixing::flwconnect.check_upperbounds NOT"<<std::endl;
+			//std::cout<<"MCND_lp::logical_fixing::flwconnect.check_upperbounds NOT"<<std::endl;
 			lp_mode |= LP_ForceNodeAbort;
 			return;
 		}
@@ -356,7 +356,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			MCND_Cut * cut = dynamic_cast<MCND_Cut*>(cuts[i]);
 			if(cut->purgbl()) continue;
 			if(!cut->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
-				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; cut->print();
+				//std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; cut->print();
 				if(cut->cut_type==1){
 					globalc_manager.globalc_generation_main2(0, yfix);
 				}
@@ -379,7 +379,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			//std::cout<<"gloc_updt "<<gloc->serial_nmbr<<" "<<gloc->purgbl<<std::endl;
 			if(gloc->purgbl) continue;
 			if(!gloc->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
-				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; gloc->print();
+				//std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; gloc->print();
 				globalc_manager.globalc_generation_main2(0, yfix);
 				var_changed_pos.clear();
 				var_new_bd.clear();
@@ -402,7 +402,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 				if(ret==-1){ globalc_manager.globalc_generation_main2(0, yfix); }
 				var_changed_pos.clear();
 				var_new_bd.clear();
-				std::cout<<"MCND_lp::cut_varfix_and_updt::flwconnect.check_connectivity NOT"<<std::endl;
+				//std::cout<<"MCND_lp::cut_varfix_and_updt::flwconnect.check_connectivity NOT"<<std::endl;
 				lp_mode |= LP_ForceNodeAbort;
 				return false;
 			}	
@@ -449,7 +449,7 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
 	 
 	if(infeas==2){
 		//std::cout<<"OPOR"<<std::endl; //abort();
-		std::cout<<"MCND_lp::compare_branching_candidates:: BOTH INFEAS OR TOO HIGHT "<<var_new<<std::endl;
+		//std::cout<<"MCND_lp::compare_branching_candidates:: BOTH INFEAS OR TOO HIGHT "<<var_new<<std::endl;
 		to_logical_fix.clear();
 		lp_mode |= LP_ForceNodeAbort ;
 		return BCP_NewPresolvedIsBetter_BranchOnIt;
@@ -552,12 +552,12 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
     double diff0 = (child0.objval() - LBi); if(diff0<0)diff0=0;
     double diff1 = (child1.objval() - LBi); if(diff1<0)diff1=0;
     double lbdev = (fmin(child0.objval(), child1.objval()) - lower_bound)/lower_bound;
-    std::cout<<"branching variable: "<<var_branch<<" lp: "<<(lpchecker.solved ? lpchecker.y_[var_branch]:-1.0)<<
-    " y: "<<y[var_branch]<<" nbranch: "<<min(ninsp[var_branch].fst, ninsp[var_branch].snd)<<" capa: "<<data.arcs[var_branch].capa<<std::endl;
-    std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl;
+    //std::cout<<"branching variable: "<<var_branch<<" lp: "<<(lpchecker.solved ? lpchecker.y_[var_branch]:-1.0)<<
+    //" y: "<<y[var_branch]<<" nbranch: "<<min(ninsp[var_branch].fst, ninsp[var_branch].snd)<<" capa: "<<data.arcs[var_branch].capa<<std::endl;
+    //std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl;
  	
  	bool dive=false;
- 	if(lbdev<0.001){ dive=true;  ++times_dived; std::cout<<"force dive: childsol closed to lb"<<std::endl;}
+ 	if(lbdev<0.001){ dive=true;  ++times_dived; }//std::cout<<"force dive: childsol closed to lb"<<std::endl;}
 		
 	if(!feas0){
 		childs_action[0] = BCP_FathomChild;
@@ -661,7 +661,7 @@ MCND_lp::strong_branch_var_logicfix(BCP_lp_branching_object* candidate){
 	while(!to_logical_fix.empty()){
 		p = &to_logical_fix.back();
 		if(p->fst != cand){
-			std::cout<<"branchfix: "<<p->fst<<" to "<<p->snd<<std::endl;
+			//std::cout<<"branchfix: "<<p->fst<<" to "<<p->snd<<std::endl;
 			extra_vars->push_back(p->fst);
 			++added;
 			for(int i=4;i--;)bd_extra_vars->push_back(p->snd);
