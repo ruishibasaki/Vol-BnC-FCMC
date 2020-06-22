@@ -129,7 +129,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
 	tm->time_lim = 10*3600.0;
    p.par.set_entry(BCP_tm_par::MaxRunTime, tm->time_lim);
 
-   tm->t_start = clock();
+   
    return tm; 
 }
 

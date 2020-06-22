@@ -109,10 +109,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 			}
 			times_dived=0;
 			//max_cand = 5 ;
-		}else{
-			if(times_dived >=3){ reduced_run=false;}
-			else{ reduced_run=true;}
-		}//max_cand = 1;}
+		} 
 		double gap = (ub  - lower_bound)/ub;
 		if(gap<0.005){
 			maxszunfx=0;
@@ -256,6 +253,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
 		AppVolData.minIterVI = 50;
      	AppVolData.intvlVI = 200; 
      	if(reduced_run){
+     		//par.ascent_first_check = 50;
     		par.ascent_check_invl = 50;
      	}else{
     		par.ascent_check_invl = 100;

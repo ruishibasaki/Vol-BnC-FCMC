@@ -95,7 +95,12 @@ LPChecker::reset(const BCP_vec<BCP_var*>& vars,  const double *collb, const doub
 	szunfx=0;
 	int valtopo;
 	int addtopocnstrt=0;
-	topo_ctrnt.endElements();
+ 	dual_map.clear();
+	numaddstrong = numaddcov= numaddloc= numaddgloc =0;
+	map_addcovers.assign(covers->sizeOfCollection,-1);
+    map_addlocals.assign(localcs->sizeOfCollection,-1);
+    map_addglobals.assign(globalcs->sizeOfCollection,-1);
+    
 	if(collb!=0 && colub!=0){
 		for(int a=0;a<narcs;++a){
 			if(colub[a]<0.5){ 
@@ -239,7 +244,7 @@ LPChecker::get_solution(MCND_solution* mipsol){
 
 int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *collb, const double *colub, double& new_lb){
 	
-	clean();
+	
 	reset(vars, collb, colub);
 	//std::cout<<"LPChecker::solve"<<std::endl;
 	cplex.setParam(IloCplex::RootAlg, 0);
@@ -249,6 +254,7 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 	//std::cout<<"LPChecker first "<<cplex.getObjValue()<<std::endl;
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
 		//std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 1"<<std::endl;
+		clean();
   		return -1;
 	} 
 	
@@ -260,12 +266,14 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 		cplex.solve();
 		if(cplex.getStatus() != IloAlgorithm::Optimal){ 
 			//std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 
+			clean();
 			return -2; 
 		}
 		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
 		if(cplex.getObjValue()+1e-4>= ub){
 			new_lb = cplex.getObjValue();
 			//std::cout<<"stop lpchecker "<<cplex.getObjValue()<<std::endl;
+			clean();
 			return 1;
 		}
 		cplex.getValues(y_,y);
@@ -278,6 +286,7 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 	get_dual();
 	new_lb = solval;
 	
+	clean();
 	return 0;
 }
 
@@ -693,7 +702,7 @@ LPChecker::logical_xfix(double ub, const int * yfix, const BCP_vec<BCP_var*>& va
 			id = arc*ndemands+k;
 			xrc = rc_x[id];
 			
-			if(x_[id]<=0 && xrc>1e-10){
+			if(x_[id]<=1e-10 && xrc>1e-10){
 				dk = data->d_k[k].quantity;
 				tt = solval +rc_y[arc]*(1.0 -  y_[arc]);
 				
@@ -714,17 +723,12 @@ LPChecker::logical_xfix(double ub, const int * yfix, const BCP_vec<BCP_var*>& va
 void
 LPChecker::clean(){
 	 
-    numaddstrong = numaddcov= numaddloc= numaddgloc =0;
+    
 	add_strong_force.endElements();
 	add_covers.endElements();
 	add_locals.endElements();
 	add_globals.endElements();
-	cplex.setParam(IloCplex::Param::Advance, 0);
-	dual_map.clear();
-	
-	map_addcovers.assign(covers->sizeOfCollection,-1);
-    map_addlocals.assign(localcs->sizeOfCollection,-1);
-    map_addglobals.assign(globalcs->sizeOfCollection,-1);
+	topo_ctrnt.endElements();
 }
 	
 

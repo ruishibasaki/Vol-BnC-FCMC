@@ -67,6 +67,8 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     const double * rcsol = lpres.dj();
 
     //if(no_gap_reduct >5) max_cand=1;
+    if(times_dived >=3){ reduced_run=false;}
+	else{ reduced_run=true;}
     if(reduced_run)max_cand=1;
     else max_cand=5;
 	
@@ -77,6 +79,16 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
 					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
 					candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+				}
+			}
+		}
+		if(candidates.empty()){
+			for (int a=data.narcs; a--;) {
+				if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
+					psc0 =  psol[a];
+					psc1 =  (1.0-psol[a]);  psc1 = psc1<0 ? 0: psc1;
+					/*if(fmin(psc0, psc1)<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+					else*/ candidates.push_back(Pair2(a, fmin(psc0, psc1)));
 				}
 			}
 		}
@@ -272,7 +284,8 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	}
 	
  	double gap= (ub  - LBi)/ub;
- 	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked){
+ 	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked && !reduced_run){
+ 		std::cout<<"getOsiVolBabSolver()->test_opposites"<<std::endl;
  		double prev = changed_pos.size();
  		getOsiVolBabSolver()->test_opposites( changed_pos, new_bd,  yfix, vars,  ub);
  		arcfx = (prev < changed_pos.size()) ?  true: arcfx;
