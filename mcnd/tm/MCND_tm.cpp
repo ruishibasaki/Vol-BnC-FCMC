@@ -228,7 +228,23 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
     file<<std::setprecision(10)<<instance<<" lb: "<<Best_LB<<" ub: "<<ub<<" gap: "<<(ub-Best_LB)/ub*100<<" nodes: "<<getTmProblemPointer()->search_tree.processed()
     <<" t: "<<t<<std::endl;
     file.close();
+    BCP_tm_prob *p = getTmProblemPointer();
     
+    CoinSearchTreeBase * tree = p->candidate_list.getTree();
+ 	MCND_node_branch_data * user_data;
+	BCP_tm_node * n;
+	CoinTreeNode ** add = new CoinTreeNode*;
+	while(tree->size()){
+		*add = tree->top();
+		n = dynamic_cast<BCP_tm_node*>(*add);
+		//user_data =  dynamic_cast<MCND_node_branch_data*>(n->_data._user.GetRawPtr());
+		if(n->status > BCP_PrunedNode_Discarded ||
+		   n->status < BCP_PrunedNode_OverUB){
+			std::cout<<"tree: "<<n->getQuality()<<std::endl;
+		}
+		tree->pop();
+	}
+	delete add;
     
 }
 

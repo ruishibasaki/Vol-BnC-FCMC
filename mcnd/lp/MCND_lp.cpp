@@ -70,6 +70,7 @@ MCND_lp::initialize_solver_interface(){
 void 
 MCND_lp::process_message(BCP_buffer& buf){
 	buf.unpack(lower_bound);
+	std::cout<<"lower_bound: "<<lower_bound<<std::endl;
 }
 
 
@@ -98,18 +99,22 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 			if((nomgap - (ub-lower_bound))/nomgap < nomgappres){
 				no_gap_reduct += 1;
 			}else no_gap_reduct=0;
-			//std::cout<<"no_gap_reduct: "<<no_gap_reduct<<" impv: "<<(nomgap - (ub-lower_bound))/nomgap<<std::endl;
+			std::cout<<"no_gap_reduct: "<<no_gap_reduct<<" impv: "<<(nomgap - (ub-lower_bound))/nomgap<<std::endl;
 			if(no_gap_reduct<=5){ 
 				nomgap = (ub-lower_bound); 
 				nomgappres = 0.001;
 				reduced_run=false;
 			}else{
 				reduced_run=true;
-				nomgappres = 0.005;
+				nomgappres = 0.01;
 			}
 			times_dived=0;
 			//max_cand = 5 ;
-		} 
+		}else{
+			if(times_dived >=3){ reduced_run=false;}
+			else{ reduced_run=true;}
+		}//max_cand = 1;}
+
 		double gap = (ub  - lower_bound)/ub;
 		if(gap<0.005){
 			maxszunfx=0;
