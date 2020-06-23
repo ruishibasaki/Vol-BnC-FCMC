@@ -126,7 +126,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    p.par.set_entry(BCP_tm_par::QualityRatioToAllowDiving_NoUB, -1.0);
    p.par.set_entry(BCP_tm_par::RemoveExploredBranches, true);
    p.par.set_entry(BCP_tm_par::MessagePassingIsSerial, true);
-	tm->time_lim = 600;//10*3600.0;
+	tm->time_lim = 10*3600.0;
    p.par.set_entry(BCP_tm_par::MaxRunTime, tm->time_lim);
 
    
