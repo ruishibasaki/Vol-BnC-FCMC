@@ -82,7 +82,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	}
 		
     std::stable_sort(candidates.begin(), candidates.end(), compPair2());
-	 
+	  
 	int arc;
 	int ncands=0;
 	
