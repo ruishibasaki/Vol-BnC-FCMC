@@ -656,7 +656,7 @@ VOL_problem::solve(VOL_user_hooks& hooks, const bool use_preset_dual)
         print_info(iter_, primal, pstar, dual);
     // set solution to return
     value = dstar.lcost;
-    psol.copy(pstar.x, psize);
+    psol.copy(pstar.x, active_psize);
     dsol.copy(dstar.u, active_size);
     viol.copy(pstar.v, active_size);
     

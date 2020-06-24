@@ -93,10 +93,10 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    tm->init_sol.size = tm->data.narcs;
    tm->init_sol.xy = new double [tm->data.narcs];
    std::fill(tm->init_sol.xy, tm->init_sol.xy+tm->data.narcs,0.0);
-   int ret = read_init_sol("optimal.txt", inst, 0/*tm->init_sol.xy*/, tm->init_sol.cost);
+   int ret = read_init_sol("optimal.txt", inst, /*tm->init_sol.xy*/0, tm->init_sol.cost);
    if(ret>=0){
    		tm->init_sol.cost = 1e30;
-    	if(ret==0) tm->init_sol.onlyvalue=true;
+    	/*if(ret==0)*/ tm->init_sol.onlyvalue=true;
 		p.upper_bound = tm->init_sol.cost;
 		MCND_solution * sol = new MCND_solution();
 		sol->copy(tm->init_sol, tm->data.narcs);
@@ -113,8 +113,8 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
     p.par.set_entry(BCP_tm_par::TmVerb_NewPhaseStart, false);
     p.par.set_entry(BCP_tm_par::TmVerb_TrimmedNum, false);
     p.par.set_entry(BCP_tm_par::TmVerb_TimeOfImprovingSolution, false);
-    p.par.set_entry(BCP_tm_par::TmVerb_PrunedNodeInfo, true);
-    p.par.set_entry(BCP_tm_par::TmVerb_FinalStatistics, true);
+    p.par.set_entry(BCP_tm_par::TmVerb_PrunedNodeInfo, false);
+    p.par.set_entry(BCP_tm_par::TmVerb_FinalStatistics, false);
     p.par.set_entry(BCP_tm_par::TmVerb_ReportDefault, false);
     
    p.par.set_entry(BCP_tm_par::Granularity, 1e-2);
@@ -129,7 +129,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
 	tm->time_lim = 10*3600.0;
    p.par.set_entry(BCP_tm_par::MaxRunTime, tm->time_lim);
 
-   tm->t_start = clock();
+   
    return tm; 
 }
 
@@ -146,13 +146,13 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
 	p.par.set_entry(BCP_lp_par::LpVerb_ColumnGenerationInfo, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_CutsToCutPoolCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_VarsToVarPoolCount, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_FathomInfo, true);
-	p.par.set_entry(BCP_lp_par::LpVerb_IterationCount, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_FathomInfo, false);
+	p.par.set_entry(BCP_lp_par::LpVerb_IterationCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_RelaxedSolution, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_FinalRelaxedSolution, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_LpMatrixSize, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_LpSolutionValue, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_MatrixCompression, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_MatrixCompression, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_NodeTime, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolvePositions, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolveResult, false);

@@ -82,12 +82,15 @@ public:
 
 	int times_dived;
 	int no_gap_reduct;
-	int max_cand;
+ 	int max_cand;
+ 
 	int unfix;
 	double maxszunfx;
 	
     bool reduced_run;
     bool pump_mode;
+    bool dive_for_sol;
+
     bool has_sol;
     bool no_heur;
     MCND_solution best_sol;
@@ -110,6 +113,7 @@ public:
     inline MCND_lp() : LBi(0), has_sol(false), track(0), reduced_run(false) { 
     	lp_mode = LP_Normal;  no_gap_reduct=num_nodes=0; lower_bound=0;
     	nomgap = 1e30;  pump_mode=false;
+ 
     }
     ~MCND_lp();
     
@@ -285,7 +289,9 @@ public:
     virtual void pack_feasible_solution(BCP_buffer& buf, const BCP_solution* sol);
     
     //--------------------------------------------------------------------------
-
+	void flow_lb_fixing(std::vector<double>& lbtigh, const BCP_vec<BCP_var*>& vars, const double * psol, 
+						const double * dsol,  const double * rcsol, int arc, double lb, double ub);
+						
     bool cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars, 
 							const BCP_vec<BCP_cut*>& cuts,
 							BCP_vec<int>& var_changed_pos,

@@ -135,6 +135,7 @@ MCND_tm::init_new_phase(int phase,
     
 	colgen = BCP_DoNotGenerateColumns_Fathom;
     candidates = new CoinSearchTree<CoinSearchTreeCompareLowerBound>;
+    t_start = clock();
 }
 
 //#############################################################################
@@ -179,7 +180,7 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 	
 	BCP_buffer buf;
 	buf.pack(lower_bound());
-	std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
+	//std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
 	broadcast_message(BCP_ProcessType_LP,buf);
 	buf.clear();
 }
@@ -222,12 +223,28 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
 	double t = double( clock() - t_start ) / double( CLOCKS_PER_SEC );
 	if(t<time_lim-0.01) Best_LB = ub;
 	if(Best_LB > ub) Best_LB = ub;
-	//std::cout<<"The global lower bound: "<<Best_LB<<" / "<<lower_bound()<<std::endl;
+	std::cout<<"The global lower bound: "<<Best_LB<<" / "<<lower_bound()<<" best sol: "<<ub<<std::endl;
     std::ofstream file("fileout", std::ios::app);
     file<<std::setprecision(10)<<instance<<" lb: "<<Best_LB<<" ub: "<<ub<<" gap: "<<(ub-Best_LB)/ub*100<<" nodes: "<<getTmProblemPointer()->search_tree.processed()
     <<" t: "<<t<<std::endl;
     file.close();
+   /* BCP_tm_prob *p = getTmProblemPointer();
     
+    CoinSearchTreeBase * tree = p->candidate_list.getTree();
+ 	MCND_node_branch_data * user_data;
+	BCP_tm_node * n;
+	CoinTreeNode ** add = new CoinTreeNode*;
+	while(tree->size()){
+		*add = tree->top();
+		n = dynamic_cast<BCP_tm_node*>(*add);
+		//user_data =  dynamic_cast<MCND_node_branch_data*>(n->_data._user.GetRawPtr());
+		if(n->status > BCP_PrunedNode_Discarded ||
+		   n->status < BCP_PrunedNode_OverUB){
+			std::cout<<"tree: "<<n->getQuality()<<std::endl;
+		}
+		tree->pop();
+	}
+	delete add;*/
     
 }
 

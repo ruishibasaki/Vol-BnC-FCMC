@@ -171,10 +171,10 @@ OsiVolSolverInterface::map_duals(){
             for(int a=sznz; a--;){
                 int arc = nz_arcs[a];
                 item = &data->arcs[arc];
-                if((i+1) == item->i){
+                if((i+1) == item->i && (colub[narcs+k*narcs+arc]>0)){
                     flag = true;
                     break;
-                }else if((i+1) == item->j){
+                }else if((i+1) == item->j && (colub[narcs+k*narcs+arc]>0)){
                     flag = true;
                     break;
                 }
@@ -192,7 +192,7 @@ OsiVolSolverInterface::map_duals(){
              }*/
         }
     }
-	
+	//std::cout<<"dual size: "<<fsize<<" < "<<nnodes*ndemands<<std::endl;
     int ret = cover_manager->reset_and_map_collection(fsize, yhit, dual, actv, csize, recheck_collct);
     int ret2 = localc_manager->reset_and_map_collection(fsize, yhit, dual, actv, csize, recheck_collct);
     int ret3 = globalc_manager->reset_and_map_collection(fsize, yhit, dual, actv, csize, recheck_collct);
@@ -312,8 +312,8 @@ OsiVolSolverInterface::set_start(){
     
     
     if(HotStartSet){
-    	if(volprob_->parm.maxsgriters>500)
-    		volprob_->parm.maxsgriters=500;
+    	if(volprob_->parm.maxsgriters>250)
+    		volprob_->parm.maxsgriters=250;
 		translate_hotstart();
     }else volprob_->parm.maxsgriters=1000;
 }
@@ -421,6 +421,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
     		volprob_->psize = szunfxd + data->ndemands*sznz;
     		volprob_->active_psize = szunfxd;
     		set_start();
+    		volprob_->parm.maxsgriters=250;
     		ret = volprob_->solve(*this, true);
  		}
     	
@@ -429,7 +430,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
  			 ret = -1;
 		}
 		
-		std::cout<<arc<<" OsiVolSolverInterface::test_opposites "<<volprob_->value<<std::endl;
+		//std::cout<<arc<<" OsiVolSolverInterface::test_opposites "<<volprob_->value<<std::endl;
  		if( ret<0 ){
 			if(solution[arc]>0.9){
 				std::cout<<arc<<" OsiVolSolverInterface::test_opposites FIX 1 "<<solution[arc]<<std::endl;
@@ -479,11 +480,25 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     if(lcost >= VItt ){
         VItt = lcost;
         letgen = true;
-        for(int a=szunfxd; a--; ){ rc_[nz_arcs[a]] = rc[a];}
-        //std::cout<<"iter: "<<iter<<" lb: "<<lcost<<std::endl;
-        //for(int a=szunfxd; a--; ){ std::cout<<"rc:  "<<nz_arcs[a]<<" "<<rc_[nz_arcs[a]]<<std::endl;}
+        int arc;
+        for(int a=szunfxd; a--; ){ 
+        	arc = nz_arcs[a];
+        	rc_[arc] = rc[a];
+        	for(int k=ndemands; k--; ){
+				solution[narcs+k*narcs+arc] = x[szunfxd + k*sznz + a];
+			}	
+        }
+        for(int a=szunfxd; a<sznz; ++a){ 
+        	arc = nz_arcs[a];
+        	for(int k=ndemands; k--; ){
+				solution[narcs+k*narcs+arc] = x[szunfxd + k*sznz + a];
+				//if(arc==52 || arc==8)std::cout<<"better "<<narcs+k*narcs+arc<<" "<<x[szunfxd + k*sznz + a]<<" "
+				//<<rc[szunfxd + k*sznz + a]<<" ub: "<<colub[narcs+k*narcs+arc]/data->d_k[k].quantity<<std::endl;
+ 			}
+        }
+        
     }
-    
+
     if( (mode == 1) && iter>0 && iter%intvlVI==0){
         translate_primal(xstar);
         int num_new_sets=ss_manager->cutset_generation_main( yhit, VItopo, false);
@@ -791,10 +806,10 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
     	rcost = rc[szunfxd + k*sznz + a];
         if(rcost<0.0 && colub[narcs+k*narcs+arc]>0.0){
             heap.push_back(HeapCell(k, double(rcost/data->d_k[k].quantity)));
-        }
+       }
         xval= collb[narcs+k*narcs+arc];
         if(xval>0){
-        	fillUp += xval;
+         	fillUp += xval;
         	xval /= data->d_k[k].quantity;
         	if(xval>1){   xval = 1.0; }
         	kpsack += rcost * xval;
@@ -809,8 +824,7 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
     }
     heap.sort(comp());
     //std::stable_sort(heap.begin(), heap.end(), comp());
-    
-    
+     
     int comm;
     while(heap.size()>0){ 
         comm = heap.back().k;
@@ -826,7 +840,7 @@ OsiVolSolverInterface::knapsack(int a, const double * rc, double* x){
             x[basex + a] += xval;
             fillUp += flow;
             kpsack += rc[basex + a] * xval;
-            //std::cout<<"in"<<std::endl;
+            
         } 
         heap.pop_back();
     }
@@ -974,23 +988,23 @@ OsiVolSolverInterface::add_external_globalc( const int * y, int cont0){
 void 
 OsiVolSolverInterface::translate_sol(){
     
-    CoinFillN(solution, getNumCols(), 0.0);
+    CoinFillN(solution, narcs, 0.0);
 
     int arc;
     double addvalue;
     double coeff = volprob_->iter()/double(volprob_->parm.maxsgriters);
     if(coeff>0.7) coeff=0.7;
-	if(!in_strong_branch)std::cout<<std::setprecision(10)<<"OsiVolSolverInterface::translate_sol: "<<volprob_->value<<" hs: "<<HotStartSet<<" iters: "
-	<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<" coef: "<<coeff<<std::endl;
-
+ 
+	//if(!in_strong_branch)std::cout<<std::setprecision(10)<<"OsiVolSolverInterface::translate_sol: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "
+	//<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<" coef: "<<coeff<<std::endl;
+ 
 	for(int a=szunfxd; a--;){
 		arc = nz_arcs[a];
 		if(HotStartSet) solution[arc] = (coeff*volprob_->psol[a] + (1.0-coeff)*HotStart_->primal[arc]);
 		else solution[arc] = volprob_->psol[a];
 		
 		//std::cout<<arc<<" "<<volprob_->psol[a]<<std::endl;// /double(volprob_->iter())<<std::endl;
-		//for(int k=ndemands; k--; )
-			//solution[narcs+k*narcs+arc] = volprob_->psol[szunfxd + k*sznz + a];
+		
 	}
 	for(int a=szunfxd; a<sznz;++a){
 		arc = nz_arcs[a];
@@ -1000,7 +1014,13 @@ OsiVolSolverInterface::translate_sol(){
 	}
 	translate_dualsol();
     
-    
+    const Arc* item;
+    for(int a=sznz; a--;){
+		arc = nz_arcs[a];
+		item = &data->arcs[arc];
+		for(int k=ndemands; k--; )
+			rc_[narcs+k*narcs+arc] = item->c[k]*data->d_k[k].quantity - dual[k*nnodes + item->j-1] + dual[k*nnodes + item->i-1];
+	}
 }
 
 //-----------------------------------------------------------------------

@@ -21,8 +21,7 @@ FlowConnect::initialize(Data *d){
     nnodes  = data->nnodes;
     redone=false;
     int szlbl = narcs*ndemands;
-    bound_red.resize(szlbl,-1);
-    idbound_red.resize(szlbl,-1);
+    bound_red.resize(szlbl);
     labelf.resize(szlbl,0);
     labelb.resize(szlbl,0);
     Kd.resize(nnodes);
@@ -58,82 +57,140 @@ FlowConnect::set_bd(int id, double lb, double ub, BCP_vec<int>& changed_pos, BCP
 	changed_pos.push_back(id);
 	new_bd.push_back(lb);
 	new_bd.push_back(ub);
-	if(id>=narcs)idbound_red[id-narcs] = changed_pos.size()-1;
+	if(id>=narcs){
+		bound_red[id-narcs].fst = changed_pos.size()-1;
+		bound_red[id-narcs].snd = lb;
+ 		bound_red[id-narcs].trd = ub;
+	}
 }
 
 //-------------------------------------------------------------------------------
 
 int
-FlowConnect::check_upperbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix){
+FlowConnect::check_flowbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, int * yfix){
     std::list<int>::const_iterator it;
     int arc, id, idvar;
- 	double sum, ubnew;
-	double sumb;
-	bool modif=false;
-		
+ 	double sum_ubin, sum_lbin, ubnew, lbnew;
+	double sum_ubout, sum_lbout, lb;
+	bool modifub=false;
+	bool modiflb=false;
+
     for(int n=nnodes;n--;){
         //std::cout<<"node "<<n+1<<std::endl;
         for(int k = ndemands; k--;){
         	if(n == (data->d_k[k].O-1) || n == (data->d_k[k].D-1)) continue;
-        	modif=false;
-        	sum=0; sumb=0;
+        	modifub=false; modiflb=false;
+        	sum_ubin=0; sum_ubout=0; sum_lbin=0; sum_lbout=0;
         	for (it = adjb[n].begin(); it != adjb[n].end(); ++it){
 				arc = data->grid[(*it)*nnodes+n];
-			 	ubnew = bound_red[k*narcs+arc];
-				sum += (ubnew >= 0)? fmin(ubnew, vars[narcs+k*narcs+arc]->ub()) : vars[narcs+k*narcs+arc]->ub();
+				idvar = k*narcs+arc; 
+			 	ubnew = bound_red[idvar].trd;
+			 	lbnew = bound_red[idvar].snd;
+				sum_ubin += (ubnew >= 0)? fmin(ubnew,  vars[narcs+idvar]->ub()) : vars[narcs+idvar]->ub();
+				sum_lbin +=  fmax(lbnew,  vars[narcs+idvar]->lb());
             }
         	
             for (it = adjf[n].begin(); it != adjf[n].end(); ++it){
-                arc = data->grid[n*nnodes+(*it)];                
-				ubnew = bound_red[k*narcs+arc];
- 				idvar = narcs+k*narcs+arc;
-				if(vars[idvar]->lb() > (sum+ 1e-4)) return -1;
-                else if(ubnew >= data->d_k[k].quantity){
-                	if(data->d_k[k].quantity > (sum+ 1e-4))	return -1;
- 					sumb += data->d_k[k].quantity;
-                	continue;
-                } 
+                arc = data->grid[n*nnodes+(*it)];      
+                idvar = k*narcs+arc;          
+				ubnew = bound_red[k*narcs+arc].trd;
+ 				lb = fmax(vars[narcs+idvar]->lb(), bound_red[idvar].snd);
+ 				sum_lbout += lb; 
+				if( lb > (sum_ubin+ 1e-4)) return -1;
                 
-				ubnew = (ubnew >= 0)? fmin(ubnew, vars[idvar]->ub()) : vars[idvar]->ub();
-				if(sum < ubnew-1e-4){
+				ubnew = (ubnew >= 0)? fmin(ubnew, vars[narcs+idvar]->ub()) : vars[narcs+idvar]->ub();
+				if(sum_ubin < ubnew-1e-4){
 					//std::cout<<"ATENCAO!! "<<sum<<" "<<ubnew<<std::endl;
-					id = idbound_red[k*narcs+arc];
+					id = bound_red[idvar].fst;
 					if(id>=0){
- 						new_bd[id*2+1] = sum;
+ 						new_bd[id*2+1] = sum_ubin;
+ 						bound_red[idvar].trd = sum_ubin;
 					}else{
-						set_bd(idvar, 0.0, sum,  changed_pos, new_bd);
+						set_bd(narcs+idvar, lb, sum_ubin,  changed_pos, new_bd);
 					}
- 					bound_red[k*narcs+arc] = sum;
-					ubnew = sum;
-
-					modif=true;
+					ubnew = sum_ubin;
+					modifub=true;
 				}
- 				sumb += ubnew;
+ 				sum_ubout += ubnew;
             }
-            
-            if(modif) continue;
-            for (it = adjb[n].begin(); it != adjb[n].end(); ++it){
-				arc = data->grid[(*it)*nnodes+n];
-			 	ubnew = bound_red[k*narcs+arc];
- 				idvar = narcs+k*narcs+arc;
- 			 	if(vars[idvar]->lb() > (sumb+ 1e-4)) return -1;
-                else if(ubnew >= data->d_k[k].quantity){
-                	if(data->d_k[k].quantity > (sumb+ 1e-4))	return -1;
-                 	continue;
-                } 
-                
-				ubnew = (ubnew >= 0)? fmin(ubnew, vars[idvar]->ub()) : vars[idvar]->ub();
-				if(sumb < ubnew-1e-4){
-					//std::cout<<"ATENCAO!! "<<sumb<<" "<<ubnew<<std::endl;
-					id = idbound_red[k*narcs+arc];
-					if(id>=0){
- 						new_bd[id*2+1] = sumb;
-					}else{
-						set_bd(idvar, 0.0, sumb,  changed_pos, new_bd);
+            if(sum_ubout < sum_lbin) return -1;
+            else if(sum_ubin < sum_lbout) return -1;
+            else if(sum_lbin>0){
+             	for (it = adjf[n].begin(); it != adjf[n].end(); ++it){
+                	arc = data->grid[n*nnodes+(*it)];    
+            		idvar = k*narcs+arc;      
+            		lb = fmax(vars[narcs+idvar]->lb(), bound_red[idvar].snd);
+					ubnew = bound_red[idvar].trd;                
+					ubnew = (ubnew >= 0)? fmin(ubnew, vars[narcs+idvar]->ub()) : vars[narcs+idvar]->ub();
+					lbnew = 0;
+					if((sum_ubout-ubnew) < sum_lbin){
+						lbnew = sum_lbin-(sum_ubout-ubnew);
+						if(lbnew -lb >1e-4){
+							id = bound_red[idvar].fst;
+							if(id>=0){
+								new_bd[id*2] = lbnew;
+								bound_red[idvar].snd = lbnew;
+							}else{
+								set_bd(narcs+idvar, lbnew, ubnew,  changed_pos, new_bd);
+							}
+							if(yfix[arc]==-1){
+								set_bd(arc, 1.0, 1.0,  changed_pos, new_bd);
+								yfix[arc]=1;
+								std::cout<<"flowbounds fix "<<arc<<" to 1"<<std::endl;
+							}
+							modiflb=true;
+						} 
 					}
- 					bound_red[k*narcs+arc] = sumb;
-					ubnew = sumb;
-				}
+             	}
+            }
+            if(!modifub){
+            	sum_ubin=0;
+				for (it = adjb[n].begin(); it != adjb[n].end(); ++it){
+					arc = data->grid[(*it)*nnodes+n];
+					idvar = k*narcs+arc;
+					lb = fmax(vars[narcs+idvar]->lb(), bound_red[idvar].snd);				
+					ubnew = bound_red[idvar].trd;
+					ubnew = (ubnew >= 0)? fmin(ubnew, vars[narcs+idvar]->ub()) : vars[narcs+idvar]->ub();
+					if(sum_ubout < ubnew-1e-4){
+						//std::cout<<"ATENCAO!! "<<sumb<<" "<<ubnew<<std::endl;
+						id = bound_red[idvar].fst;
+						if(id>=0){
+							new_bd[id*2+1] = sum_ubout;
+							bound_red[idvar].trd = sum_ubout;
+						}else{
+							set_bd(narcs+idvar, lb, sum_ubout,  changed_pos, new_bd);
+						}
+						ubnew = sum_ubout;
+					}
+					sum_ubin += ubnew ;
+				 }
+             }
+             if(!modiflb){
+ 				 for (it = adjb[n].begin(); it != adjb[n].end(); ++it){
+					 arc = data->grid[(*it)*nnodes+n];    
+					 idvar = k*narcs+arc;      
+					 lb = fmax(vars[narcs+idvar]->lb(), bound_red[idvar].snd);
+					 ubnew = bound_red[idvar].trd;                
+					 ubnew = (ubnew >= 0)? fmin(ubnew, vars[narcs+idvar]->ub()) : vars[narcs+idvar]->ub();
+					 lbnew = 0;
+					 if((sum_ubin-ubnew) < sum_lbout){
+						 lbnew = sum_lbout-(sum_ubin-ubnew);
+						 if(lbnew -lb >1e-4 ){
+							 id = bound_red[idvar].fst;
+							 if(id>=0){
+								 new_bd[id*2] = lbnew;
+								 bound_red[idvar].snd = lbnew;
+							 }else{
+								 set_bd(narcs+idvar, lbnew, ubnew,  changed_pos, new_bd);
+							 }
+							 if(yfix[arc]==-1){
+								 set_bd(arc, 1.0, 1.0,  changed_pos, new_bd);
+								 yfix[arc]=1;
+								 std::cout<<"flowbounds fix "<<arc<<" to 1"<<std::endl;
+							 }
+ 						 } 					 
+					 }
+             	 }
              }
         }   
     }
@@ -163,10 +220,9 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     arc_unique = arc;
                     ++comm_sat;
                 }else{
-                    //std::cout<<"set x_"<<arc+1<<"^"<<k+1<<" to zero. "<<vars[narcs+k*narcs+arc]->lb()<<" "<<vars[narcs+k*narcs+arc]->ub()<<std::endl;
                     if(vars[id]->ub()>0 && vars[id]->lb()==0){
+                        //std::cout<<"set x_"<<arc+1<<"^"<<k+1<<" to zero. "<<vars[narcs+k*narcs+arc]->lb()<<" "<<vars[narcs+k*narcs+arc]->ub()<<std::endl;
                     	set_bd(id, 0.0, 0.0,  changed_pos, new_bd);
-                    	bound_red[k*narcs+arc] = 0.0;
                     	redone=true;
                     }
                     else if(vars[id]->lb()>0){ /*std::cout<<"FlowConnect conflict1"<<std::endl; */ret= -2;}
@@ -191,8 +247,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	if(vars[id]->ub() < dk){ /*std::cout<<"FlowConnect conflict3"<<std::endl;*/ ret= -2;}
                 	else if(vars[id]->lb() < dk){
                 		set_bd(id, dk, dk,  changed_pos, new_bd);
-                		bound_red[k*narcs+arc_unique] = dk+1;
-                		redone=true;
+                 		redone=true;
                 	} 
                 	if(vars[arc_unique]->lb() < 0.5 && yfxd[arc_unique]==-1){
                 		set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
@@ -209,7 +264,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 comm_sat = 0;
                 for (it = adjb[n].begin(); it != adjb[n].end(); ++it){
                     arc = data->grid[(*it)*nnodes+n];
-                    if(labelf[k*narcs+arc] && labelb[k*narcs+arc]){
+                    if(labelf[k*narcs+arc] && labelb[k*narcs+arc]  && vars[narcs+k*narcs+arc]->ub()>0){
                         ++comm_sat;
                         arc_unique = arc;
                         if(comm_sat>1) break;
@@ -222,8 +277,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                 	if(vars[id]->ub() < dk){ /*std::cout<<"FlowConnect conflict5"<<std::endl;*/ ret= -2;}
                 	else if(vars[id]->lb() < dk){
                 		set_bd(id, dk, dk,  changed_pos, new_bd);
-                		bound_red[k*narcs+arc_unique] = dk+1;
-                		redone=true;
+                 		redone=true;
                 	}
                 	if(vars[arc_unique]->lb() < 0.5 && yfxd[arc_unique]==-1){
                 		set_bd(arc_unique, 1.0, 1.0,  changed_pos, new_bd);
@@ -335,8 +389,7 @@ void
 FlowConnect::clear_memory(){
 	//std::cout<<"FlowConnect::clear_memory"<<std::endl;
 	redone=false;
-	idbound_red.assign(narcs*ndemands,-1);
-	bound_red.assign(narcs*ndemands,-1);	
+ 	bound_red.assign(narcs*ndemands,Trio1(-1,-1.0,-1.0));	
 }
 
 //-------------------------------------------------------------------------------
@@ -352,8 +405,7 @@ FlowConnect::~FlowConnect(){
 	delete []adjf;
 	delete []adjb;
 	bound_red.clear();
-	idbound_red.clear();
-
+ 
 	Ko.clear();
 	Kd.clear();	
 }

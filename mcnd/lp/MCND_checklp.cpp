@@ -8,7 +8,6 @@
 #include "MCND_checklp.hpp"
 
 ILOSTLBEGIN
-
  
 void LPChecker::set_parameters() {
 	cplex.setParam(IloCplex::Threads,1);
@@ -96,7 +95,12 @@ LPChecker::reset(const BCP_vec<BCP_var*>& vars,  const double *collb, const doub
 	szunfx=0;
 	int valtopo;
 	int addtopocnstrt=0;
-	topo_ctrnt.endElements();
+ 	dual_map.clear();
+	numaddstrong = numaddcov= numaddloc= numaddgloc =0;
+	map_addcovers.assign(covers->sizeOfCollection,-1);
+    map_addlocals.assign(localcs->sizeOfCollection,-1);
+    map_addglobals.assign(globalcs->sizeOfCollection,-1);
+    
 	if(collb!=0 && colub!=0){
 		for(int a=0;a<narcs;++a){
 			if(colub[a]<0.5){ 
@@ -230,7 +234,7 @@ LPChecker::get_solution(MCND_solution* mipsol){
 			mipsol->cost+=data->arcs[a].f;
 		}
 	}
- 	std::cout<<"LPChecker::getSolution:: integer sol value: "<<mipsol->cost<<std::endl;
+ 	//std::cout<<"LPChecker::getSolution:: integer sol value: "<<mipsol->cost<<std::endl;
 }
 
 //---------------------------------------------------------------------------
@@ -240,33 +244,36 @@ LPChecker::get_solution(MCND_solution* mipsol){
 
 int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *collb, const double *colub, double& new_lb){
 	
-	clean();
+	
 	reset(vars, collb, colub);
-	std::cout<<"LPChecker::solve"<<std::endl;
+	//std::cout<<"LPChecker::solve"<<std::endl;
 	cplex.setParam(IloCplex::RootAlg, 0);
 	cplex.setParam(IloCplex::Param::Advance, 0);
 	cplex.solve();
 
 	//std::cout<<"LPChecker first "<<cplex.getObjValue()<<std::endl;
 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 1"<<std::endl;
+		//std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 1"<<std::endl;
+		clean();
   		return -1;
 	} 
 	
 	cplex.getValues(x_,x);
 	cplex.getValues(y_,y);
-	while(cut(vars, colub)){
+	while(cut(vars,collb, colub)){
 		cplex.setParam(IloCplex::RootAlg, 2);
 		cplex.setParam(IloCplex::Param::Advance, 1);
 		cplex.solve();
 		if(cplex.getStatus() != IloAlgorithm::Optimal){ 
-			std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 
+			//std::cout<<"LPChecker::solve:: cplex.getStatus() == IloAlgorithm::Infeasible 2"<<std::endl; 
+			clean();
 			return -2; 
 		}
 		//std::cout<<"after cut "<<cplex.getObjValue()<<std::endl;
 		if(cplex.getObjValue()+1e-4>= ub){
 			new_lb = cplex.getObjValue();
-			std::cout<<"stop lpchecker "<<cplex.getObjValue()<<std::endl;
+			//std::cout<<"stop lpchecker "<<cplex.getObjValue()<<std::endl;
+			clean();
 			return 1;
 		}
 		cplex.getValues(y_,y);
@@ -275,10 +282,11 @@ int LPChecker::solve(double ub, const BCP_vec<BCP_var*>& vars, const double *col
 	cplex.getReducedCosts(rc_x, x);
  	cplex.getReducedCosts(rc_y, y);
 	solval = cplex.getObjValue();
-	std::cout<<"final lpchecker "<<solval<<std::endl;
+	//std::cout<<"final lpchecker "<<solval<<std::endl;
 	get_dual();
 	new_lb = solval;
 	
+	clean();
 	return 0;
 }
 
@@ -359,19 +367,19 @@ LPChecker::test_high_lowerbounds(BCP_vec<int>& changed_pos, BCP_vec<double>& new
 		
  		if(ret>=0){
  			new_lb =  cplex.getObjValue();
- 			std::cout<<"LPChecker::test_high_lowerbounds "<<arc<<" : "<<new_lb<<" ub: "<<bestsolv<<" "<<volsol[arc]<<std::endl;
- 		}else std::cout<<"LPChecker::test_high_lowerbounds "<<arc<<": infeasible"<<std::endl;
+ 			//std::cout<<"LPChecker::test_high_lowerbounds "<<arc<<" : "<<new_lb<<" ub: "<<bestsolv<<" "<<volsol[arc]<<std::endl;
+ 		}//else std::cout<<"LPChecker::test_high_lowerbounds "<<arc<<": infeasible"<<std::endl;
  		
  		if( ret<0 || new_lb > bestsolv){
 			if(volsol[arc]>0.9){
-				std::cout<<arc<<" LPChecker::test_high_lowerbounds FIX 1 "<<std::endl;
+				//std::cout<<arc<<" LPChecker::test_high_lowerbounds FIX 1 "<<std::endl;
 				changed_pos.push_back(arc);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
 				yfix[arc]=1;
 				valtopo=1;
 			}else{
-				std::cout<<arc<<" LPChecker::test_high_lowerbounds FIX 0 "<<std::endl;
+				//std::cout<<arc<<" LPChecker::test_high_lowerbounds FIX 0 "<<std::endl;
 				changed_pos.push_back(arc);
 				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
@@ -400,12 +408,12 @@ LPChecker::test_high_lowerbounds(BCP_vec<int>& changed_pos, BCP_vec<double>& new
 
 
 int 
-LPChecker::cut(const BCP_vec<BCP_var*>& vars, const double *colub){
+LPChecker::cut(const BCP_vec<BCP_var*>& vars, const double *collb, const double *colub){
 	int arc, sz;
 	int cont=0;
-	double ub;
-	for(int a=0;a<szunfx;++a){
-		arc = unfixd[a];
+	double ub, lb;
+	for(int a=0;a<narcs;++a){
+		arc = a;//unfixd[a];
 		for (int k = 0; k < ndemands; ++k){
 			if(colub!=0) ub = colub[narcs+k*narcs+arc];
 			else ub = vars[narcs+k*narcs+arc]->ub();
@@ -417,6 +425,18 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const double *colub){
  				add_strong_force.add((constraint <= 0));
 				model.add(add_strong_force[numaddstrong++]);
 				constraint.end();
+				++cont;
+			}
+			if(collb!=0) lb = collb[narcs+k*narcs+arc];
+			else lb = vars[narcs+k*narcs+arc]->lb();
+ 			if(lb - data->d_k[k].quantity*x_[arc*ndemands+k]> 1e-2 ){
+				IloExpr constraint(env);
+				constraint += x[arc*ndemands+k];
+				constraint -= (lb/data->d_k[k].quantity);
+  				add_strong_force.add((constraint >= 0));
+				model.add(add_strong_force[numaddstrong++]);
+				constraint.end();
+				//std::cout<<"LPChecker::cut::add "<<narcs+k*narcs+arc<<" "<<lb<<" "<<data->d_k[k].quantity*x_[arc*ndemands+k]<<std::endl;
 				++cont;
 			}
 		}
@@ -488,7 +508,7 @@ int
 LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & yb, const IloNumArray & xb, IloRangeArray& tempcnstrt, int& addtemp){
 	int arc, sz;
 	int cont=0;
-	double ub;
+	double ub, lb;
 	for(int a=0;a<szunfx;++a){
 		arc = unfixd[a];
 		for (int k = 0; k < ndemands; ++k){
@@ -502,6 +522,16 @@ LPChecker::cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & yb, const IloN
 				model.add(tempcnstrt[addtemp++]);
 				constraint.end();
 				++cont;
+			}
+			lb = vars[narcs+k*narcs+arc]->lb();
+			if(lb - data->d_k[k].quantity*xb[arc*ndemands+k]> 1e-2 ){
+				IloExpr constraint(env);
+				constraint += x[arc*ndemands+k];
+				constraint -= (lb/data->d_k[k].quantity);
+  				tempcnstrt.add((constraint >= 0));
+				model.add(tempcnstrt[addtemp++]);
+				constraint.end();
+ 				++cont;
 			}
 		}
 	}
@@ -640,17 +670,17 @@ LPChecker::logical_yfix(double ub, BCP_vec<int>& changed_pos, BCP_vec<double>& n
 				new_bd.push_back(1.0);
 				yfix[arc] = 1.0;
 				arcfx=true;
-				std::cout<<arc<<" LOGFIX 1 (LP optimal)"<<std::endl;
+				//std::cout<<arc<<" LOGFIX 1 (LP optimal)"<<std::endl;
 			}else if(y_[arc] <=1e-10){
 				changed_pos.push_back(arc);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[arc] = 0.0;
 				arcfx=true;
-				std::cout<<arc<<" LOGFIX 0 (LP optimal)"<<std::endl;
+				//std::cout<<arc<<" LOGFIX 0 (LP optimal)"<<std::endl;
 			} 
-		} 
-		
+			continue;
+		}
 	}
 	return arcfx;
 
@@ -672,7 +702,7 @@ LPChecker::logical_xfix(double ub, const int * yfix, const BCP_vec<BCP_var*>& va
 			id = arc*ndemands+k;
 			xrc = rc_x[id];
 			
-			if(x_[id]<=0 && xrc>1e-10){
+			if(x_[id]<=1e-10 && xrc>1e-10){
 				dk = data->d_k[k].quantity;
 				tt = solval +rc_y[arc]*(1.0 -  y_[arc]);
 				
@@ -693,17 +723,12 @@ LPChecker::logical_xfix(double ub, const int * yfix, const BCP_vec<BCP_var*>& va
 void
 LPChecker::clean(){
 	 
-    numaddstrong = numaddcov= numaddloc= numaddgloc =0;
+    
 	add_strong_force.endElements();
 	add_covers.endElements();
 	add_locals.endElements();
 	add_globals.endElements();
-	cplex.setParam(IloCplex::Param::Advance, 0);
-	dual_map.clear();
-	
-	map_addcovers.assign(covers->sizeOfCollection,-1);
-    map_addlocals.assign(localcs->sizeOfCollection,-1);
-    map_addglobals.assign(globalcs->sizeOfCollection,-1);
+	topo_ctrnt.endElements();
 }
 	
 

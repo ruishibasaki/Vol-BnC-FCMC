@@ -106,9 +106,9 @@ CoverCut::check_logical_fix(const BCP_vec<BCP_var*>& vars, int* yarcs){
 				 yarcs[arc] = 2;
 			}
 		}
-		std::cout<<"serial: "<<cover->serial_nmbr<<" "; cover->print();
+		//std::cout<<"serial: "<<cover->serial_nmbr<<" "; cover->print();
 		return true;
-	}else if(sum < rhs){std::cout<<"check_logical_fix::PRUNE: "<<sum<<" < "<<rhs<<" "; cover->print(); return false;}
+	}else if(sum < rhs){/*std::cout<<"check_logical_fix::PRUNE: "<<sum<<" < "<<rhs<<" "; cover->print();*/ return false;}
 	return true;
 }
 

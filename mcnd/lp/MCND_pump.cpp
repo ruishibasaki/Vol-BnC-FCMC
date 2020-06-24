@@ -18,14 +18,15 @@ Pump::set_data(const Data * d){
 	volsolver.dual_lb = -1e31;
  	volsolver.parm.ascent_check_invl = 100;
  	volsolver.parm.ascent_first_check =100;
+ 	volsolver.parm.maxsgriters = 250;
  	
     fxone.resize(narcs);
  	unfx.resize(narcs);
 	topo.resize(narcs);
   	
  	szunfix=0;
- 	roundup = 0.5;
- 	roundwn = 0.5;
+ 	roundup = 0.3;
+ 	roundwn = 0.3;
 	maxunfix = narcs*0.3;
 	set_parameters();
 	
@@ -44,8 +45,6 @@ Pump::set_data(const Data * d){
         map[i].fst = i/sizeOfInt;
         map[i].snd = i%sizeOfInt;
     }
-
-
 }
 
 //-------------------------------------------------------------------------------------------
@@ -132,7 +131,7 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
  	szunfix=0;szfxone=0;
  	if(best_sol==0){
  		 if(altsol!=0) besttopo = altsol;
- 	}else if(!best_sol->onlyvalue) besttopo = best_sol->xy;
+ 	}else if(!best_sol->onlyvalue){ besttopo = best_sol->xy;}
  	else if(altsol!=0){besttopo = altsol;}
  	
  	for(int a=narcs; a--;){
@@ -140,10 +139,10 @@ Pump::make_topo( const double * x ,const BCP_vec<BCP_var*>& vars){
             topo[a]=-2;
             fxone[szfxone++] = a;
          }else if(vars[a]->ub()==1.0){
-            if(x[a]>=0.99){ 
+            /*if(x[a]>=0.99){ 
             	topo[a]=-2;
             	fxone[szfxone++] = a;
-            }else if(x[a]>=0.01){
+            }else*/ if(x[a]>=0.01){
             	rnd = rand()%2;
 				if((rnd==1 && pertbd<maxpertbd) || (besttopo==0)){
 					rnd = ((rand()%101)/100.0 <= x[a]) ? 1 : 0;
@@ -237,7 +236,7 @@ void
 Pump::try_perturbation(unsigned int* seqtopo){
 	int arc;
 	Pair2* maptitem=0;
-	std::cout<<"Pump::try_perturbation"<<std::endl;
+	//std::cout<<"Pump::try_perturbation"<<std::endl;
 	std::random_shuffle(unfx.begin(), unfx.begin()+szunfix);
  	for(int a=0;a<szunfix;++a){
 		arc = unfx[a];
@@ -296,20 +295,22 @@ void Pump::create_model( ) {
 //-------------------------------------------------------------------------------------------
 
 void Pump::check_feas_model() {	
-	Pair2 item;
-	int arc;
-	double c;
-	
- 	for(int a=narcs ; a--; ){
+ 	double valtopo;
+ 	topo_ctrnt.endElements();
+  	for(int a=0 ; a<narcs; ++a){
 		if(topo[a]<0){
 			//std::cout<<"out: "<<a<<std::endl;
-			y[a].setUB(1.0);
-			y[a].setLB(1.0);
+			valtopo=1.0;
 		}else{
-			y[a].setUB(0.0);
-			y[a].setLB(0.0);
+			valtopo=0.0;
 		} 
+		IloExpr constraint(env); 
+		constraint += y[a] - valtopo;
+		topo_ctrnt.add((constraint == 0));
+		model.add(topo_ctrnt[a]);
+		constraint.end();
 	}
+	
     cplex.getObjective().setExpr(fobj);	
 }
 
@@ -361,6 +362,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 	std::vector<int>modtabu(narcs,0);
     while(dontbreak){
 		if(volsolve()<0){
+			std::cout<<"Pump::solve no"<<std::endl;
 			modtabu.clear();
 			get_closed(fixd0, closed, false);
 			return 0;
@@ -386,24 +388,13 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 				dontbreak = true;
 			}
 		}
-		std::cout<<"final pump "<<solpump<<" volume: "<<volsolver.value<<" "<<roundwn<<std::endl;
+		//std::cout<<"final pump "<<solpump<<" volume: "<<volsolver.value<<" "<<roundwn<<std::endl;
     }
     modtabu.clear();
-	 
- 	check_feas_model();
-	cplex.solve();
-	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
-		feas=false;
-	} 
-	if(feas && cplex.getStatus() != IloAlgorithm::Optimal){
-		return -10;
-	}
+ 	IloNumArray x_(env);
+ 	feas = local_search(  x_, mipsol );
 	if(feas){
 		roundwn*=1.2; if(roundwn>0.7) roundwn=0.7;
-		IloNumArray x_(env);
-		cplex.getValues(x_,x);
-		getSolution(  x_, mipsol );
 		x_.end(); 
 		//if(best_sol != 0 && mipsol->cost > best_sol->cost)
 			//roundup*=1.8; if(roundup>0.5) roundup=0.5;
@@ -416,6 +407,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 		}
   		return 1;
 	}else{ 
+		x_.end();
 		get_closed(fixd0, closed, true); 
 		//roundup*=0.8; if(roundup<0.3) roundup=0.3;
 		roundwn*=0.8; if(roundwn<0.1) roundwn=0.1;
@@ -427,13 +419,43 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 
 //-------------------------------------------------------------------------------------------
 
-double 
+bool 
+Pump::local_search(IloNumArray & x_, MCND_solution*& mipsol ){
+ 
+	check_feas_model();
+	cplex.solve();
+ 	if(cplex.getStatus() == IloAlgorithm::Infeasible){
+		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
+ 		return false;
+	}else if(cplex.getStatus() != IloAlgorithm::Optimal){
+ 		return false;
+	}
+ 
+ 	cplex.getValues(x_,x);
+	while(getSolution(  x_, mipsol )<0){
+		std::cout<<"sol: "<<mipsol->cost<<std::endl;
+		cplex.solve();
+		if(cplex.getStatus() == IloAlgorithm::Infeasible){
+			std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
+			break;
+		}else if(cplex.getStatus() != IloAlgorithm::Optimal){
+			break;
+		}
+		cplex.getValues(x_,x);
+	}
+  	return true;
+}
+
+//-------------------------------------------------------------------------------------------
+
+
+int 
 Pump::getSolution(const IloNumArray& x_, MCND_solution*& mipsol ){
 	double flow;
 	double val;
 	double cij;
- 	
-	mipsol = new MCND_solution(narcs+narcs*ndemands);
+ 	int ret=0;
+	if(mipsol==0)mipsol = new MCND_solution(narcs+narcs*ndemands);
 	mipsol->cost =0;
 	for(int a=0;a<narcs;++a){
  		if(topo[a]==0){
@@ -452,11 +474,24 @@ Pump::getSolution(const IloNumArray& x_, MCND_solution*& mipsol ){
 			if(flow>1e-10){
 				mipsol->xy[a] = 1.0;
 				mipsol->cost += data->arcs[a].f;
+				/*if(flow/data->arcs[a].capa<0.1 && ret>=0){
+					std:cout<<"pode tentar fechar "<<a<<" : "<<flow/data->arcs[a].capa<<std::endl;
+					IloExpr constraint(env); 
+					constraint += y[a];
+					topo_ctrnt[a].removeFromAll();
+					//topo_ctrnt[a].end();
+					topo_ctrnt[a] = ((constraint == 0));
+					model.add(topo_ctrnt[a]);
+					constraint.end();
+					//abort();
+					ret = -1;
+				}*/
 			}
+			
  		} 
 	}
-  	//std::cout<<"feasibiliy integer sol value: "<<mipsol->cost<<std::endl;
-	return 1;
+  	std::cout<<"pump::integer sol value: "<<mipsol->cost<<std::endl;
+	return ret;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -486,6 +521,7 @@ Pump::~Pump() {
 
 	try {
 		cutstrong.endElements();
+		topo_ctrnt.endElements();
 		x.endElements();
 		y.endElements();
 		cplex.clearModel();

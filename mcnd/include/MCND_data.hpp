@@ -9,7 +9,6 @@
 #include "BCP_var.hpp"
 #include "BCP_cut.hpp"
 #include "BCP_vector.hpp"
-
 #include "Structures.hpp"
 
 class BCP_buffer;
@@ -51,9 +50,8 @@ public:
 	std::list<int> *adjf;
 	std::list<int> *adjb;
 
-	std::vector<double> bound_red;
-	std::vector<int> idbound_red;
-	bool redone;
+	std::vector<Trio1> bound_red;
+ 	bool redone;
 
 	inline FlowConnect(){}
 	inline FlowConnect(Data* d){ initialize(d);}
@@ -65,7 +63,7 @@ public:
 
 	int check_connectivity(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd, bool& conn_arcfix, int * yfxd);
     int translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd,bool& conn_arcfix, int * yfxd);
-    int check_upperbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd,  int * yfix);
+    int check_flowbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& changed_pos, BCP_vec<double>& new_bd,  int * yfix);
     void reset(const BCP_vec<BCP_var*>& vars, int * yfxd);
     void clear_memory();
 };

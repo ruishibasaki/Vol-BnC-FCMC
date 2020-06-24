@@ -25,7 +25,8 @@ public:
 	
 	IloObjective fobj;
 	IloRangeArray cutstrong;
-	 
+	IloRangeArray topo_ctrnt;
+
 	double factory;
 	double roundup;
 	double roundwn;
@@ -48,7 +49,7 @@ public:
  	std::vector<int> topo;
     const BCP_vec<BCP_var*>* varsp;
 	//--------------------------
-	Pump(): cplex(env), x(env), y(env), model(env), fobj(env), cutstrong(env), volsolver("volmcnd.par") {data =0; altsolval=0; altsol=0; }
+	Pump(): cplex(env), x(env), y(env), model(env), fobj(env), cutstrong(env), topo_ctrnt(env), volsolver("volmcnd.par") {data =0; altsolval=0; altsol=0; }
 	void set_data(const Data * d);
 	void initialize(const Data * d, const MCND_solution* best_sol_);
 	void set_parameters();
@@ -66,7 +67,8 @@ public:
 	//--------------------------
 	int solve(int *& fixd, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_solution*& mipsol);
 	int cut(const BCP_vec<BCP_var*>& vars, const IloNumArray & y_, const IloNumArray & x_);
-	double getSolution(  const IloNumArray & x_, MCND_solution*& mipsol );
+	bool local_search(IloNumArray & x_, MCND_solution*& mipsol );
+	int getSolution(  const IloNumArray & x_, MCND_solution*& mipsol );
 	void get_closed(int*& fixd, int& closed, bool onlyx);
 	
 	~Pump(); //x.endElements(); 

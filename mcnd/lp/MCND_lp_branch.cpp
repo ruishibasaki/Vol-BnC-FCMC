@@ -69,26 +69,14 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     //if(no_gap_reduct >5) max_cand=1;
     if(reduced_run)max_cand=1;
     else max_cand=1;
-	
-  	if(max_cand==1 && !pump_mode){
-		for (int a=data.narcs; a--;) {
-			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
-				if(min(ninsp[a].fst, ninsp[a].snd) >= 5 && (psol[a]>=0.1 && psol[a]<=0.9) ){
-					psc0 = psol[a]*psdcost[a].fst/double(ninsp[a].fst);
-					psc1 = (1.0-psol[a])*psdcost[a].snd/double(ninsp[a].snd);
-					candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-				}
-			}
-		}
-	}
 
 	if(candidates.empty()){
 		for (int a=data.narcs; a--;) {
 			if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
 				psc0 =  psol[a];
 				psc1 =  (1.0-psol[a]);  psc1 = psc1<0 ? 0: psc1;
-				if(fmin(psc0, psc1)<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
-				else candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
+				/*if(fmin(psc0, psc1)<0.1) candidates.push_back(Pair2(a, fmin(psc0, psc1)));
+				else*/ candidates.push_back(Pair2(a, fmin(psc0, psc1)*data.arcs[a].capa));
 			}
 		}
 	}
@@ -100,7 +88,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	
 	while(!candidates.empty() && ncands<max_cand){
 		arc = candidates.front().fst;
-		std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<std::endl;
+		//std::cout<<"candidate "<<arc<<" "<<psol[arc]<<" "<<std::setprecision(10)<<candidates.front().snd<<std::endl;
 		///*<<" test: "<<fmin(psc0,psc1)<<", "<<min(ninsp[arc].fst, ninsp[arc].snd)*/<<std::endl;
 		candidates.pop_front();	
 		vpos[0] = arc;
@@ -124,7 +112,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
      	lp_mode |= LP_StrongBranch;
      	return BCP_DoBranch;
     }else{
-    	std::cout<<"NO CAND"<<std::endl;
+    	//std::cout<<"NO CAND"<<std::endl;
     	//lp_mode = LP_Normal;
     	return BCP_DoNotBranch_Fathomed;
 	}
@@ -167,6 +155,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				new_bd.push_back(0.0);
 				yfix[a]=0;
 				arcfx=true;
+				continue;
 			}else if(gij<0 && (lb-gij)>=ub){
 				std::cout<<a<<" LOGFIX FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<ub<<std::endl;
 				changed_pos.push_back(a);
@@ -174,23 +163,25 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				new_bd.push_back(1.0);
 				yfix[a]=1;
 				arcfx=true;
+				continue;
 			} 
-			if(!pump_mode) continue;
+			if(current_level()<10) continue;
 			if(psol[a]<1e-5){
-				std::cout<<a<<" SOLUTION FIX 0 "<<std::endl;
+				std::cout<<a<<" SOLUTION FIX 0 "<<psol[a]<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0;
 				arcfx=true;
 			}else if(psol[a]>1.0-1e-5){
-				std::cout<<a<<" SOLUTION FIX 1 "<<std::endl;
+				std::cout<<a<<" SOLUTION FIX 1 "<<psol[a]<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
 				yfix[a]=1;
 				arcfx=true;
 			}
+ 
 		}else if(vars[a]->ub()==0.0){ yfix[a]=0;
 		}else if(vars[a]->lb()==1.0){ yfix[a]=1;}
 	}
@@ -206,89 +197,149 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
  	if(lpchecker.solved) 
  		lpchecker.logical_xfix(ub, yfix, vars);
  	
-	double tt, bd, dk;
+	double tt, dk;
+	double bdlb, bdub;
 	double lpbd;
 	int id;
 	Arc * item;
+	std::vector<double> lbtigh(data.ndemands,0.0);
+	
 	for(int a=data.narcs; a--;){
 		if(yfix[a]==0){ if(vars[a]->ub()==1.0){lp_mode |= LP_TestConnectivity;} continue;}
 		else if(yfix[a]==-1) unfix++;
 		
 		item  =  &data.arcs[a];
 		gij = rcsol[a];
-		
+		lbtigh.assign(data.ndemands,0.0);
+		if(vars[a]->lb()==1.0)
+			flow_lb_fixing( lbtigh,  vars, psol, dsol, rcsol,  a,  lb,  ub);
+
 		for (int k=data.ndemands; k--;){
 			id = data.narcs+k*data.narcs+a;
 			dk = data.d_k[k].quantity;
-			if(vars[id]->ub()==0.0 || flwconnect.bound_red[k*data.narcs+a] == 0.0) continue;
+ 			if(vars[id]->ub()==0.0 || flwconnect.bound_red[k*data.narcs+a].trd == 0.0) continue;
  
-			ckij = item->c[k]*dk - dsol[k*data.nnodes + item->j-1] + dsol[k*data.nnodes + item->i-1];
-			bd =-1;
+			ckij = rcsol[id];
+			
+			bdub =-1;
+			bdlb = fmax(vars[id]->lb(), lbtigh[k]); 
 			if(ckij>1e-4){
 				tt = ((gij > 0)&& (vars[a]->lb()==0.0)) ? (lb+ gij) : lb;
-				if(tt + ckij*vars[id]->ub()/dk > (ub+1e-4) ){
-					bd = (ub - tt)/ckij;
-					bd*=dk;
-					if(bd<1e-8)bd=0.0;
-					//else if(vars[id]->ub()-bd <= 1e-4) continue;
-					//if(bd < lpchecker.bound_red[a*data.ndemands+k])
-					//	std::cout<<"flowlogfix: "<<id<<" "<<bd<<" "<<lpchecker.bound_red[a*data.ndemands+k]<<std::endl;
+				if(tt + ckij*(vars[id]->ub()/dk - psol[id]) > (ub+1e-4) ){
+					bdub = psol[id] + (ub - tt)/ckij;
+					bdub*=dk;
 				}
-			}
-			lpbd = lpchecker.bound_red[a*data.ndemands+k] ;
-			if(bd >=0) bd = lpbd>=0 ? fmin(lpbd, bd): bd;
-			else if(lpbd>=0) bd = lpbd;
-			else continue;
-			if(vars[id]->ub()-bd <= 1e-4) continue;
-			if(bd < dk && (flwconnect.bound_red[k*data.narcs+a]>bd || vars[id]->lb()>bd)){
+			} 
+					
+			lpbd = lpchecker.bound_red[a*data.ndemands+k];
+			if(bdub >=0) bdub = lpbd>=0 ? fmin(lpbd, bdub): bdub;
+			else if(lpbd>=0) bdub = lpbd;
+			else if(bdub<0){bdub= vars[id]->ub();}
+			
+			if(bdlb<1e-4 && bdub<1e-4){bdlb = bdub=0;}
+			if(flwconnect.bound_red[k*data.narcs+a].snd>bdub || bdlb>(bdub+1e-30)){
 				lp_mode |= LP_ForceNodeAbort;
 				changed_pos.clear();
 				new_bd.clear();
-				std::cout<<"MCND_lp::logical_fixing::flwconnect.bd conflict"<<std::endl;
+				//std::cout<<"MCND_lp::logical_fixing::flwconnect.bd conflict "<<bdlb<<" "<<bdub<<std::endl;
 				if(lp_mode & LP_TestConnectivity || flwconnect.redone) flwconnect.clear_memory();
 				return;
 			}
+			
+			if(vars[id]->ub()-bdub <= 1e-4 && bdlb-vars[id]->lb() <= 1e-4) continue;
 			changed_pos.push_back(id);
-			new_bd.push_back(0.0);
-			new_bd.push_back(bd);
-			flwconnect.bound_red[k*data.narcs+a] = bd;
-			flwconnect.idbound_red[k*data.narcs+a] = changed_pos.size()-1;
+			new_bd.push_back(bdlb);
+			new_bd.push_back(bdub);
+			flwconnect.bound_red[k*data.narcs+a].fst = changed_pos.size()-1;
+			flwconnect.bound_red[k*data.narcs+a].snd = bdlb;
+ 			flwconnect.bound_red[k*data.narcs+a].trd = bdub;
 			lp_mode |= LP_TestConnectivity;
 		}
 	}
-	
+	lbtigh.clear();
 	
 	if(lp_mode & LP_TestConnectivity || flwconnect.redone){
 		flwconnect.reset(vars, yfix);
-		int ret = flwconnect.check_upperbounds(vars, changed_pos, new_bd, yfix);
+		int ret = flwconnect.check_flowbounds(vars, changed_pos, new_bd, yfix);
 		flwconnect.clear_memory();
 		if(ret<0){
 			changed_pos.clear();
 			new_bd.clear();
-			std::cout<<"MCND_lp::logical_fixing::flwconnect.check_upperbounds NOT"<<std::endl;
+			//std::cout<<"MCND_lp::logical_fixing::flwconnect.check_upperbounds NOT"<<std::endl;
 			lp_mode |= LP_ForceNodeAbort;
 			return;
 		}
 		
 	} 
+	
 	if(lpchecker.solved) {
 		getOsiVolBabSolver()->reset_dualsol(lpchecker.dual_map);
 		lpchecker.bound_red.assign(data.narcs*data.ndemands,-1);
 	}
 	
-	
  	double gap= (ub  - LBi)/ub;
- 	if(((unfix < maxszunfx) || (gap<0.01)) && !getOsiVolBabSolver()->has_checked){
- 		double prev = changed_pos.size();
+ 	if( (gap<0.01) && !getOsiVolBabSolver()->has_checked){
+  		//std::cout<<"getOsiVolBabSolver()->test_opposites"<<std::endl;
+
+  		double prev = changed_pos.size();
  		getOsiVolBabSolver()->test_opposites( changed_pos, new_bd,  yfix, vars,  ub);
  		arcfx = (prev < changed_pos.size()) ?  true: arcfx;
  	} 
  	
-	if(arcfx){
+	if(changed_pos.size()){
 		lp_mode |= LP_LogicalFixed;	
 		//lp_mode |= LP_TestFeasibility;
 	}
+	/*for (int a=changed_pos.size(); a--;){
+		if(vars[changed_pos[a]]->ub() < new_bd[a*2+1])std::cout<<"ub "<<vars[changed_pos[a]]->ub()<<" < "<<new_bd[a*2+1]<<std::endl;
+		if(vars[changed_pos[a]]->lb() > new_bd[a*2])std::cout<<"lb "<<vars[changed_pos[a]]->lb()<<" > "<<new_bd[a*2]<<std::endl;
+	}*/
 	
+}
+
+//-------------------------------------------------------------------------------------------
+
+void 
+MCND_lp::flow_lb_fixing(std::vector<double>& lbtigh, const BCP_vec<BCP_var*>& vars, const double * psol, 
+						const double * dsol, const double * rcsol, int arc, double lb, double ub){
+	int id, id2, idk;
+	bool tight;
+	double ckij, sum, dk;
+	std::deque<Pair2> rcx;
+	Arc * item  =  &data.arcs[arc];
+ 	for (int k=data.ndemands; k--;){
+		ckij = rcsol[data.narcs+k*data.narcs+arc];
+		if(ckij<0)rcx.push_back(Pair2(k, double(ckij/data.d_k[k].quantity)));
+	}
+	std::stable_sort(rcx.begin(), rcx.end(), compPair2());
+	//std::cout<<"outra"<<std::endl;
+	for (int k=rcx.size(); k--;){
+		idk = rcx[k].fst;
+		dk = data.d_k[idk].quantity;
+		id = data.narcs+idk*data.narcs+arc;
+		ckij = -rcsol[id];
+		tight=false;
+		if(lb + ckij*(psol[id]-vars[id]->lb()/dk) > (ub+1e-4)){
+			if(k-1 < 0){ /*std::cout<<"OPA1 "<<id<<" "<<ckij<<" "<<psol[id]<<" "<<vars[id]->lb()<<std::endl;*/ tight=true;
+			}else{ 
+				sum=0; 
+				for (int kk=0; kk<k;++kk){
+					id2 = data.narcs+rcx[kk].fst*data.narcs+arc;
+					sum += rcsol[id2]*(vars[id2]->ub()/dk - psol[id2]);
+					if(sum<-1e-30) break;
+				}
+				if(sum>=0){
+					//std::cout<<"OPA2 "<<sum<<std::endl;
+					tight=true;
+				}
+			}
+			if(tight){
+				lbtigh[idk] = dk*(psol[id] - (ub-lb)/ckij);
+			}
+		}
+	}
+	rcx.clear();
+	 
 }
 
 //-------------------------------------------------------------------------------------------
@@ -312,8 +363,8 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
     	for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
 			MCND_Cut * cut = dynamic_cast<MCND_Cut*>(cuts[i]);
 			if(cut->purgbl()) continue;
-			if(!cut->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
-				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; //cut->print();
+			if(!cut->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){ 
+				//std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; cut->print();
 				if(cut->cut_type==1){
 					globalc_manager.globalc_generation_main2(0, yfix);
 				}
@@ -336,7 +387,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 			//std::cout<<"gloc_updt "<<gloc->serial_nmbr<<" "<<gloc->purgbl<<std::endl;
 			if(gloc->purgbl) continue;
 			if(!gloc->check_viol_updt_fix(vars,  var_changed_pos,  var_new_bd, viol, zrofx,  yfix)){
-				std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; //gloc->print();
+				//std::cout<<"MCND_lp::cut_varfix_and_updt::insatisfeasible: "<<std::endl; gloc->print();
 				globalc_manager.globalc_generation_main2(0, yfix);
 				var_changed_pos.clear();
 				var_new_bd.clear();
@@ -359,7 +410,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 				if(ret==-1){ globalc_manager.globalc_generation_main2(0, yfix); }
 				var_changed_pos.clear();
 				var_new_bd.clear();
-				std::cout<<"MCND_lp::cut_varfix_and_updt::flwconnect.check_connectivity NOT"<<std::endl;
+				//std::cout<<"MCND_lp::cut_varfix_and_updt::flwconnect.check_connectivity NOT"<<std::endl;
 				lp_mode |= LP_ForceNodeAbort;
 				return false;
 			}	
@@ -406,7 +457,7 @@ MCND_lp::compare_branching_candidates(BCP_presolved_lp_brobj* newobj,
 	 
 	if(infeas==2){
 		//std::cout<<"OPOR"<<std::endl; //abort();
-		std::cout<<"MCND_lp::compare_branching_candidates:: BOTH INFEAS OR TOO HIGHT"<<std::endl;
+		//std::cout<<"MCND_lp::compare_branching_candidates:: BOTH INFEAS OR TOO HIGHT "<<var_new<<std::endl;
 		to_logical_fix.clear();
 		lp_mode |= LP_ForceNodeAbort ;
 		return BCP_NewPresolvedIsBetter_BranchOnIt;
@@ -511,11 +562,10 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
     double lbdev = (fmin(child0.objval(), child1.objval()) - lower_bound)/lower_bound;
     std::cout<<"branching variable: "<<var_branch<<" lp: "<<(lpchecker.solved ? lpchecker.y_[var_branch]:-1.0)<<
     " y: "<<y[var_branch]<<" nbranch: "<<min(ninsp[var_branch].fst, ninsp[var_branch].snd)<<" capa: "<<data.arcs[var_branch].capa<<std::endl;
-    std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl;
+    std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl<<std::endl;
  	
- 	bool dive=false;
- 	if(lbdev<0.001 && !pump_mode){ dive=true;  ++times_dived; std::cout<<"force dive: childsol closed to lb"<<std::endl;}
-		
+   	if(dive_for_sol){++times_dived; std::cout<<"force dive for sol"<<std::endl;}
+ 
 	if(!feas0){
 		childs_action[0] = BCP_FathomChild;
 	}else{
@@ -523,7 +573,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		if((ybar_branch)>1e-8) psdcost[var_branch].fst+=diff0/ybar_branch;
 		else psdcost[var_branch].fst+=diff0*1e8;
 		
-		if(((dive) && diff0<diff1)) childs_action[0] = BCP_KeepChild;
+		if(dive_for_sol && (y[var_branch]<=0.5)) childs_action[0] = BCP_KeepChild;
 		else childs_action[0] = BCP_ReturnChild;
 	}
 	
@@ -542,7 +592,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		if(ybar_branch_>1e-8)psdcost[var_branch].snd+=diff1/ybar_branch_;
 		else psdcost[var_branch].snd+=diff1*1e8;
 		
-		if((dive) && diff0>=diff1) childs_action[1] = BCP_KeepChild;
+		if(dive_for_sol && (y[var_branch]>0.5)) childs_action[1] = BCP_KeepChild;
 		else childs_action[1] = BCP_ReturnChild;
 	}
 	if(childs_action[1] == BCP_KeepChild || childs_action[0] == BCP_KeepChild) 
