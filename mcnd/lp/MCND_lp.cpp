@@ -305,17 +305,27 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 	double gap = (ub  - LBi)/ub;
-    if((unfix < 500) && ((gap < 0.01 && !reduced_run) || (times_dived >=3)) && !(lp_mode & LP_OptSolved)){
-    	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
+	bool solve_exact=false;
+    if(unfix >= 500 || (lp_mode & LP_OptSolved)){
+    	solve_exact=false;
+    }else if(times_dived >=3){
+    	solve_exact=true;
+    }else if(gap < 0.01){
+    	if(!reduced_run) solve_exact=true;
+    	else if(times_dived==0 && no_gap_reduct%5) solve_exact=true;
+    }
+   
+   	if(solve_exact){
+   		int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
     		//std::cout<<"MCND_lp::compute_lower_bound:: compute opt lower bound: INFEASIBLE"<<std::endl;
     	}else{
      		lpchecker.solved=true;
      		lp_mode |= LP_OptSolved;
-    	} 
+			std::cout<<"MCND_lp::compute_lower_bound exact lb: "<<LBi<<std::endl;
+    	}
     }else lpchecker.solved=false;
-   
    /* if(force_dive){
     	std::cout<<"MCND_lp::compute_lower_bound break dive? "<<(nomgap - (upper_bound()-LBi))/nomgap <<std::endl;
     	if((nomgap - (upper_bound()-LBi))/nomgap < 0.01)
