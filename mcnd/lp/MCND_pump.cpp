@@ -16,7 +16,7 @@ Pump::set_data(const Data * d){
 	volsolver.ext_initializer(narcs+narcs*ndemands, nnodes*ndemands);
 	volsolver.dual_ub = 1e31;
 	volsolver.dual_lb = -1e31;
- 	volsolver.parm.ascent_check_invl = 100;
+ 	volsolver.parm.ascent_check_invl = 50;
  	volsolver.parm.ascent_first_check =100;
  	volsolver.parm.maxsgriters = 250;
  	
