@@ -310,9 +310,8 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
     	solve_exact=false;
     }else if(times_dived >=3){
     	solve_exact=true;
-    }else if(gap < 0.01){
-    	if(!reduced_run) solve_exact=true;
-    	else if(times_dived==0 && no_gap_reduct%5) solve_exact=true;
+    }else if(gap < 0.01 && !reduced_run){
+    	solve_exact=true;
     }
    
    	if(solve_exact){
