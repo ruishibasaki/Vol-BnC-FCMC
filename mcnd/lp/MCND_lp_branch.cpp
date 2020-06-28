@@ -29,7 +29,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     //return BCP_DoNotBranch_Fathomed;
 
     
-	if(current_level() == 0 && current_iteration()<15 && !no_heur) return BCP_DoNotBranch;
+	if(current_level() == 0 && current_iteration()<10 && !no_heur) return BCP_DoNotBranch;
 	/*if(current_level() == 0){
         return BCP_DoNotBranch_Fathomed;
 	}*/
@@ -165,15 +165,15 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				arcfx=true;
 				continue;
 			} 
-			if(current_level()<10) continue;
-			if(psol[a]<1e-5){
+			if(current_level()<5) continue;
+			if(psol[a]<1e-4){
 				std::cout<<a<<" SOLUTION FIX 0 "<<psol[a]<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0;
 				arcfx=true;
-			}else if(psol[a]>1.0-1e-5){
+			}else if(psol[a]>1.0-1e-4){
 				std::cout<<a<<" SOLUTION FIX 1 "<<psol[a]<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(1.0);
