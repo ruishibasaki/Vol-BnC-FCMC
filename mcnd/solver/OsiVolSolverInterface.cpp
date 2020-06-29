@@ -357,11 +357,13 @@ OsiVolSolverInterface::resolve(){
     map_topology();
     map_duals();
     if(mode==-2){retval=-2; return;}
+    volprob_->value=0;
     volprob_->active_size = fsize + csize;
     volprob_->psize = szunfxd + data->ndemands*sznz;
     volprob_->active_psize = szunfxd;
     set_start();
     retval = volprob_->solve(*this, true);
+	std::cout<<"volsol: "<<volprob_->value<<" "<<min_lower_bound<<std::endl;
 
     if(volprob_->value< min_lower_bound && in_strong_branch){
      	volprob_->value = min_lower_bound;
@@ -372,7 +374,6 @@ OsiVolSolverInterface::resolve(){
 		unmarkHotStart();
 	}
 	 
-    //std::cout<<"ok"<<std::endl;
  	
     // extract the solutio
     // the lower bound on the objective value
@@ -410,13 +411,13 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
 			collb[arc]=1;
  			colub[arc]=1;
 		}
+		mode=0;
   		recheck_collct=true;
   		map_topology();
     	map_duals();
 		ret=1;
  		if(mode==-2){ ret=-1;}
  		else{
- 			mode=0;
  			volprob_->active_size = fsize + csize;
     		volprob_->psize = szunfxd + data->ndemands*sznz;
     		volprob_->active_psize = szunfxd;
@@ -616,21 +617,30 @@ OsiVolSolverInterface::removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector
 int
 OsiVolSolverInterface::compute_rc(const VOL_dvector& dualu, VOL_dvector& rc, int actvSSz){
     const Arc* item;
-    int arc;
+    int arc, id;
+    double dvali, dvalj;
     for(int a=szunfxd; a--;){
         arc = nz_arcs[a];
         item = &data->arcs[arc];
         rc[a] = item->f;
         //addrc[a] =0;
         for(int k=ndemands; k--; ){
-            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity - dualu[actv[k*nnodes + item->j-1]] + dualu[actv[k*nnodes + item->i-1]];
+        	id = actv[k*nnodes + item->j-1];
+        	dvalj = id>=0 ? dualu[id]: 0.0;
+        	id = actv[k*nnodes + item->i-1];
+        	dvali = id>=0 ? dualu[id]: 0.0;
+            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity -dvalj + dvali;
         }
     }
     for(int a=szunfxd; a<sznz;++a){
         arc = nz_arcs[a];
         item = &data->arcs[arc];
         for(int k=ndemands; k-- ;){
-            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity - dualu[actv[k*nnodes + item->j-1]] + dualu[actv[k*nnodes + item->i-1]];
+        	id = actv[k*nnodes + item->j-1];
+        	dvalj = id>=0 ? dualu[id]: 0.0;
+        	id = actv[k*nnodes + item->i-1];
+        	dvali = id>=0 ? dualu[id]: 0.0;
+            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity -dvalj + dvali;
         }
     }
 
@@ -642,7 +652,6 @@ OsiVolSolverInterface::compute_rc(const VOL_dvector& dualu, VOL_dvector& rc, int
     cover_manager->compute_cover_rc( dualu.v, actv,  actvSSz, rc.v,   B0);
     localc_manager->compute_localc_rc( dualu.v, actv,  actvSSz, rc.v,   B0);
     globalc_manager->compute_cover_rc( dualu.v, actv,  actvSSz, rc.v,   B0);
-
     //double b = B0;
     //cover_manager->compute_cover_rc( dual.v,  actv,  actvSSz, addrc, b);
     return 0;

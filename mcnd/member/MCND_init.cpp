@@ -147,7 +147,7 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
 	p.par.set_entry(BCP_lp_par::LpVerb_CutsToCutPoolCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_VarsToVarPoolCount, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_FathomInfo, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_IterationCount, false);
+	p.par.set_entry(BCP_lp_par::LpVerb_IterationCount, true);
 	p.par.set_entry(BCP_lp_par::LpVerb_RelaxedSolution, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_FinalRelaxedSolution, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_LpMatrixSize, false);
