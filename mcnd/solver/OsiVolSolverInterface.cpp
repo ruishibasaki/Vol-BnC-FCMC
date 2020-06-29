@@ -403,6 +403,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
     while(!totest.empty()){
 		arc = totest.back();
 		totest.pop_back();
+		mode=0;
  		if(solution[arc]>0.9){
  			collb[arc]=0;
  			colub[arc]=0;
@@ -416,7 +417,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
 		ret=1;
  		if(mode==-2){ ret=-1;}
  		else{
- 			mode=0;
+ 			volprob_->value=0;
  			volprob_->active_size = fsize + csize;
     		volprob_->psize = szunfxd + data->ndemands*sznz;
     		volprob_->active_psize = szunfxd;
@@ -433,7 +434,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
 		//std::cout<<arc<<" OsiVolSolverInterface::test_opposites "<<volprob_->value<<std::endl;
  		if( ret<0 ){
 			if(solution[arc]>0.9){
-				std::cout<<arc<<" OsiVolSolverInterface::test_opposites FIX 1 "<<solution[arc]<<std::endl;
+				std::cout<<arc<<" OsiVolSolverInterface::test_opposites FIX 1 "<<solution[arc]<<" "<<volprob_->value<<std::endl;
 				yfix[arc]=1;
 				collb[arc]=1;
  				colub[arc]=1;
@@ -441,7 +442,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
 			}else{
-				std::cout<<arc<<" OsiVolSolverInterface::test_opposites FIX 0 "<<solution[arc]<<std::endl;
+				std::cout<<arc<<" OsiVolSolverInterface::test_opposites FIX 0 "<<solution[arc]<<" "<<volprob_->value<<std::endl;
 				yfix[arc]=0;
 				collb[arc]=0;
  				colub[arc]=0;

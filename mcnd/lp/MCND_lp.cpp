@@ -115,7 +115,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 		}else{
 			if(times_dived >=3){ reduced_run=false;}
 			else{ reduced_run=true;}
-			if(times_dived >=10){ dive_for_sol=false;}
+			if(times_dived >5){ dive_for_sol=false;}
 			 
 		}//max_cand = 1;}
 
@@ -681,7 +681,7 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
  		//std::cout<<"Pump::solve trypump? "<<unfix<<" "<<maxszunfx<<std::endl;
  		if(no_heur) return 0; 
     	else if((lp_mode & LP_HeuristicRunned) && (current_level()>0 || current_iteration()>15)) return 0;
-    	else if(((current_level()%2>0 && current_level()<10) || (current_iteration()>15)) && !dive_for_sol) return 0;
+    	else if(((current_level()%2>0) || (current_iteration()>15)) && !dive_for_sol) return 0;
     	
 	}
     //if(pump_heur.validate_topology()< 0) return 0;
