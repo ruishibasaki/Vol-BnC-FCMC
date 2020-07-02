@@ -35,6 +35,7 @@ int
 CutSetManager::cutset_generation_main(const double * ystar, const double * y, bool prepro){
     int total=0;
     std::vector<int> s(data->nnodes,0);
+    //std::cout<<"aqui"<<std::endl;
     for(int i=0;i<data->nnodes;++i){
         total+= compute_cutset(s, ystar, y, i, true, prepro);
         //if(total>=max)break;
@@ -78,6 +79,7 @@ CutSetManager::compute_cutset(std::vector<int>& s,  const double * ystar, const 
         s.assign(data->nnodes,0);
         dss = uss = ds_s = us_s = 0;
     }
+    s.assign(data->nnodes,0);
     return added;
 }
 
