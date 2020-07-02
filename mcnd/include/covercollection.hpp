@@ -58,7 +58,7 @@ public:
     //---------------------------------------
     int collected(Cover * tryC);
     int compScalar(Cover* c1, Cover* c2);
-    
+    int compScalarSimple(Cover * c1, Cover * c2);
     //--------------------------------------
     //  auxiliary methods
     //---------------------------------------

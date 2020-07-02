@@ -363,7 +363,7 @@ OsiVolSolverInterface::resolve(){
     volprob_->active_psize = szunfxd;
     set_start();
     retval = volprob_->solve(*this, true);
-	std::cout<<"volsol: "<<volprob_->value<<" "<<min_lower_bound<<std::endl;
+	std::cout<<"volsol: "<<volprob_->value<<" "<<min_lower_bound<<" "<<volprob_->iter()<<std::endl;
 
     if(volprob_->value< min_lower_bound && in_strong_branch){
      	volprob_->value = min_lower_bound;
