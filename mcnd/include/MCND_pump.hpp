@@ -101,9 +101,9 @@ public:
     
     int compute_sg(const VOL_dvector& x, int  actvSSz, VOL_dvector& v);
     
-    int addVI(int iter, double lcost,const VOL_dvector& xstar, const VOL_dvector& x,
-                       VOL_dvector& dual, VOL_dvector& dual_lb,  VOL_dvector& dual_ub,
-                      VOL_dvector& rc, VOL_dvector& h, int & actvSSz){return 0;};
+    int addVI(int iter,double lcost, const VOL_dvector& xstar,
+          const VOL_dvector& x, VOL_dvector& dstar,  VOL_dvector& dualu, VOL_dvector& dual_lb, VOL_dvector& dual_ub,
+          VOL_dvector& rc, VOL_dvector& h, int & actvSSz){return 0;};
     
     int removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector& dstaru,  VOL_dvector& dualu){return 0;};
 };

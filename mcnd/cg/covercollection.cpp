@@ -98,8 +98,8 @@ CoverCollection::collected(Cover * tryC){
                 ret = compScalar(tryC, C);
                 if(ret==0) return 0;
                 else if(ret==1){
-                    //replace(C, tryC);
                     C->prgbl=true;
+                    tryC->replace = C->id_vi;
                     //abort();
                     return 0;
                 }
@@ -124,11 +124,12 @@ CoverCollection::collected(Cover * tryC){
 				}
 			}
 			if(equal){
-				std::cout<<"opa1: "<<std::endl;
+				std::cout<<"opa1: "<<tryC->serial_nmbr<<" "<<C->serial_nmbr<<std::endl;
 				tryC->print();
 				C->print();
 				if(compScalarSimple(tryC, C)){
 					C->prgbl=true;
+					tryC->replace = C->id_vi;
 					return 0;
 				} 
 			}
@@ -141,9 +142,6 @@ CoverCollection::collected(Cover * tryC){
 				}
 			}
 			if(equal){
-				std::cout<<"opa2: "<<std::endl;
-				tryC->print();
-				C->print();
 				if(compScalarSimple(tryC, C)){
 					return 1;
 				} 
@@ -161,24 +159,25 @@ CoverCollection::compScalarSimple(Cover * c1, Cover * c2){
     int arc;
     int sz;
     const int * arcs;
+    const Cover * smaller;
     double gamma1, gamma2;
     std::vector<PairF> mapset;
     if(c1->get_total_sz() < c2->get_total_sz()){
     	sz = c1->get_total_sz();
-    	arcs = c1->C;
+    	smaller = c1;
     }else{
     	sz = c2->get_total_sz();
-    	arcs = c2->C;
+    	smaller = c2;
     } 
     
     if(sz==0) return 0;
-
     mapCover(c1, c2, mapset);
     for(int n=0;n<sz;++n){
-        arc = arcs[n];
+        arc = smaller->at(n);
     	if( !getScalar(arc, mapset, gamma1, gamma2)) continue;
-    	if(gamma1 != gamma2) return 0;
+    	if(gamma1 != gamma2){ mapset.clear(); return 0;}
     }
+    mapset.clear(); 
     return 1;
 }
 

@@ -432,8 +432,8 @@ private:
                    const VOL_dvector& x, double& heur_val);
     
     int addVI(int iter,double lcost, const VOL_dvector& xstar,
-              const VOL_dvector& x, VOL_dvector& dual_lb, VOL_dvector& dual, VOL_dvector& dual_ub,
-              VOL_dvector& rc, VOL_dvector& h, int & actvSSz);
+          const VOL_dvector& x, VOL_dvector& dstar,  VOL_dvector& dualu, VOL_dvector& dual_lb, VOL_dvector& dual_ub,
+          VOL_dvector& rc, VOL_dvector& h, int & actvSSz);
     
     int removeVI( int & actvSSz,VOL_dvector& pstarv, VOL_dvector& dstaru,  VOL_dvector& dualu);
     

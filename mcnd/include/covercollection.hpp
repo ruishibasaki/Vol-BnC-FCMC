@@ -120,6 +120,8 @@ public:
     int serial_nmbr;
     int n_zerom;
     int n_nviol;
+    
+    int replace;
     bool prgbl;
     bool toadd;
     
@@ -172,9 +174,10 @@ public:
         toadd=true;
 		serial_nmbr = serial_nmbr_;
 		maxsize=0;
+		replace=-1;
     }
     inline ~Cover(){
-        delete [] id_seq;
+        if(id_seq) delete [] id_seq;
         if(size>0){ delete [] C; }
         if(hasLftd) delete Lftd;
     }

@@ -135,8 +135,8 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         if(nodedata->hs!=0){
             getLpProblemPointer()->lp_solver->setWarmStart(nodedata->hs);
         }
-    	//std::cout<<"numn: "<<num_nodes<<" node comes from branch on: "<<nodedata->branch_var;
-        //std::cout<<" of "<<nodedata->pos_neg<<" side .. parent: "<<nodedata->parent<<std::endl;
+    	std::cout<<"numn: "<<num_nodes<<" node comes from branch on: "<<nodedata->branch_var;
+        std::cout<<" of "<<nodedata->pos_neg<<" side .. parent: "<<nodedata->parent<<std::endl;
         testconn = nodedata->test_conn ;
         //if(nodedata->reduced_run)lp_mode |= LP_ReducedRun;
         //std::cout<<"reduced run? "<<nodedata->reduced_run<<std::endl;
@@ -204,7 +204,7 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
   			switch(mcnd_cut->cut_type){
   				case 1:{
 					CoverCut * cut = dynamic_cast<CoverCut*>(mcnd_cut);
-					//std::cout<<"collec: "<<i<<" "<<cut->get_cover()->serial_nmbr<<std::endl;
+					//std::cout<<"collec: "<<cut->get_cover()->serial_nmbr<<std::endl;
 					cut->get_cover()->id_vi = i;
 					cover_manager.covers.insert_end(cut->get_cover());
 					break;
@@ -523,7 +523,7 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 
 	for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
 		MCND_Cut * cut = dynamic_cast<MCND_Cut*>(cuts[i]);
-		//std::cout<<"cut: "<<cut->type<<" "<<cut->id_vi()<<" "<<cut->purgbl()<<std::endl;
+		//std::cout<<"cut: "<<cut->cut_type<<" "<<cut->id_vi()<<" "<<cut->serial_nmbr()<<" "<<cut->purgbl()<<std::endl;
  		if ( cut->purgbl() /*|| (cut->check_viol(lpres.x())==0 && lpres.pi()[cut->id_vi()]==0)*/) {
 			//std::cout<<"out / dual: "<<" id: "<<cut->id_vi()<<" srnb: "<<cut->serial_nmbr()<<std::endl;
 			switch(cut->cut_type){

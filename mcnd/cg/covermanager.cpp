@@ -735,17 +735,22 @@ CoverManager::recompute_mult_pos(double * dual, double * h,  double *rc,
 //-------------------------------------------------------------------------------------------
 
 void
-CoverManager::add_cover_vi(int added, int * actvS, int & actvSSz, double * h, double * dual, double * dual_lb, double * dual_ub ){
+CoverManager::add_cover_vi(int added, int * actvS, int & actvSSz, double * h, double * dstar, double * dual, double * dual_lb, double * dual_ub ){
     //std::cout<<"add_flowpack_vi: "<<actvSSz<<std::endl;
-    
     int idx;
     Cover * vi = covers.end;
     for(int cont = added; cont--;){
         idx = actvSSz+cont; //if(actvS[vi->id_vi]>=0){ std::cout<<actvS[vi->id_vi]<<" already taken !!!!!!! for: "<<vi->id_vi<<std::endl;abort();}
         actvS[vi->id_vi]=idx;
-        dual[idx] =0;
+        if(vi->replace>=0 && actvS[vi->replace]>=0){
+        	dual[idx] =  dual[actvS[vi->replace]];
+        	dstar[idx] =  dstar[actvS[vi->replace]];
+        }else{
+        	dual[idx] = 0;
+        	dstar[idx] =0;
+        }
         dual_lb[idx] = 0;
-        dual_ub[idx] = 1e31;
+    	dual_ub[idx] = 1e31;
         h[idx] = vi->hs;
         //std::cout<<"add vi: "<< vi->id_vi<<" idx: "<<idx<<" "<<actvS[vi->id_vi]<<std::endl;
         //vi->print();

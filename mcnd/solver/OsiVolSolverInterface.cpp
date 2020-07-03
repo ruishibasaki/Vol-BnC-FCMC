@@ -471,7 +471,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
 
 int
 OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
-          const VOL_dvector& x, VOL_dvector& dualu, VOL_dvector& dual_lb, VOL_dvector& dual_ub,
+          const VOL_dvector& x, VOL_dvector& dstar,  VOL_dvector& dualu, VOL_dvector& dual_lb, VOL_dvector& dual_ub,
           VOL_dvector& rc, VOL_dvector& h, int & actvSSz){
     //return 0;
     bool letgen=false;
@@ -510,7 +510,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     if(letgen && iter>=minIterVI){
 
         int num_covers = cover_manager->cover_generation_main(xstar.v, x.v, &ss_manager->sets, numrows_, maxNumrows_);
-        cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dualu.v, dual_lb.v,  dual_ub.v );
+        cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dstar.v, dualu.v, dual_lb.v,  dual_ub.v );
         if(num_covers>0){
         	numrows_ +=  num_covers;
         	cover_manager->reposition_covers(num_covers);
@@ -920,7 +920,7 @@ OsiVolSolverInterface::add_external_cover(const std::deque<Pair2>& c){
 	int ret = cover_manager->add_external_cover(c, numrows_, maxNumrows_);
 	if(ret){
 	
-		cover_manager->add_cover_vi(1, actv, volprob_->active_size, volprob_->viol.v, 
+		cover_manager->add_cover_vi(1, actv, volprob_->active_size, volprob_->viol.v, volprob_->dsol.v,
 								volprob_->dsol.v, volprob_->dual_lb.v,  volprob_->dual_ub.v );       
 		cover_manager->reposition_covers(1);	
 		++numrows_;
@@ -1230,7 +1230,6 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
  	Cover* vi;
 	while(!cover_manager->purgbl.empty()){
 		vi = cover_manager->purgbl.back();
-		//std::cout<<"outcover "<<vi->serial_nmbr<<std::endl;
 		cover_manager->covers.remove_nodel(vi);
 		cover_manager->purgbl.pop_back();
 	}
