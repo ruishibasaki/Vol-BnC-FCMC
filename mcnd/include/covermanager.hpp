@@ -44,8 +44,8 @@ public:
     //  main methods
     //-------------------------------------------------------------------------------------------
     
-    int cover_generation_main(const double * ystar, const double * y, const CutSetCollection * sets, int curr_id, int max );
-    int cover_generation(int ss_size, const int * SS_arcs, int ss_ksize, const int * SS_comm, double uss, double dss,
+    int cover_generation_main(const double * ystar, const double * y,const CutSetCollection * sets, int curr_id, int max );
+    int cover_generation(int ss_size, const int * SS_arcs, double uss, double dss,
                          const double * ystar, const double * y, int curr_id );
     Cover * make_cover(double& delta, const std::deque<Trio1> & ss_, const double * ystar, std::deque<Pair2>& lift_down, std::deque<Pair2>& cover, int id_vi  );
 
@@ -61,7 +61,7 @@ public:
     void form_c1(std::deque<Pair2> & lift_down, std::deque<Trio1> & ss_,
                  const double *ystar,double & delta, double dss, double uss);
     
-    double cutset_preprocess(int sz, const int * ss_, int sz_k, const int * ss_comm, std::deque<Trio1>& ss_deque, std::deque<Pair2> & lift_down,
+    double cutset_preprocess(int sz, double dss, const int * ss_,  std::deque<Trio1>& ss_deque, std::deque<Pair2> & lift_down,
                              const double *y, const double *ystar);
     
     void restrict_cutset(std::deque<Pair2> & lift_down, std::deque<Pair2> & lift_up, std::deque<Trio1> & ss_, const double *ystar,double & delta, double dss, double uss);
