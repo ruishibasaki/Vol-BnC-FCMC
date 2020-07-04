@@ -124,10 +124,10 @@ CoverCollection::collected(Cover * tryC){
 				}
 			}
 			if(equal){
-				std::cout<<"opa1: "<<tryC->serial_nmbr<<" "<<C->serial_nmbr<<std::endl;
-				tryC->print();
-				C->print();
+				//tryC->print();
+				//C->print();
 				if(compScalarSimple(tryC, C)){
+					//std::cout<<"opa1: "<<tryC->serial_nmbr<<" "<<C->serial_nmbr<<std::endl;
 					C->prgbl=true;
 					tryC->replace = C->id_vi;
 					return 0;
@@ -143,6 +143,7 @@ CoverCollection::collected(Cover * tryC){
 			}
 			if(equal){
 				if(compScalarSimple(tryC, C)){
+					//std::cout<<"opa2: "<<tryC->serial_nmbr<<" "<<C->serial_nmbr<<std::endl;
 					return 1;
 				} 
 			}

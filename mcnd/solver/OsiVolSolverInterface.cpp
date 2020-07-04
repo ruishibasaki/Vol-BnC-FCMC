@@ -363,7 +363,7 @@ OsiVolSolverInterface::resolve(){
     volprob_->active_psize = szunfxd;
     set_start();
     retval = volprob_->solve(*this, true);
-	std::cout<<"volsol: "<<volprob_->value<<" "<<min_lower_bound<<" "<<volprob_->iter()<<std::endl;
+	//std::cout<<"volsol: "<<volprob_->value<<" "<<min_lower_bound<<" "<<volprob_->iter()<<std::endl;
 
     if(volprob_->value< min_lower_bound && in_strong_branch){
      	volprob_->value = min_lower_bound;
@@ -510,6 +510,7 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     if(letgen && iter>=minIterVI){
 
         int num_covers = cover_manager->cover_generation_main(xstar.v, x.v, &ss_manager->sets, numrows_, maxNumrows_);
+        num_covers += cover_manager->mincard_generation_main(xstar.v, x.v, &ss_manager->sets, numrows_+num_covers, maxNumrows_);
         cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dstar.v, dualu.v, dual_lb.v,  dual_ub.v );
         if(num_covers>0){
         	numrows_ +=  num_covers;

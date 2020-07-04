@@ -48,7 +48,8 @@ public:
     int cover_generation(int ss_size, const int * SS_arcs, double uss, double dss,
                          const double * ystar, const double * y, int curr_id );
     Cover * make_cover(double& delta, const std::deque<Trio1> & ss_, const double * ystar, std::deque<Pair2>& lift_down, std::deque<Pair2>& cover, int id_vi  );
-
+	
+	
     //-------------------------------------------------------------------------------------------
     //  minimal Cover methods
     //-------------------------------------------------------------------------------------------
@@ -67,6 +68,16 @@ public:
     void restrict_cutset(std::deque<Pair2> & lift_down, std::deque<Pair2> & lift_up, std::deque<Trio1> & ss_, const double *ystar,double & delta, double dss, double uss);
     
     
+    //-------------------------------------------------------------------------------------------
+    //  min cardinality methods
+    //-------------------------------------------------------------------------------------------
+    
+    int mincard_generation_main(const double * ystar, const double * y, const CutSetCollection * sets, int curr_id, int max);
+    int mincard_generation(int ss_size, const int * SS_arcs, int ss_ksize, const int * SS_comm, double uss, double dss,
+								 const double * ystar, const double * y, int id_vi);
+	int make_cardcs( std::deque<Pair2> & ss_, double delta );
+	double card_cutset_preprocess(int sz, const int * ss_, int szk, const int * ss_k,  std::deque<Pair2>& ss_deque,
+                                const double *y, const double *ystar, double dss);
     //-------------------------------------------------------------------------------------------
     //  auxiliary methods
     //-------------------------------------------------------------------------------------------
