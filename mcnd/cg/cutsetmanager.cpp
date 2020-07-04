@@ -19,8 +19,6 @@ void
 CutSetManager::initialize(const Data * d) {
     data=d;
     sets.initialize(data->nnodes);
-    //computePowerSet();
-    //make_all_singletons();
     //sets.print();
 }
 
@@ -53,6 +51,8 @@ int
 CutSetManager::compute_cutset(std::vector<int>& s,  const double * ystar, const double * y, int initial, bool stosb, bool prepro){
     std::deque<int> ss_;
     std::deque<int> s_s;
+    std::deque<int> ss_k;
+    std::deque<int> s_sk;
     std::vector<int> saux(data->nnodes,0);
     double dss, uss, ds_s, us_s;
     int added, found;
@@ -68,13 +68,15 @@ CutSetManager::compute_cutset(std::vector<int>& s,  const double * ystar, const 
         }
         newSS_ = sets.collect(s);
         if(newSS_!=0){
-            make_cutset( s,  ss_, uss, dss, s_s, us_s, ds_s);
+            make_cutset( s,  ss_,ss_k,  uss, dss, s_s,s_sk, us_s, ds_s);
             if(dss>0 || ds_s>0){
-                added += sets.addCutSet( newSS_, ss_, uss, dss, s_s, us_s, ds_s);
+                added += sets.addCutSet( newSS_, ss_, ss_k,  uss,  dss,  s_s,  s_sk,  us_s,  ds_s);
             }else delete newSS_;
         }
         ss_.clear();
         s_s.clear();
+        ss_k.clear();
+        s_sk.clear();
         s.assign(data->nnodes,0);
         dss = uss = ds_s = us_s = 0;
     }
@@ -91,7 +93,7 @@ CutSetManager::compute_cutset(std::vector<int>& s,  const double * ystar, const 
 
 
 void
-CutSetManager::make_cutset(const std::vector<int> & s, std::deque<int> & ss_, double &uss, double &dss, std::deque<int> & s_s, double &us_s, double &ds_s){
+CutSetManager::make_cutset(const std::vector<int> & s, std::deque<int> & ss_, std::deque<int> & ss_k, double &uss, double &dss, std::deque<int> & s_s, std::deque<int> & s_sk, double &us_s, double &ds_s){
     int arc;
     double k;
     dss = uss = us_s = ds_s = 0;
@@ -137,8 +139,10 @@ CutSetManager::make_cutset(const std::vector<int> & s, std::deque<int> & ss_, do
         d = data->d_k[k].D;
         phi1= dijkstra(o, d, data->grid, preced, css);
         dss+=phi1*data->d_k[k].quantity;
+        if(phi1>0)ss_k.push_back(k);
         phi2= dijkstra(o, d, data->grid, preced, cs_s);
         ds_s+=phi2*data->d_k[k].quantity;
+        if(phi2>0)s_sk.push_back(k);
         /*if(s[o-1]==1 && s[d-1]==0){
             phi1= dijkstra(o, d, data->grid, preced, css);
             //dss+=phi*data->d_k[k].quantity;
@@ -336,231 +340,3 @@ CutSetManager::get_lin_jToS(const std::vector<int> & s, const double * ystar, do
     return jToS;
 }
 
-//-------------------------------------------------------------------------------------------
-
-void
-CutSetManager::make_all_singletons(){
-    std::deque<int> ss_;
-    std::deque<int> s_s;
-    std::vector<int> s(data->nnodes,0);
-    double dss, uss, ds_s, us_s;
-    int added;
-    CutSet * newSS_;
-    
-    added =0;
-    for(int n=data->nnodes; n--;){
-        s[n]=1;
-        newSS_ = sets.collect(s);
-        if(newSS_!=0){
-            make_cutset( s,  ss_, uss, dss, s_s, us_s, ds_s);
-            added += sets.addCutSet( newSS_, ss_, uss, dss, s_s, us_s, ds_s);
-        }
-        ss_.clear();
-        s_s.clear();
-        s.assign(data->nnodes,0);
-        dss = uss = ds_s = us_s = 0;
-    }
-}
-
-//-------------------------------------------------------------------------------------------
-
-void
-CutSetManager::computePowerSet(){
-    int n = data->nnodes;
-    std::deque<int> ss_;
-    std::deque<int> s_s;
-    std::vector<int> s(n,0);
-    double dss, uss, ds_s, us_s;
-    int counts;
-    CutSet * newSS_;
-    dss = uss = ds_s = us_s = 0;
-    /* Run counter i from 000..0 to 111..1*/
-    for (int i = 0; i < (int) pow(2, n); i++){
-        counts=0;
-        // consider each element in the set
-        //std::cout<<"set: ";
-        for (int j = 0; j < n; j++){
-            if ((i & (1 << j)) != 0){
-                s[j] = 1;
-                //std::cout<<j+1<<" ";
-                ++counts;
-            }
-        }
-        //std::cout<<std::endl;
-        if(counts==0 || counts==n) newSS_ = 0;
-        else newSS_ =  sets.collect(s);
-        
-        if(newSS_!=0){
-            make_cutset( s,  ss_, uss, dss, s_s, us_s, ds_s);
-            sets.addCutSet( newSS_, ss_, uss, dss, s_s, us_s, ds_s);
-            //std::cout<<"added "<<added<<" "<<sets.sizeOfCollection<<std::endl;
-        }
-        s.assign(n,0);
-        ss_.clear();
-        s_s.clear();
-        dss = uss = ds_s = us_s = 0;
-    }
-    s.clear();
-    ss_.clear();
-    s_s.clear();
-}
-
-
-
-
-//=================================================================================================
-//=================================================================================================
-// MinCardCSManager methods
-//=================================================================================================
-//=================================================================================================
-
-
-
-//-------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------
-//  initializing methods
-//-------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------
-
-void
-MinCardCSManager::initialize(const Data * d) {
-    data=d;
-    cardscs.initialize(data->narcs);
-}
-
-//-------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------
-//  main methods
-//-------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------
-
-int
-MinCardCSManager::cardcs_generation_main(const double * ystar, const double * y,const CutSetCollection * sets, int actvSSz ){
-    CutSet * cutset;
-    int added=0;
-    int sz = sets->sizeOfCollection;
-    //sets->print();
-    cutset = sets->begin;
-    for(int i=0;i<sz;++i){
-        
-        added+=cardcs_generation(cutset->ss_size, cutset->SS_arcs, cutset->uss, cutset->dss, ystar, y, cardscs.sizeOfCollection, cutset->id );
-        added+=cardcs_generation(cutset->s_ssize, cutset->S_Sarcs, cutset->us_s, cutset->ds_s, ystar, y, cardscs.sizeOfCollection, -cutset->id );
-        
-        cutset = cutset->next;
-    }
-    return added;
-}
-
-//------------------------------------------------------------------------------------------
-
-int
-MinCardCSManager::cardcs_generation(int ss_size, const int * SS_arcs, double uss, double dss,
-                                    const double * ystar, const double * y, int id ,int id_owner_){
-    
-    std::deque<Pair2> ss_;
-    double  u1;
-    int card;
-    int added=0;
-    double viol=0;
-    //std::cout<<"dss:  "<<dss<<" uss: "<<uss<<std::endl;
-    u1 =  cutset_preprocess( ss_size, dss, SS_arcs,  ss_, y, ystar);
-    if(dss - u1<=0){ss_.clear(); return 0;}
-
-    card = make_cardcs(  ss_,  dss );
-    MinCardCS * newvi = new MinCardCS(uss,  dss,  id,  card,  ss_size,  SS_arcs, id_owner_);
-    //if(card>1)std::cout<<"card: "<<card<<std::endl;
-    if(checkViol(newvi, y, viol)){
-        added = cardscs.addMinCardCS(newvi);
-    }else delete newvi;
-    
-    ss_.clear();
-    return added;
-}
-
-
-//-------------------------------------------------------------------------------------------
-
-int
-MinCardCSManager::make_cardcs( std::deque<Pair2> & ss_, double dss ){
-    int sz =(int)ss_.size();
-    int card;
-    double bl;
-    double ttu=0;
-    std::stable_sort(ss_.begin(), ss_.end(), compPair2());
-    //std::cout<<"new: "<<std::endl;
-    for(int n=0;n<sz;n++){
-        bl = ss_[n].snd;
-        //std::cout<<bl<<" "<<dss<<std::endl;
-        ttu+= bl;
-        if(ttu>=dss){
-            break;
-        }
-        card = n+1;
-    }
-    
-    return card+1;
-}
-
-//-------------------------------------------------------------------------------------------
-
-double
-MinCardCSManager::cutset_preprocess(int sz, double dss, const int * ss_,  std::deque<Pair2>& ss_deque,
-                                const double *y, const double *ystar){
-    int arc;
-    double U1=0;
-    double bl;
-    //std::cout<<"cut: "<<dss<<std::endl;
-    
-    for(int i=sz;i--;){
-        arc = ss_[i];
-        bl = fmin(dss,data->arcs[arc].capa);
-        //std::cout<<"arc "<<arc <<" bl: "<<bl<<std::endl;
-        if(y[arc]>0){
-            U1+=bl;
-            //std::cout<<"n/c: "<<arc<<" "<<y[arc]<<" cap: "<<bl<<" y*: "<<ystar[arc]<<std::endl;
-        }else{
-            ss_deque.push_back(Pair2(arc, bl));
-        }
-    }
-    return U1;
-}
-
-//-------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------
-//  auxiliary methods
-//-------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------
-
-bool
-MinCardCSManager::checkViol(const MinCardCS * c, const double *y, double &viol){
-    double sum=0;
-    for(int a=0;a<c->size;++a){
-        sum += y[c->arcs[a]];
-        if(sum>=c->card){  return false;}
-    }
-    viol = double(c->card) - sum;
-    return true;
-}
-
-
-//-------------------------------------------------------------------------------------------
-
-bool
-MinCardCSManager::process_card(const double *y, const double *ystar, MinCardCS * c, double & maxy, double & viol){
-    int arc;
-    int mina=-1;
-    double sum=0;
-    cardscs.clearbin(c);
-    maxy = 0;
-    for(int a=0;a<c->size;++a){
-        arc = c->arcs[a];
-        sum += y[arc];
-        if(sum>=c->card){  return false;}
-        if(y[arc]<0.999){ cardscs.mark(arc, c);}
-        if(maxy < ystar[arc]){
-            maxy = ystar[arc];
-        }
-    }
-    viol = double(c->card) - sum;
-    return true;
-}

@@ -267,7 +267,7 @@ OsiVolSolverInterface::set_start(){
     int fidx = ndemands*nnodes;
    
     VItt = VIub=-1e31;
-    
+    cover_manager->colub = colub;
     CoinFillN(volprob_->dual_ub.v, getNumRows(), 0.0);
     CoinFillN(volprob_->dual_lb.v, getNumRows(), 0.0);
     CoinFillN(volprob_->dsol.v, getNumRows(), 0.0);
