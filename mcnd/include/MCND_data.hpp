@@ -14,6 +14,48 @@
 class BCP_buffer;
 
 
+class Stats{
+public:
+    int num_strongb_fix;
+    int num_ls_fix;
+	int num_rclbflow_fix;
+	int num_rcubflow_fix;
+    int num_rcarc_fix;
+	int num_conn_fix;
+    int num_cpflow_fix;
+    int num_cparc_fix; 
+    int num_solve_holm;
+    int num_holm_fathom;
+    
+  	int num_ttgend_global; 
+    int num_ttgend_cover;  
+    int num_ttgend_card;  
+    int num_ttgend_sellm; 
+    int num_ttgend_feas; 
+    int num_ttgend_opt; 
+    
+    bool strongb_fix;
+    bool ls_fix;
+    bool rclbflow_fix;
+    bool rcubflow_fix;
+    bool rcarc_fix;
+	bool conn_fix;
+    bool cpflow_fix;
+    bool cparc_fix; 
+    bool solve_holm;
+    bool holm_fathom;
+    
+    Stats();
+    void reset();
+    void compute_stats();
+    void compute_cutstat(int ttgend_global, 
+    int ttgend_cover,  
+    int ttgend_card,  
+    int ttgend_sellm, 
+    int ttgend_feas, 
+    int ttgend_opt );
+};
+
 //-----------------------------------------------------
 // DATA
 //-----------------------------------------------------

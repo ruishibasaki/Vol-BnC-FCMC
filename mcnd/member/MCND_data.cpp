@@ -6,7 +6,75 @@
 
 #include "MCND_data.hpp"
 #include <cmath>
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+// Stats
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
 
+
+Stats::Stats(){
+	num_strongb_fix=0;
+	num_ls_fix=0;
+	num_rclbflow_fix =0;
+	num_rcubflow_fix =0;
+	num_rcarc_fix=0;
+	num_conn_fix=0;
+	num_cpflow_fix=0;
+	num_cparc_fix=0; 
+	num_solve_holm=0;
+	num_holm_fathom=0;
+	reset();
+		
+}
+
+//-------------------------------------------------------------------------------
+
+void 
+Stats::reset(){
+	strongb_fix=false;
+	ls_fix=false;
+	rclbflow_fix =false;
+	rcubflow_fix =false;
+	rcarc_fix=false;
+	conn_fix=false;
+	cpflow_fix=false;
+	cparc_fix=false;
+	solve_holm=false;
+	holm_fathom=false;
+		
+}
+    
+//-------------------------------------------------------------------------------
+
+void 
+Stats::compute_stats(){
+	if(strongb_fix) ++num_strongb_fix;
+	if(ls_fix) ++num_ls_fix;
+	if(rclbflow_fix) ++num_rclbflow_fix;
+	if(rcubflow_fix) ++num_rcubflow_fix;
+	if(rcarc_fix) ++num_rcarc_fix;
+	if(conn_fix) ++num_conn_fix;
+	if(cpflow_fix) ++num_cpflow_fix;
+	if(cparc_fix) ++num_cparc_fix; 
+	if(solve_holm) ++num_solve_holm;
+	if(holm_fathom) ++num_holm_fathom;
+	reset();
+}
+    
+//-------------------------------------------------------------------------------
+  
+void 
+Stats::compute_cutstat(int ttgend_global, int ttgend_cover,  
+    int ttgend_card,  int ttgend_sellm,  int ttgend_feas, int ttgend_opt ){
+    
+    num_ttgend_global=ttgend_global; 
+    num_ttgend_cover=ttgend_cover;  
+	num_ttgend_card=ttgend_card;  
+    num_ttgend_sellm=ttgend_sellm; 
+    num_ttgend_feas=ttgend_feas; 
+    num_ttgend_opt=ttgend_opt; 
+}
 //-------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------
 // FlowConnect

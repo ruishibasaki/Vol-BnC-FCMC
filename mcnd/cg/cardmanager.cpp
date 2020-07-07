@@ -32,6 +32,7 @@ CoverManager::mincard_generation_main(const double * ystar, const double * y, co
         cutset = cutset->next;
     }
     gend+=added;
+    ttgend_card+=added; //stat can be removed
     return added;
 }
 

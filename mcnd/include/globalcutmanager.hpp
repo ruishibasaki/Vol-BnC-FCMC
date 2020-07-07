@@ -23,13 +23,15 @@ public:
     GlobalCutCollection globals;
     int num_actv;
     int lim_to_remv;
- 	
+ 	int ttgend_global; //stat can be removed
 
      //-------------------------------------------------------------------------------------------
     //  initializing methods
     //-------------------------------------------------------------------------------------------
     
-    inline GlobalCutManager(): data(0), arc_map(0){ num_actv = lim_to_remv =0;}
+    inline GlobalCutManager(): data(0), arc_map(0){ num_actv = lim_to_remv =0;
+    												ttgend_global=0; //stat can be removed
+    												}
     inline ~GlobalCutManager(){}
     inline void set_arc_map(const int * map){ arc_map = map;}
     void initialize(const Data * d, int lim);

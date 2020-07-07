@@ -28,12 +28,16 @@ public:
     int num_actv;
     int lim_to_remv;
     int gend;
+    int ttgend_cover; //stat can be removed
+    int ttgend_card; //stat can be removed
     std::deque<Cover*> purgbl;
     //-------------------------------------------------------------------------------------------
     //  initializing methods
     //-------------------------------------------------------------------------------------------
     
-    inline CoverManager(): data(0), arc_map(0), colub(0){ num_actv = lim_to_remv =0;}
+    inline CoverManager(): data(0), arc_map(0), colub(0){ num_actv = lim_to_remv =0; 
+    													 ttgend_card = ttgend_cover =0; //stat can be removed
+    													 }
     inline ~CoverManager(){ delete [] capabl;}
 
     inline void set_arc_map(const int * map){ arc_map = map;}

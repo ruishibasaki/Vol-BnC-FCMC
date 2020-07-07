@@ -1217,9 +1217,6 @@ OsiVolSolverInterface::loadProblem(const int numcols, const int numrows,
     }
     if(maxNumrows_ > auxinfo->maxPos)
     	maxNumrows_ =  auxinfo->maxPos;
-   
-   	
-    
     
 }
 

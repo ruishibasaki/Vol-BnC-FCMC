@@ -17,6 +17,7 @@ public:
   double Best_LB;
   double time_lim;
   std::string instance;
+  Stats stats; 
   
   MCND_solution init_sol;
   

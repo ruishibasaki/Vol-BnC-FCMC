@@ -147,6 +147,7 @@ GlobalCutManager::make_globalcut(const double * ystar, int sz,  int* vars_, int 
         	//std::cout<<"GlobalCutManager::make_globalcut add global: "<<std::endl;
         	//gloc->print();
         	++ttgend;
+        	++ttgend_global; //stat can be removed
         	return 1;
         }
     }

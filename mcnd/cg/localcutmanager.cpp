@@ -42,7 +42,7 @@ LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double 
         //if(vi->type==0)std::cout<<"try: type "<<vi->type<<" "<<vi->prgbl<<std::endl;
         if(recheck_collct) put = vi->check_updt_Viol(topo, infeas);
         if(infeas) return -1;
-		if(vi->type==2) put=false;
+		//if(vi->type==2) put=false;
         
         if(put && !vi->prgbl){
             actvS[vi->id_vi] = fsize+csize;
@@ -127,6 +127,7 @@ LocalCutManager::make_localcut0(const double * ystar, int sz,  int* vars_, int c
         	++ttgend;
         	++gend;
         	++num_actv;
+        	++ttgend_feas; //stat can be removed
         	return 1;
         }
     }
@@ -205,6 +206,7 @@ LocalCutManager::make_localcut1(std::vector<int>& T, const double * ystar, int c
         	++ttgend;
         	++gend;
         	++num_actv;
+        	++ttgend_sellm; //stat can be removed
         	return 1;
         }
     }
@@ -311,6 +313,7 @@ LocalCutManager::make_localcut2(const double * ystar, int sz,  int* vars_, doubl
         	++ttgend;
         	++gend;
         	++num_actv;
+        	++ttgend_opt; //stat can be removed
         	return 1;
         }
     }

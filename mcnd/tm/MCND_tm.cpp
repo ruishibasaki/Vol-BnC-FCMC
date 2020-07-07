@@ -28,6 +28,7 @@ MCND_tm::pack_module_data(BCP_buffer& buf, BCP_process_t ptype)
   switch (ptype) {
     case BCP_ProcessType_LP:
     //std::cout<<"try to pack data to lp "<<data.ndemands<<" "<<data.narcs<<" "<<data.nnodes<<std::endl;
+    	  buf.pack(&stats);
           data.pack(buf);
           if((instance.find("C/c") != std::string::npos) ||
           	(instance.find("R/r") != std::string::npos))
@@ -226,6 +227,24 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
     std::ofstream file("fileout", std::ios::app);
     file<<std::setprecision(10)<<instance<<" lb: "<<Best_LB<<" ub: "<<ub<<" gap: "<<(ub-Best_LB)/ub*100<<" nodes: "<<getTmProblemPointer()->search_tree.processed()
     <<" t: "<<t<<std::endl;
+    file.close();
+    file.open("fileout_stat", std::ios::app);
+    file<<std::setprecision(10)<<instance<<" num_strongb_fix: "<<stats.num_strongb_fix<<
+    " num_ls_fix: "<<stats.num_ls_fix<<
+	" num_rclbflow_fix: "<<stats.num_rclbflow_fix<<
+	" num_rcubflow_fix: "<<stats.num_rcubflow_fix<<
+    " num_rcarc_fix: "<<stats.num_rcarc_fix<<
+	" num_conn_fix: "<<stats.num_conn_fix<<
+    " num_cpflow_fix: "<<stats.num_cpflow_fix<<
+    " num_cparc_fix: "<<stats.num_cparc_fix<<
+    " num_solve_holm: "<<stats.num_solve_holm<<
+    " num_holm_fathom: "<<stats.num_holm_fathom<<
+  	" num_ttgend_global: "<< stats.num_ttgend_global<<
+    " num_ttgend_cover: "<<stats.num_ttgend_cover<<
+    " num_ttgend_card: "<<stats.num_ttgend_card<<
+    " num_ttgend_sellm: "<<stats.num_ttgend_sellm<<
+    " num_ttgend_feas: "<<stats.num_ttgend_feas<<
+    " num_ttgend_opt: "<<stats.num_ttgend_opt<<std::endl;
     file.close();
    /* BCP_tm_prob *p = getTmProblemPointer();
     
