@@ -156,7 +156,7 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
 	p.par.set_entry(BCP_lp_par::LpVerb_NodeTime, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolvePositions, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolveResult, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_ProcessedNodeIndex, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_ProcessedNodeIndex, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportCutGenTimeout, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportVarGenTimeout, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportLocalCutPoolSize, false);

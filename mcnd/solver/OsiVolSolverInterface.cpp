@@ -363,7 +363,7 @@ OsiVolSolverInterface::resolve(){
     volprob_->active_psize = szunfxd;
     set_start();
     retval = volprob_->solve(*this, true);
-	//std::cout<<"volsol: "<<volprob_->value<<" "<<min_lower_bound<<" "<<volprob_->iter()<<std::endl;
+	//if(!in_strong_branch)std::cout<<"volsol: "<<volprob_->value<<" "<<min_lower_bound<<" "<<volprob_->iter()<<std::endl;
 
     if(volprob_->value< min_lower_bound && in_strong_branch){
      	volprob_->value = min_lower_bound;
@@ -1001,7 +1001,8 @@ OsiVolSolverInterface::translate_sol(){
 
     int arc;
     double addvalue;
-    double coeff = volprob_->iter()/double(volprob_->parm.maxsgriters);
+    double iters = volprob_->parm.maxsgriters; 
+    double coeff = iters>1? volprob_->iter()/iters: 0.0;
     if(coeff>0.7) coeff=0.7;
 	//if(!in_strong_branch)std::cout<<std::setprecision(10)<<"OsiVolSolverInterface::translate_sol: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "
 	//<<volprob_->iter()<<"/"<<volprob_->parm.maxsgriters<<" coef: "<<coeff<<std::endl;

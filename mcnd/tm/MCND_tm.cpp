@@ -206,8 +206,7 @@ MCND_tm::createSearchType(const char * type){
 void
 MCND_tm::process_message(BCP_buffer& buf){
 
-	if(Best_LB<lower_bound())
-		Best_LB=lower_bound();
+	 std::cout<<"MCND_tm::process_message"<<std::endl;
 	
 }
 
@@ -228,7 +227,7 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
     file<<std::setprecision(10)<<instance<<" lb: "<<Best_LB<<" ub: "<<ub<<" gap: "<<(ub-Best_LB)/ub*100<<" nodes: "<<getTmProblemPointer()->search_tree.processed()
     <<" t: "<<t<<std::endl;
     file.close();
-    BCP_tm_prob *p = getTmProblemPointer();
+   /* BCP_tm_prob *p = getTmProblemPointer();
     
     CoinSearchTreeBase * tree = p->candidate_list.getTree();
  	MCND_node_branch_data * user_data;
@@ -245,7 +244,7 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
 		tree->pop();
 	}
 	delete add;
-    
+    */
 }
 
 //-----------------------------------------------------------------------------

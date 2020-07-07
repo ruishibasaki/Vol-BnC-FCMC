@@ -80,7 +80,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 				}
 			}
 		}
-		std::cout<<"max 1 "<<times_dived<<std::endl;
+		//std::cout<<"max 1 "<<times_dived<<std::endl;
 		if(candidates.empty()){
 			for (int a=data.narcs; a--;) {
 				if(vars[a]->lb()==0 && vars[a]->ub()==1 ){
@@ -284,7 +284,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	
  	double gap= (ub  - LBi)/ub;
  	if((gap<0.01) && !getOsiVolBabSolver()->has_checked && (!reduced_run && times_dived<3)){
- 		std::cout<<"getOsiVolBabSolver()->test_opposites"<<std::endl;
+ 		//std::cout<<"getOsiVolBabSolver()->test_opposites"<<std::endl;
 
  		double prev = changed_pos.size();
  		getOsiVolBabSolver()->test_opposites( changed_pos, new_bd,  yfix, vars,  ub);
@@ -527,7 +527,7 @@ MCND_lp::set_user_data_for_children(BCP_presolved_lp_brobj* best,
     	cdata->hs = new WarmStartDual(data.narcs, child1.x(), cdata->dual_size, child1.pi(), mapd);//std::cout<<"dualsz: "<<cdata->dual_size<<std::endl;
     	cdata->parent = current_index();
     }
-
+    
 }
 
 //-------------------------------------------------------------------------------------------
@@ -565,9 +565,9 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
     double diff0 = (child0.objval() - LBi); if(diff0<0)diff0=0;
     double diff1 = (child1.objval() - LBi); if(diff1<0)diff1=0;
     double lbdev = (fmin(child0.objval(), child1.objval()) - lower_bound)/lower_bound;
-    std::cout<<"branching variable: "<<var_branch<<" lp: "<<(lpchecker.solved ? lpchecker.y_[var_branch]:-1.0)<<
-    " y: "<<y[var_branch]<<" nbranch: "<<min(ninsp[var_branch].fst, ninsp[var_branch].snd)<<" capa: "<<data.arcs[var_branch].capa<<std::endl;
-    std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl<<std::endl;
+    //std::cout<<"branching variable: "<<var_branch<<" lp: "<<(lpchecker.solved ? lpchecker.y_[var_branch]:-1.0)<<
+    //" y: "<<y[var_branch]<<" nbranch: "<<min(ninsp[var_branch].fst, ninsp[var_branch].snd)<<" capa: "<<data.arcs[var_branch].capa<<std::endl;
+    //std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl<<std::endl;
  	
  	bool dive=false;
  	if(lbdev<0.001){ dive=true;  ++times_dived; }//std::cout<<"force dive: childsol closed to lb"<<std::endl;}
