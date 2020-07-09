@@ -296,7 +296,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
  	double gap= (ub  - LBi)/ub;
  	if((gap<0.01) && !getOsiVolBabSolver()->has_checked && (!reduced_run && times_dived<3)){
  		//std::cout<<"getOsiVolBabSolver()->test_opposites"<<std::endl;
-
+		tm_stats->ls_fix_solve=true;
  		int prev = changed_pos.size();
  		getOsiVolBabSolver()->test_opposites( changed_pos, new_bd,  yfix, vars,  ub);
  		arcfx = (prev < changed_pos.size()) ?  true: arcfx;

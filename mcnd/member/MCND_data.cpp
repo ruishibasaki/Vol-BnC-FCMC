@@ -16,6 +16,7 @@
 Stats::Stats(){
 	num_strongb_fix=0;
 	num_ls_fix=0;
+	num_ls_fix_solve=0;
 	num_rclbflow_fix =0;
 	num_rcubflow_fix =0;
 	num_rcarc_fix=0;
@@ -33,6 +34,7 @@ Stats::Stats(){
 void 
 Stats::reset(){
 	strongb_fix=false;
+	ls_fix_solve=false;
 	ls_fix=false;
 	rclbflow_fix =false;
 	rcubflow_fix =false;
@@ -50,6 +52,7 @@ Stats::reset(){
 void 
 Stats::compute_stats(){
 	if(strongb_fix) ++num_strongb_fix;
+	if(ls_fix_solve) ++num_ls_fix_solve;
 	if(ls_fix) ++num_ls_fix;
 	if(rclbflow_fix) ++num_rclbflow_fix;
 	if(rcubflow_fix) ++num_rcubflow_fix;

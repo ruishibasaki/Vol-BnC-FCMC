@@ -231,6 +231,7 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
     file.open("fileout_stat", std::ios::app);
     file<<std::setprecision(10)<<instance<<" num_strongb_fix: "<<stats.num_strongb_fix<<
     " num_ls_fix: "<<stats.num_ls_fix<<
+    " num_ls_fix_solve: "<<stats.num_ls_fix_solve<<
 	" num_rclbflow_fix: "<<stats.num_rclbflow_fix<<
 	" num_rcubflow_fix: "<<stats.num_rcubflow_fix<<
     " num_rcarc_fix: "<<stats.num_rcarc_fix<<

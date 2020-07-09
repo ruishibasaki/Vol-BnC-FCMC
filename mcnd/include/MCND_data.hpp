@@ -17,6 +17,7 @@ class BCP_buffer;
 class Stats{
 public:
     int num_strongb_fix;
+    int num_ls_fix_solve;
     int num_ls_fix;
 	int num_rclbflow_fix;
 	int num_rcubflow_fix;
@@ -35,6 +36,7 @@ public:
     int num_ttgend_opt; 
     
     bool strongb_fix;
+    bool ls_fix_solve;
     bool ls_fix;
     bool rclbflow_fix;
     bool rcubflow_fix;
