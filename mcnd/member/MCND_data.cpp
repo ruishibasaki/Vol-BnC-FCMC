@@ -26,6 +26,13 @@ Stats::Stats(){
 	num_solve_holm=0;
 	num_holm_fathom=0;
 	reset();
+	num_ttgend_global=0; 
+    num_ttgend_cover=0;  
+	num_ttgend_card=0;  
+    num_ttgend_sellm=0; 
+    num_ttgend_feas=0; 
+    num_ttgend_opt=0; 
+
 		
 }
 
