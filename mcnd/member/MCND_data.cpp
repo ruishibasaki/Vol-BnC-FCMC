@@ -136,7 +136,7 @@ FlowConnect::check_flowbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chang
 							if(yfix[arc]==-1){
 								set_bd(arc, 1.0, 1.0,  changed_pos, new_bd);
 								yfix[arc]=1;
-								std::cout<<"flowbounds fix "<<arc<<" to 1"<<std::endl;
+								//std::cout<<"flowbounds fix "<<arc<<" to 1"<<std::endl;
 							}
 							modiflb=true;
 						} 
@@ -186,7 +186,7 @@ FlowConnect::check_flowbounds(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chang
 							 if(yfix[arc]==-1){
 								 set_bd(arc, 1.0, 1.0,  changed_pos, new_bd);
 								 yfix[arc]=1;
-								 std::cout<<"flowbounds fix "<<arc<<" to 1"<<std::endl;
+								 //std::cout<<"flowbounds fix "<<arc<<" to 1"<<std::endl;
 							 }
  						 } 					 
 					 }
@@ -232,7 +232,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     		set_bd(arc, 0.0, 0.0,  changed_pos, new_bd);
                     		conn_arcfix=true;
                     		yfxd[arc]=0;
-							std::cout<<"connfix "<<arc<<" to 0"<<std::endl;
+							//std::cout<<"connfix "<<arc<<" to 0"<<std::endl;
                     	}else if(vars[arc]->lb()>0 || yfxd[arc]==1){ 
                     		/*std::cout<<"FlowConnect conflict2 "<<arc<<" "<<vars[arc]->lb()<<std::endl;*/ 
                     		ret= -2;}
@@ -254,7 +254,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
                     	conn_arcfix=true;
                     	yfxd[arc_unique]=1;
-						std::cout<<"connfix "<<arc_unique<<" to 1"<<std::endl;
+						//std::cout<<"connfix "<<arc_unique<<" to 1"<<std::endl;
                 	} 
                 }else if(comm_sat==0){
                 	//std::cout<<"FlowConnect conflict4"<<std::endl;  
@@ -284,7 +284,7 @@ FlowConnect::translate_results(const BCP_vec<BCP_var*>& vars, BCP_vec<int>& chan
                     	//std::cout<<"set x_"<<arc_unique+1<<"^"<<k+1<<" to the flow capacity"<<std::endl;
                     	conn_arcfix=true;
                     	yfxd[arc_unique]=1;
-						std::cout<<"connfix "<<arc_unique<<" to 1"<<std::endl;
+						//std::cout<<"connfix "<<arc_unique<<" to 1"<<std::endl;
                 	} 
                 }else if(comm_sat==0){
                     //std::cout<<"FlowConnect conflict6"<<std::endl;  

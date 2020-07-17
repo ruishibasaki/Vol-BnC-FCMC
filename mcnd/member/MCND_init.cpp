@@ -107,7 +107,7 @@ MCND_initialize::tm_init(BCP_tm_prob& p,
    p.par.set_entry(BCP_tm_par::VerbosityShutUp, false);
    p.par.set_entry(BCP_tm_par::TmVerb_AllFeasibleSolutionValue, false);
     p.par.set_entry(BCP_tm_par::TmVerb_AllFeasibleSolution, false);
-    p.par.set_entry(BCP_tm_par::TmVerb_BetterFeasibleSolutionValue, true);
+    p.par.set_entry(BCP_tm_par::TmVerb_BetterFeasibleSolutionValue, false);
     p.par.set_entry(BCP_tm_par::TmVerb_BetterFeasibleSolution, false);
     p.par.set_entry(BCP_tm_par::TmVerb_BestFeasibleSolution, false);
     p.par.set_entry(BCP_tm_par::TmVerb_NewPhaseStart, false);
@@ -156,7 +156,7 @@ MCND_initialize::lp_init(BCP_lp_prob& p){
 	p.par.set_entry(BCP_lp_par::LpVerb_NodeTime, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolvePositions, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_PresolveResult, false);
-	p.par.set_entry(BCP_lp_par::LpVerb_ProcessedNodeIndex, true);
+	p.par.set_entry(BCP_lp_par::LpVerb_ProcessedNodeIndex, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportCutGenTimeout, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportVarGenTimeout, false);
 	p.par.set_entry(BCP_lp_par::LpVerb_ReportLocalCutPoolSize, false);

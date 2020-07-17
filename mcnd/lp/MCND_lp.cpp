@@ -250,7 +250,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     OsiVolSolverInterface* vollp = getOsiVolBabSolver();
     VOL_parms& par = AppVolData.volprob.parm;
     if(lp_mode & LP_ForceNodeAbort){ vollp->mode=-2;  return;}
- 	else if(lp_mode & LP_SecondIter){ vollp->mode=-1; return;}
+ 	//else if(lp_mode & LP_SecondIter){ vollp->mode=-1; return;}
 	
  	if(solve_exact){par.maxsgriters = 0;}
  	else par.maxsgriters = 250;

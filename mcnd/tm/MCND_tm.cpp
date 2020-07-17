@@ -229,26 +229,25 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
 	std::cout<<"The global lower bound: "<<Best_LB<<" / "<<lower_bound()<<" best sol: "<<ub<<std::endl;
     std::ofstream file("fileout", std::ios::app);
     file<<std::setprecision(10)<<instance<<" lb: "<<Best_LB<<" ub: "<<ub<<" gap: "<<(ub-Best_LB)/ub*100<<" nodes: "<<getTmProblemPointer()->search_tree.processed()
-    <<" t: "<<t<<std::endl;
+    <<" t: "<<t<<" itermed lb: "<<middle_lb<<" ub: "<<middle_sol<<std::endl;
     file.close();
-   /* BCP_tm_prob *p = getTmProblemPointer();
-    
-    CoinSearchTreeBase * tree = p->candidate_list.getTree();
- 	MCND_node_branch_data * user_data;
-	BCP_tm_node * n;
-	CoinTreeNode ** add = new CoinTreeNode*;
-	while(tree->size()){
-		*add = tree->top();
-		n = dynamic_cast<BCP_tm_node*>(*add);
-		//user_data =  dynamic_cast<MCND_node_branch_data*>(n->_data._user.GetRawPtr());
-		if(n->status > BCP_PrunedNode_Discarded ||
-		   n->status < BCP_PrunedNode_OverUB){
-			std::cout<<"tree: "<<n->getQuality()<<std::endl;
-		}
-		tree->pop();
-	}*/
-    
- 
+    if(instance.find("/") != std::string::npos){
+    	instance = instance.replace(instance.find("/"),1,"");
+    	instance = "sol"+instance;
+    }
+    file.open(instance.c_str(), std::ios::app);
+    int cont=0;
+    MCND_solution *finalsol =0;
+    finalsol= dynamic_cast<MCND_solution*>(getTmProblemPointer()->feas_sol);
+    if(finalsol==0) return;
+    for(int a=data.narcs;a--;){
+    	if(finalsol->xy[a]>0)++cont;
+    }
+    file<<" size: "<<cont<<std::endl;
+    for(int a=data.narcs;a--;){
+    	if(finalsol->xy[a]>0)file<<"openarc: "<<a<<std::endl;
+    }
+    file.close();
 }
 
 //-----------------------------------------------------------------------------

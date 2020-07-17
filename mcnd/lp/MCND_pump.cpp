@@ -362,7 +362,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 	std::vector<int>modtabu(narcs,0);
     while(dontbreak){
 		if(volsolve()<0){
-			std::cout<<"Pump::solve no"<<std::endl;
+			//std::cout<<"Pump::solve no"<<std::endl;
 			modtabu.clear();
 			get_closed(fixd0, closed, false);
 			return 0;
@@ -425,7 +425,7 @@ Pump::local_search(IloNumArray & x_, MCND_solution*& mipsol ){
 	check_feas_model();
 	cplex.solve();
  	if(cplex.getStatus() == IloAlgorithm::Infeasible){
-		std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
+		//std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
  		return false;
 	}else if(cplex.getStatus() != IloAlgorithm::Optimal){
  		return false;
@@ -433,10 +433,10 @@ Pump::local_search(IloNumArray & x_, MCND_solution*& mipsol ){
  
  	cplex.getValues(x_,x);
 	while(getSolution(  x_, mipsol )<0){
-		std::cout<<"sol: "<<mipsol->cost<<std::endl;
+		//std::cout<<"sol: "<<mipsol->cost<<std::endl;
 		cplex.solve();
 		if(cplex.getStatus() == IloAlgorithm::Infeasible){
-			std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
+			//std::cout<<"pump:: cplex.getStatus() == IloAlgorithm::Infeasible1"<<std::endl;
 			break;
 		}else if(cplex.getStatus() != IloAlgorithm::Optimal){
 			break;
@@ -490,7 +490,7 @@ Pump::getSolution(const IloNumArray& x_, MCND_solution*& mipsol ){
 			
  		} 
 	}
-  	std::cout<<"pump::integer sol value: "<<mipsol->cost<<std::endl;
+  	//std::cout<<"pump::integer sol value: "<<mipsol->cost<<std::endl;
 	return ret;
 }
 

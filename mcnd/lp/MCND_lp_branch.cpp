@@ -29,7 +29,7 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
     //return BCP_DoNotBranch_Fathomed;
 
     
-	if(current_level() == 0 && current_iteration()<10 && !no_heur) return BCP_DoNotBranch;
+	if(current_level() == 0 && current_iteration()<5 && !no_heur) return BCP_DoNotBranch;
 	/*if(current_level() == 0){
         return BCP_DoNotBranch_Fathomed;
 	}*/
@@ -150,7 +150,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			//std::cout<<"penalty test: "<<a<<" rc: "<<gij<<" y: "<<psol[a]<<std::endl;
 			gij = rcsol[a];
 			if(gij>0 && (lb+gij)>=ub){
-				std::cout<<a<<" LOGFIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<ub<<std::endl;
+				//std::cout<<a<<" LOGFIX 0 ("<<lb<<" + "<<gij<<") ="<<(lb+gij)<<" "<<ub<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
@@ -158,7 +158,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				arcfx=true;
 				continue;
 			}else if(gij<0 && (lb-gij)>=ub){
-				std::cout<<a<<" LOGFIX FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<ub<<std::endl;
+				//std::cout<<a<<" LOGFIX FIX 1 ("<<lb<<" "<<gij<<") ="<<(lb-gij)<<" "<<ub<<std::endl;
 				changed_pos.push_back(a);
 				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
@@ -169,14 +169,14 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			if(current_level()==0){pres=0;}
 			else{pres=1e-30*(pow(10,current_level())); if(pres>1e-4)pres=1e-4;}
 			if(psol[a]<pres){
-				std::cout<<a<<" SOLUTION FIX 0 "<<psol[a]<<std::endl;
+				//std::cout<<a<<" SOLUTION FIX 0 "<<psol[a]<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(0.0);
 				new_bd.push_back(0.0);
 				yfix[a]=0;
 				arcfx=true;
 			}else if(psol[a]>1.0-pres){
-				std::cout<<a<<" SOLUTION FIX 1 "<<psol[a]<<std::endl;
+				//std::cout<<a<<" SOLUTION FIX 1 "<<psol[a]<<std::endl;
 				changed_pos.push_back(a);
  				new_bd.push_back(1.0);
 				new_bd.push_back(1.0);
@@ -565,7 +565,7 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
     //" y: "<<y[var_branch]<<" nbranch: "<<min(ninsp[var_branch].fst, ninsp[var_branch].snd)<<" capa: "<<data.arcs[var_branch].capa<<std::endl;
     //std::cout<<"child0: "<<child0.objval()<<" child1: "<<child1.objval()<<" feas: "<<feas0<<", "<<feas1<<std::endl<<std::endl;
  	
-   	if(dive_for_sol){++times_dived; std::cout<<"force dive for sol"<<std::endl;}
+   	if(dive_for_sol){++times_dived; }//std::cout<<"force dive for sol"<<std::endl;}
  
 	if(!feas0){
 		childs_action[0] = BCP_FathomChild;
@@ -669,7 +669,7 @@ MCND_lp::strong_branch_var_logicfix(BCP_lp_branching_object* candidate){
 	while(!to_logical_fix.empty()){
 		p = &to_logical_fix.back();
 		if(p->fst != cand){
-			std::cout<<"branchfix: "<<p->fst<<" to "<<p->snd<<std::endl;
+			//std::cout<<"branchfix: "<<p->fst<<" to "<<p->snd<<std::endl;
 			extra_vars->push_back(p->fst);
 			++added;
 			for(int i=4;i--;)bd_extra_vars->push_back(p->snd);
