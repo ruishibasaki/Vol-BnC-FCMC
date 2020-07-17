@@ -71,7 +71,7 @@ MCND_lp::initialize_solver_interface(){
 void 
 MCND_lp::process_message(BCP_buffer& buf){
 	buf.unpack(lower_bound);
-	std::cout<<"lower_bound: "<<lower_bound<<std::endl;
+	//std::cout<<"lower_bound: "<<lower_bound<<std::endl;
 }
 
 
@@ -94,6 +94,9 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
     ++num_nodes;
     getOsiVolBabSolver()->has_checked=false;
     lpfeaschecker.lbtested=false;
+    int ret ;
+    bool arcfx = false;
+    
     if(has_sol){
     	double ub = upper_bound();
     	if(!(lp_mode & LP_Dive)){
@@ -139,15 +142,17 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
         if(nodedata->hs!=0){
             getLpProblemPointer()->lp_solver->setWarmStart(nodedata->hs);
         }
-    	std::cout<<"numn: "<<num_nodes<<" node comes from branch on: "<<nodedata->branch_var;
-        std::cout<<" of "<<nodedata->pos_neg<<" side .. parent: "<<nodedata->parent<<std::endl;
+    	//std::cout<<"numn: "<<num_nodes<<" node comes from branch on: "<<nodedata->branch_var;
+        //std::cout<<" of "<<nodedata->pos_neg<<" side .. parent: "<<nodedata->parent<<std::endl;
         testconn = nodedata->test_conn ;
         //if(nodedata->reduced_run)lp_mode |= LP_ReducedRun;
         //std::cout<<"reduced run? "<<nodedata->reduced_run<<std::endl;
 
     }else LBi=0;
-    int ret ;
-    bool arcfx = false;
+
+	if(!reduced_run && ((upper_bound()-LBi)/upper_bound()) < 0.01) solve_exact=true;
+	else solve_exact=false;
+    
     if(testconn){
      	ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, arcfx, yfix);
     	if(ret<0){
@@ -208,7 +213,7 @@ MCND_lp::load_problem(OsiSolverInterface& osi, BCP_problem_core* core,
   			switch(mcnd_cut->cut_type){
   				case 1:{
 					CoverCut * cut = dynamic_cast<CoverCut*>(mcnd_cut);
-					//std::cout<<"collec: "<<i<<" "<<cut->get_cover()->serial_nmbr<<std::endl;
+					//std::cout<<"collec: "<<cut->get_cover()->serial_nmbr<<std::endl;
 					cut->get_cover()->id_vi = i;
 					cover_manager.covers.insert_end(cut->get_cover());
 					break;
@@ -247,6 +252,9 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
     if(lp_mode & LP_ForceNodeAbort){ vollp->mode=-2;  return;}
  	else if(lp_mode & LP_SecondIter){ vollp->mode=-1; return;}
 	
+ 	if(solve_exact){par.maxsgriters = 0;}
+ 	else par.maxsgriters = 250;
+ 	
     vollp->has_sol = has_sol;
     vollp->recheck_collct=false;
     vollp->upper_bound = LBi >0 ? fmin(upper_bound(), LBi*5) : upper_bound();
@@ -270,7 +278,7 @@ MCND_lp::modify_lp_parameters(OsiSolverInterface* lp, const int changeType,
      	//}
      	vollp->mode=2;
     }else vollp->mode=1;
-   
+    
     vollp->in_strong_branch = in_strong_branching;
     if(in_strong_branching){
     	vollp->recheck_collct=true; 
@@ -310,17 +318,26 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 
     double ub = upper_bound();
 	double gap = (ub  - LBi)/ub;
-    if((unfix < 500) && ((gap < 0.01 && !reduced_run) || (times_dived >=3)) && !(lp_mode & LP_OptSolved)){
-    	int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
+    if(unfix >= 500 || (lp_mode & LP_OptSolved)){
+    	solve_exact=false;
+    }else if(times_dived >=3){
+    	solve_exact=true;
+    }else if(gap < 0.01 && !reduced_run){
+    	solve_exact=true;
+    }
+   
+   	if(solve_exact){
+   		int ret  = lpchecker.solve(ub, vars, 0,0, LBi);
     	if(ret<0){
     		lp_mode |= LP_ForceNodeAbort;
     		//std::cout<<"MCND_lp::compute_lower_bound:: compute opt lower bound: INFEASIBLE"<<std::endl;
     	}else{
      		lpchecker.solved=true;
      		lp_mode |= LP_OptSolved;
-    	} 
+			//std::cout<<"MCND_lp::compute_lower_bound exact lb: "<<LBi<<std::endl;
+    	}
     }else lpchecker.solved=false;
-   
+    solve_exact=false;
    /* if(force_dive){
     	std::cout<<"MCND_lp::compute_lower_bound break dive? "<<(nomgap - (upper_bound()-LBi))/nomgap <<std::endl;
     	if((nomgap - (upper_bound()-LBi))/nomgap < 0.01)
@@ -519,7 +536,7 @@ MCND_lp::select_cuts_to_delete(const BCP_lp_result& lpres,
 
 	for (int i = getLpProblemPointer()->core->cutnum(); i < cutnum; ++i) {
 		MCND_Cut * cut = dynamic_cast<MCND_Cut*>(cuts[i]);
-		//std::cout<<"cut: "<<cut->type<<" "<<cut->id_vi()<<" "<<cut->purgbl()<<std::endl;
+		//std::cout<<"cut: "<<cut->cut_type<<" "<<cut->id_vi()<<" "<<cut->serial_nmbr()<<" "<<cut->purgbl()<<std::endl;
  		if ( cut->purgbl() /*|| (cut->check_viol(lpres.x())==0 && lpres.pi()[cut->id_vi()]==0)*/) {
 			//std::cout<<"out / dual: "<<" id: "<<cut->id_vi()<<" srnb: "<<cut->serial_nmbr()<<std::endl;
 			switch(cut->cut_type){

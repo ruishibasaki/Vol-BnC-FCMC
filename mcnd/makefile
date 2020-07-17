@@ -16,6 +16,7 @@ suffix_cg = \
 	MCND_cut\
 	covercollection \
 	covermanager \
+	cardmanager \
 	cutsetmanager \
 	cutsetcollection \
 	lift\

@@ -98,8 +98,8 @@ CoverCollection::collected(Cover * tryC){
                 ret = compScalar(tryC, C);
                 if(ret==0) return 0;
                 else if(ret==1){
-                    //replace(C, tryC);
                     C->prgbl=true;
+                    tryC->replace = C->id_vi;
                     //abort();
                     return 0;
                 }
@@ -108,7 +108,78 @@ CoverCollection::collected(Cover * tryC){
         }
         C = C->next;
     }
+    //return 0;
+    C = begin;
+    for(int i=0;i<sizeOfCollection;++i){            
+        if( (tryC->get_total_sz() == C->get_total_sz()) ||
+        	 (tryC->get_total_rhs() != C->get_total_rhs())) continue;
+    	unsigned int op;
+		equal = true;
+		if(tryC->get_total_sz() < C->get_total_sz()){
+			for(int id=0;id<sizeOfIdSeq;++id){
+				op = tryC->id_seq[id] & C->id_seq[id];
+				if(tryC->id_seq[id] != op){
+					equal=false;
+					break;
+				}
+			}
+			if(equal){
+				//tryC->print();
+				//C->print();
+				if(compScalarSimple(tryC, C)){
+					//std::cout<<"opa1: "<<tryC->serial_nmbr<<" "<<C->serial_nmbr<<std::endl;
+					C->prgbl=true;
+					tryC->replace = C->id_vi;
+					return 0;
+				} 
+			}
+		}else{
+			for(int id=0;id<sizeOfIdSeq;++id){
+				op = tryC->id_seq[id] & C->id_seq[id];
+				if(C->id_seq[id]!=op){
+					equal=false;
+					break;
+				}
+			}
+			if(equal){
+				if(compScalarSimple(tryC, C)){
+					//std::cout<<"opa2: "<<tryC->serial_nmbr<<" "<<C->serial_nmbr<<std::endl;
+					return 1;
+				} 
+			}
+		}
+		C = C->next;
+    }
     return 0;
+}
+
+//----------------------------------------------------------------------------------
+
+int
+CoverCollection::compScalarSimple(Cover * c1, Cover * c2){
+    int arc;
+    int sz;
+    const int * arcs;
+    const Cover * smaller;
+    double gamma1, gamma2;
+    std::vector<PairF> mapset;
+    if(c1->get_total_sz() < c2->get_total_sz()){
+    	sz = c1->get_total_sz();
+    	smaller = c1;
+    }else{
+    	sz = c2->get_total_sz();
+    	smaller = c2;
+    } 
+    
+    if(sz==0) return 0;
+    mapCover(c1, c2, mapset);
+    for(int n=0;n<sz;++n){
+        arc = smaller->at(n);
+    	if( !getScalar(arc, mapset, gamma1, gamma2)) continue;
+    	if(gamma1 != gamma2){ mapset.clear(); return 0;}
+    }
+    mapset.clear(); 
+    return 1;
 }
 
 //----------------------------------------------------------------------------------

@@ -210,8 +210,7 @@ MCND_tm::createSearchType(const char * type){
 void
 MCND_tm::process_message(BCP_buffer& buf){
 
-	if(Best_LB<lower_bound())
-		Best_LB=lower_bound();
+	 std::cout<<"MCND_tm::process_message"<<std::endl;
 	
 }
 
@@ -247,9 +246,9 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
 			std::cout<<"tree: "<<n->getQuality()<<std::endl;
 		}
 		tree->pop();
-	}
-	delete add;*/
+	}*/
     
+ 
 }
 
 //-----------------------------------------------------------------------------

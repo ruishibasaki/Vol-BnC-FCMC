@@ -267,7 +267,7 @@ OsiVolSolverInterface::set_start(){
     int fidx = ndemands*nnodes;
    
     VItt = VIub=-1e31;
-    
+    cover_manager->colub = colub;
     CoinFillN(volprob_->dual_ub.v, getNumRows(), 0.0);
     CoinFillN(volprob_->dual_lb.v, getNumRows(), 0.0);
     CoinFillN(volprob_->dsol.v, getNumRows(), 0.0);
@@ -357,11 +357,13 @@ OsiVolSolverInterface::resolve(){
     map_topology();
     map_duals();
     if(mode==-2){retval=-2; return;}
+    volprob_->value=0;
     volprob_->active_size = fsize + csize;
     volprob_->psize = szunfxd + data->ndemands*sznz;
     volprob_->active_psize = szunfxd;
     set_start();
     retval = volprob_->solve(*this, true);
+	//if(!in_strong_branch)std::cout<<"volsol: "<<volprob_->value<<" "<<min_lower_bound<<" "<<volprob_->iter()<<std::endl;
 
     if(volprob_->value< min_lower_bound && in_strong_branch){
      	volprob_->value = min_lower_bound;
@@ -372,7 +374,6 @@ OsiVolSolverInterface::resolve(){
 		unmarkHotStart();
 	}
 	 
-    //std::cout<<"ok"<<std::endl;
  	
     // extract the solutio
     // the lower bound on the objective value
@@ -411,6 +412,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
 			collb[arc]=1;
  			colub[arc]=1;
 		}
+		mode=0;
   		recheck_collct=true;
   		map_topology();
     	map_duals();
@@ -472,7 +474,7 @@ void OsiVolSolverInterface::test_opposites(BCP_vec<int>& changed_pos, BCP_vec<do
 
 int
 OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
-          const VOL_dvector& x, VOL_dvector& dualu, VOL_dvector& dual_lb, VOL_dvector& dual_ub,
+          const VOL_dvector& x, VOL_dvector& dstar,  VOL_dvector& dualu, VOL_dvector& dual_lb, VOL_dvector& dual_ub,
           VOL_dvector& rc, VOL_dvector& h, int & actvSSz){
     //return 0;
     bool letgen=false;
@@ -511,7 +513,8 @@ OsiVolSolverInterface::addVI(int iter,double lcost, const VOL_dvector& xstar,
     if(letgen && iter>=minIterVI){
 
         int num_covers = cover_manager->cover_generation_main(xstar.v, x.v, &ss_manager->sets, numrows_, maxNumrows_);
-        cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dualu.v, dual_lb.v,  dual_ub.v );
+        num_covers += cover_manager->mincard_generation_main(xstar.v, x.v, &ss_manager->sets, numrows_+num_covers, maxNumrows_);
+        cover_manager->add_cover_vi(num_covers, actv, actvSSz, h.v, dstar.v, dualu.v, dual_lb.v,  dual_ub.v );
         if(num_covers>0){
         	numrows_ +=  num_covers;
         	cover_manager->reposition_covers(num_covers);
@@ -618,21 +621,30 @@ OsiVolSolverInterface::removeVI( int & actvSSz, VOL_dvector& pstarv, VOL_dvector
 int
 OsiVolSolverInterface::compute_rc(const VOL_dvector& dualu, VOL_dvector& rc, int actvSSz){
     const Arc* item;
-    int arc;
+    int arc, id;
+    double dvali, dvalj;
     for(int a=szunfxd; a--;){
         arc = nz_arcs[a];
         item = &data->arcs[arc];
         rc[a] = item->f;
         //addrc[a] =0;
         for(int k=ndemands; k--; ){
-            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity - dualu[actv[k*nnodes + item->j-1]] + dualu[actv[k*nnodes + item->i-1]];
+        	id = actv[k*nnodes + item->j-1];
+        	dvalj = id>=0 ? dualu[id]: 0.0;
+        	id = actv[k*nnodes + item->i-1];
+        	dvali = id>=0 ? dualu[id]: 0.0;
+            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity -dvalj + dvali;
         }
     }
     for(int a=szunfxd; a<sznz;++a){
         arc = nz_arcs[a];
         item = &data->arcs[arc];
         for(int k=ndemands; k-- ;){
-            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity - dualu[actv[k*nnodes + item->j-1]] + dualu[actv[k*nnodes + item->i-1]];
+        	id = actv[k*nnodes + item->j-1];
+        	dvalj = id>=0 ? dualu[id]: 0.0;
+        	id = actv[k*nnodes + item->i-1];
+        	dvali = id>=0 ? dualu[id]: 0.0;
+            rc[szunfxd + k*sznz + a] = item->c[k]*data->d_k[k].quantity -dvalj + dvali;
         }
     }
 
@@ -644,7 +656,6 @@ OsiVolSolverInterface::compute_rc(const VOL_dvector& dualu, VOL_dvector& rc, int
     cover_manager->compute_cover_rc( dualu.v, actv,  actvSSz, rc.v,   B0);
     localc_manager->compute_localc_rc( dualu.v, actv,  actvSSz, rc.v,   B0);
     globalc_manager->compute_cover_rc( dualu.v, actv,  actvSSz, rc.v,   B0);
-
     //double b = B0;
     //cover_manager->compute_cover_rc( dual.v,  actv,  actvSSz, addrc, b);
     return 0;
@@ -913,7 +924,7 @@ OsiVolSolverInterface::add_external_cover(const std::deque<Pair2>& c){
 	int ret = cover_manager->add_external_cover(c, numrows_, maxNumrows_);
 	if(ret){
 	
-		cover_manager->add_cover_vi(1, actv, volprob_->active_size, volprob_->viol.v, 
+		cover_manager->add_cover_vi(1, actv, volprob_->active_size, volprob_->viol.v, volprob_->dsol.v,
 								volprob_->dsol.v, volprob_->dual_lb.v,  volprob_->dual_ub.v );       
 		cover_manager->reposition_covers(1);	
 		++numrows_;
@@ -993,7 +1004,8 @@ OsiVolSolverInterface::translate_sol(){
 
     int arc;
     double addvalue;
-    double coeff = volprob_->iter()/double(volprob_->parm.maxsgriters);
+    double iters = volprob_->parm.maxsgriters; 
+    double coeff = iters>1? volprob_->iter()/iters: 0.0;
     if(coeff>0.7) coeff=0.7;
  
 	//if(!in_strong_branch)std::cout<<std::setprecision(10)<<"OsiVolSolverInterface::translate_sol: "<<volprob_->value<<" numrows: "<<numrows_<<" iters: "
@@ -1224,7 +1236,6 @@ OsiVolSolverInterface::deleteRows(const int num, const int * rowIndices){
  	Cover* vi;
 	while(!cover_manager->purgbl.empty()){
 		vi = cover_manager->purgbl.back();
-		//std::cout<<"outcover "<<vi->serial_nmbr<<std::endl;
 		cover_manager->covers.remove_nodel(vi);
 		cover_manager->purgbl.pop_back();
 	}

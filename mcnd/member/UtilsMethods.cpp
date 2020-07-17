@@ -231,7 +231,7 @@ void read_init_dualsol(std::string fname, const Data & data, double * dual){
 
 bool getScalar(int id,const std::vector<PairF> & mapset, double & gam1, double & gam2){
     if(mapset[id].fst < 0 &&  mapset[id].fst != mapset[id].snd){
-        std::cout<<"!!!!!! PROBLEMS !!!! getScalar"<<std::endl;
+        std::cout<<"!!!!!! PROBLEMS !!!! UtilsMethods::getScalar "<<std::endl;
     }
     if(mapset[id].fst < 0 || mapset[id].snd < 0)
         return false;

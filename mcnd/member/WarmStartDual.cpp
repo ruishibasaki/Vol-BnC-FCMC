@@ -105,8 +105,8 @@ double
 WarmStartDual::get_mapped(int key) const{ // the key is the serial number of the cover
 	if(mapd.size()==0 ){//}|| CoinWarmStartDual::size()==0){ 
 		std::cout<<"Attention: map.size()==0 || CoinWarmStartDual::size()==0" <<std::endl;
-		return dual[key];
-		//return 0;
+		//return dual[key];
+		return 0;
 	}
 	//std::cout<<"ok "<<size()<<std::endl;
 	std::map<int,int>::const_iterator it = mapd.find(key);
