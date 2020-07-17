@@ -183,6 +183,10 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 	//std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
 	broadcast_message(BCP_ProcessType_LP,buf);
 	buf.clear();
+	double time = double( clock() - t_start ) / double( CLOCKS_PER_SEC );
+	if(time>36000 &&  middle_sol<0 && middle_lb<0) {
+		middle_sol=upper_bound(); middle_lb=lower_bound();
+	}
 }
 /*
 //-----------------------------------------------------------------------------
@@ -257,6 +261,7 @@ MCND_tm::display_node_information(BCP_tree& search_tree,
 	if(Best_LB<lower_bound())
 		Best_LB=lower_bound();
 		//std::cout<<"lower_bound(): "<<lower_bound()<<std::endl;
+	
 }
 
 //-----------------------------------------------------------------------------
