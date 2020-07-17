@@ -40,7 +40,7 @@ GlobalCutManager::reset_and_map_collection(int fsize, const double* topo, double
 
         if(recheck_collct) put = vi->check_updt_Viol(topo, infeas);
     	if(infeas) return -1;
-		//put=false;
+		put=false;
         if(put && !vi->purgbl){
             actvS[vi->id_vi] = fsize+csize;
             //std::cout<<"in: "<<vi->serial_nmbr<<" id: "<<vi->id_vi<<" "<<recheck_collct<<std::endl;
@@ -147,7 +147,7 @@ GlobalCutManager::make_globalcut(const double * ystar, int sz,  int* vars_, int 
         	//std::cout<<"GlobalCutManager::make_globalcut add global: "<<std::endl;
         	//gloc->print();
         	++ttgend;
-        	++ttgend_global; //stat can be removed
+        	//++ttgend_global; //stat can be removed
         	return 1;
         }
     }

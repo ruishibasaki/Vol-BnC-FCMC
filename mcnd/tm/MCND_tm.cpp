@@ -28,7 +28,7 @@ MCND_tm::pack_module_data(BCP_buffer& buf, BCP_process_t ptype)
   switch (ptype) {
     case BCP_ProcessType_LP:
     //std::cout<<"try to pack data to lp "<<data.ndemands<<" "<<data.narcs<<" "<<data.nnodes<<std::endl;
-    	  buf.pack(&stats);
+    	  //buf.pack(&stats);
           data.pack(buf);
           if((instance.find("C/c") != std::string::npos) ||
           	(instance.find("R/r") != std::string::npos))
@@ -228,7 +228,7 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
     file<<std::setprecision(10)<<instance<<" lb: "<<Best_LB<<" ub: "<<ub<<" gap: "<<(ub-Best_LB)/ub*100<<" nodes: "<<getTmProblemPointer()->search_tree.processed()
     <<" t: "<<t<<std::endl;
     file.close();
-    file.open("fileout_stat", std::ios::app);
+    /*file.open("fileout_stat", std::ios::app);
     file<<std::setprecision(10)<<instance<<" num_strongb_fix: "<<stats.num_strongb_fix<<
     " num_ls_fix: "<<stats.num_ls_fix<<
     " num_ls_fix_solve: "<<stats.num_ls_fix_solve<<
@@ -246,7 +246,7 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
     " num_ttgend_sellm: "<<stats.num_ttgend_sellm<<
     " num_ttgend_feas: "<<stats.num_ttgend_feas<<
     " num_ttgend_opt: "<<stats.num_ttgend_opt<<std::endl;
-    file.close();
+    file.close();*/
    /* BCP_tm_prob *p = getTmProblemPointer();
     
     CoinSearchTreeBase * tree = p->candidate_list.getTree();

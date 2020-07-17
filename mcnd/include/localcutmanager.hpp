@@ -25,9 +25,9 @@ public:
     int lim_to_remv;
     int gend;
    
-    int ttgend_sellm; //stat can be removed
-    int ttgend_feas; //stat can be removed
-    int ttgend_opt; //stat can be removed
+    //int ttgend_sellm; //stat can be removed
+    //int ttgend_feas; //stat can be removed
+    //int ttgend_opt; //stat can be removed
 
     std::deque<LocalCut *> purgbl;
     std::vector<int> fixbl_arcs;
@@ -36,7 +36,7 @@ public:
     //-------------------------------------------------------------------------------------------
     
     inline LocalCutManager(): data(0), arc_map(0){ num_actv = lim_to_remv = gend =0;
-    												ttgend_opt = ttgend_feas = ttgend_sellm=0; //stat can be removed
+    												//ttgend_opt = ttgend_feas = ttgend_sellm=0; //stat can be removed
     												}
     inline ~LocalCutManager(){fixbl_arcs.clear(); purgbl.clear();}
     inline void set_arc_map(const int * map){ arc_map = map;}

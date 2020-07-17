@@ -105,10 +105,10 @@ public:
     BCP_vec<Pair2> to_logical_fix;
     std::map<int, int> mapd;
     
-    Stats* tm_stats;//stat can be removed
+    //Stats* tm_stats;//stat can be removed
     
 public:
-    inline MCND_lp() : LBi(0),tm_stats(0), has_sol(false), solve_exact(false),track(0), reduced_run(false) { 
+    inline MCND_lp() : LBi(0), has_sol(false), solve_exact(false),track(0), reduced_run(false) { 
     	lp_mode = LP_Normal;  no_gap_reduct=num_nodes=0; lower_bound=0;
     	nomgap = 1e30;  
     }

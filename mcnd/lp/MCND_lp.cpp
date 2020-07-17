@@ -15,7 +15,7 @@
 void
 MCND_lp::unpack_module_data(BCP_buffer & buf){
     //std::cout<<"try unpack to lp "<<std::endl;
-    buf.unpack(tm_stats);
+    //buf.unpack(tm_stats);
     data.unpack(buf); 
     buf.unpack(no_heur);
     buf.unpack(has_sol);
@@ -150,9 +150,9 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 	if(!reduced_run && ((upper_bound()-LBi)/upper_bound()) < 0.01) solve_exact=true;
 	else solve_exact=false;
     
-    int contfixed;//stat can be removed
+    //int contfixed;//stat can be removed
     if(testconn){
-    	contfixed = int(var_changed_pos.size());//stat can be removed
+    	//contfixed = int(var_changed_pos.size());//stat can be removed
      	ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, arcfx, yfix);
     	if(ret<0){
 			if(ret==-1){ globalc_manager.globalc_generation_main2(0, yfix); }
@@ -163,16 +163,17 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 			return;
 		}
 		if(arcfx) lp_mode |= LP_LogicalFixed;	
-		if(contfixed < int(var_changed_pos.size())){//stat can be removed
+		/*if(contfixed < int(var_changed_pos.size())){//stat can be removed
 			tm_stats->conn_fix=true;//stat can be removed
 		} //stat can be removed
+    	*/
     } 
     
     if(!cut_varfix_and_updt( vars, cuts, var_changed_pos, var_new_bd)) return;
     
     if(testconn || (lp_mode & LP_LogicalFixed)){
 		flwconnect.reset(vars, yfix);
-		contfixed = int(var_changed_pos.size());//stat can be removed
+		//contfixed = int(var_changed_pos.size());//stat can be removed
 		ret = flwconnect.check_flowbounds(vars, var_changed_pos, var_new_bd, yfix);
 		flwconnect.clear_memory();
 		if(ret<0){
@@ -182,9 +183,10 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 			lp_mode |= LP_ForceNodeAbort;
 			return;
 		}
-		if(contfixed < int(var_changed_pos.size())){//stat can be removed
+		/*if(contfixed < int(var_changed_pos.size())){//stat can be removed
 			tm_stats->cpflow_fix=true;//stat can be removed
 		} //stat can be removed
+		*/
 	} 
     
     lp_mode |= LP_TestFeasibility;
@@ -601,11 +603,11 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     	ret = lpfeaschecker.solve_opt(unfix, vars, sol, fixd, closed, mipsol, fathmval, upper_bound());
     	//std::cout<<"MCND_lp::test_feasibility intger && no violation"<<std::endl;
     	lp_mode |= LP_ForceNodeAbort ;
-    	tm_stats->solve_holm=true;//stat can be removed
+    	//tm_stats->solve_holm=true;//stat can be removed
     }else if(unfix<= maxszunfx || integer ){ 
     	ret = lpfeaschecker.solve_opt(unfix, vars, 0, fixd, closed, mipsol, fathmval, upper_bound());
     	if(unfix ==0){ lp_mode |= LP_ForceNodeAbort; }//std::cout<<"MCND_lp::test_feasibility allfixed"<<std::endl;}
-    	tm_stats->solve_holm=true;//stat can be removed
+    	//tm_stats->solve_holm=true;//stat can be removed
     }else {
     	delete []fixd;
     	return 0;
@@ -617,13 +619,13 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 			getOsiVolBabSolver()->add_external_globalc( fixd, closed);
 		}
 		//std::cout<<"MCND_lp::test_feasibility NOT"<<std::endl;
-		tm_stats->holm_fathom=true;//stat can be removed
+		//tm_stats->holm_fathom=true;//stat can be removed
 		lp_mode |= LP_ForceNodeAbort;
 		delete []fixd;
     	return 0;
 	}else if(ret==0 || ret==2){
 		lp_mode |= LP_ForceNodeAbort;
-		tm_stats->holm_fathom=true;//stat can be removed
+		//tm_stats->holm_fathom=true;//stat can be removed
 	}
 	delete []fixd;
 	
@@ -638,7 +640,7 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
 		}
 		best_sol.copy(*mipsol, data.narcs);
 		lp_mode |= LP_TighterBounds;
-		tm_stats->holm_fathom=true;//stat can be removed
+		//tm_stats->holm_fathom=true;//stat can be removed
 		return mipsol;
 	}else if(!(lp_mode & LP_ForceNodeAbort)){
     	//std::cout<<"MCND_lp::test_feasibility::add_external_localc type 2"<<std::endl;

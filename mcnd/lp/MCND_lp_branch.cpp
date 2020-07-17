@@ -37,9 +37,9 @@ MCND_lp::select_branching_candidates(const BCP_lp_result& lpres,
 	if(lp_mode & LP_ForceNodeAbort){
 		//std::cout<<"node abort"<<std::endl;
 		//lp_mode = LP_Normal;
-		tm_stats->compute_stats();//stat can be removed
-		tm_stats->compute_cutstat(globalc_manager.ttgend_global, cover_manager.ttgend_cover,  //stat can be removed
-    	cover_manager.ttgend_card, localc_manager.ttgend_sellm,  localc_manager.ttgend_feas, localc_manager.ttgend_opt );//stat can be removed
+		//tm_stats->compute_stats();//stat can be removed
+		//tm_stats->compute_cutstat(globalc_manager.ttgend_global, cover_manager.ttgend_cover,  //stat can be removed
+    	//cover_manager.ttgend_card, localc_manager.ttgend_sellm,  localc_manager.ttgend_feas, localc_manager.ttgend_opt );//stat can be removed
         return BCP_DoNotBranch_Fathomed;
 	}
     
@@ -197,7 +197,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
  		if(lpchecker.logical_yfix(ub, changed_pos, new_bd, yfix)) arcfx=true;
 
 	if(arcfx){
-		tm_stats->rcarc_fix=true;//stat can be removed
+		//tm_stats->rcarc_fix=true;//stat can be removed
 		if(!cut_varfix_and_updt( vars, cuts, changed_pos, new_bd)){ 
 			if(flwconnect.redone)flwconnect.clear_memory(); 
 			return;
@@ -252,16 +252,16 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 				changed_pos.clear();
 				new_bd.clear();
 				//std::cout<<"MCND_lp::logical_fixing::flwconnect.bd conflict "<<bdlb<<" "<<bdub<<std::endl;
-				tm_stats->rcubflow_fix=true;//stat can be removed
-				if(bdlb-vars[id]->lb() >= 1e-4) tm_stats->rclbflow_fix=true;//stat can be removed
+				//tm_stats->rcubflow_fix=true;//stat can be removed
+				//if(bdlb-vars[id]->lb() >= 1e-4) tm_stats->rclbflow_fix=true;//stat can be removed
 				if(lp_mode & LP_TestConnectivity || flwconnect.redone) flwconnect.clear_memory();
 				return;
 			}
 			
 			if(vars[id]->ub()-bdub <= 1e-4 && bdlb-vars[id]->lb() <= 1e-4) continue;
 			changed_pos.push_back(id);
-			new_bd.push_back(bdlb); if(vars[id]->ub()-bdub >= 1e-4 ) tm_stats->rcubflow_fix=true;//stat can be removed
-			new_bd.push_back(bdub); if(bdlb-vars[id]->lb() >= 1e-4) tm_stats->rclbflow_fix=true;//stat can be removed
+			new_bd.push_back(bdlb); //if(vars[id]->ub()-bdub >= 1e-4 ) tm_stats->rcubflow_fix=true;//stat can be removed
+			new_bd.push_back(bdub); //if(bdlb-vars[id]->lb() >= 1e-4) tm_stats->rclbflow_fix=true;//stat can be removed
 			flwconnect.bound_red[k*data.narcs+a].fst = changed_pos.size()-1;
 			flwconnect.bound_red[k*data.narcs+a].snd = bdlb;
  			flwconnect.bound_red[k*data.narcs+a].trd = bdub;
@@ -272,7 +272,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	
 	if(lp_mode & LP_TestConnectivity || flwconnect.redone){
 		flwconnect.reset(vars, yfix);
-		int contfixed = int(changed_pos.size());//stat can be removed
+		//int contfixed = int(changed_pos.size());//stat can be removed
 		int ret = flwconnect.check_flowbounds(vars, changed_pos, new_bd, yfix);
 		flwconnect.clear_memory();
 		if(ret<0){
@@ -282,10 +282,10 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 			lp_mode |= LP_ForceNodeAbort;
 			return;
 		}
-		if(contfixed < int(changed_pos.size())){//stat can be removed
+		/*if(contfixed < int(changed_pos.size())){//stat can be removed
 			tm_stats->cpflow_fix=true;//stat can be removed
 		} //stat can be removed
-		
+		*/
 	} 
 	
 	if(lpchecker.solved) {
@@ -296,11 +296,11 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
  	double gap= (ub  - LBi)/ub;
  	if((gap<0.01) && !getOsiVolBabSolver()->has_checked && (!reduced_run && times_dived<3)){
  		//std::cout<<"getOsiVolBabSolver()->test_opposites"<<std::endl;
-		tm_stats->ls_fix_solve=true;
+		//tm_stats->ls_fix_solve=true;//stat can be removed
  		int prev = changed_pos.size();
  		getOsiVolBabSolver()->test_opposites( changed_pos, new_bd,  yfix, vars,  ub);
  		arcfx = (prev < changed_pos.size()) ?  true: arcfx;
- 		if(prev < changed_pos.size())tm_stats->ls_fix=true;//stat can be removed
+ 		//if(prev < changed_pos.size())tm_stats->ls_fix=true;//stat can be removed
  	} 
  	
 	if(changed_pos.size()){
@@ -396,7 +396,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 				contfixed = int(var_changed_pos.size());
 				lp_mode |= LP_LogicalFixed;	
 				i = getLpProblemPointer()->core->cutnum();
-				tm_stats->cparc_fix=true; //stat can be removed
+				//tm_stats->cparc_fix=true; //stat can be removed
 			}
 		}
 		
@@ -419,7 +419,7 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 				lp_mode |= LP_LogicalFixed;	
 				i = globalc_manager.globals.sizeOfCollection;
 				gloc = globalc_manager.globals.begin;
-				tm_stats->cparc_fix=true;//stat can be removed
+				//tm_stats->cparc_fix=true;//stat can be removed
 			}else gloc = gloc->next;
 		}
 		
@@ -433,9 +433,10 @@ MCND_lp::cut_varfix_and_updt(const BCP_vec<BCP_var*>& vars,
 				lp_mode |= LP_ForceNodeAbort;
 				return false;
 			}
-			if(contfixed < int(var_changed_pos.size())){//stat can be removed
+			/*if(contfixed < int(var_changed_pos.size())){//stat can be removed
 				 tm_stats->conn_fix=true;//stat can be removed
 			} //stat can be removed
+			*/
 		} 
 		if(!conn_arcfix) break;
 		else lp_mode |= LP_LogicalFixed;	
@@ -619,9 +620,9 @@ MCND_lp::set_actions_for_children(BCP_presolved_lp_brobj* best){
 		lp_mode |= LP_Dive;
 	//std::cout<<" 0-side childs_action "<<childs_action[0]<<std::endl;
 	//std::cout<<" 1-side childs_action "<<childs_action[1]<<std::endl;
-	tm_stats->compute_stats(); 
-    tm_stats->compute_cutstat(globalc_manager.ttgend_global, cover_manager.ttgend_cover,  //stat can be removed
-    	cover_manager.ttgend_card, localc_manager.ttgend_sellm,  localc_manager.ttgend_feas, localc_manager.ttgend_opt );//stat can be removed 
+	//tm_stats->compute_stats(); 
+    //tm_stats->compute_cutstat(globalc_manager.ttgend_global, cover_manager.ttgend_cover,  //stat can be removed
+    	//cover_manager.ttgend_card, localc_manager.ttgend_sellm,  localc_manager.ttgend_feas, localc_manager.ttgend_opt );//stat can be removed 
 }
 
 
@@ -691,7 +692,7 @@ MCND_lp::strong_branch_var_logicfix(BCP_lp_branching_object* candidate){
 		p = &to_logical_fix.back();
 		if(p->fst != cand){
 			//std::cout<<"branchfix: "<<p->fst<<" to "<<p->snd<<std::endl;
-			tm_stats->strongb_fix=true;//stat can be removed
+			//tm_stats->strongb_fix=true;//stat can be removed
 			extra_vars->push_back(p->fst);
 			++added;
 			for(int i=4;i--;)bd_extra_vars->push_back(p->snd);

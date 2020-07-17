@@ -107,7 +107,7 @@ CoverManager::cover_generation_main(const double * ystar, const double * y,const
         cutset = cutset->next;
     }
     gend+=added;
-    ttgend_cover+=added; //stat can be removed
+    //ttgend_cover+=added; //stat can be removed
     return added;
 }
 
