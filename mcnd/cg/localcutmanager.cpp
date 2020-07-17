@@ -42,7 +42,8 @@ LocalCutManager::reset_and_map_collection(int fsize, const double* topo, double 
         //if(vi->type==0)std::cout<<"try: type "<<vi->type<<" "<<vi->prgbl<<std::endl;
         if(recheck_collct) put = vi->check_updt_Viol(topo, infeas);
         if(infeas) return -1;
-		if(vi->type==2) put=false;
+		//if(vi->type==2) 
+		put=false;
         
         if(put && !vi->prgbl){
             actvS[vi->id_vi] = fsize+csize;
