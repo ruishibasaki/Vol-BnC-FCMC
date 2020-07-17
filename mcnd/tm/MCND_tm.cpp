@@ -184,7 +184,7 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 	broadcast_message(BCP_ProcessType_LP,buf);
 	buf.clear();
 	double time = double( clock() - t_start ) / double( CLOCKS_PER_SEC );
-	if(time>36000 &&  middle_sol<0 && middle_lb<0) {
+	if(time>18000 &&  middle_sol<0 && middle_lb<0) {
 		middle_sol=upper_bound(); middle_lb=lower_bound();
 	}
 }
