@@ -604,7 +604,7 @@ MCND_lp::test_feasibility(const BCP_lp_result& lp_result,
     	//std::cout<<"MCND_lp::test_feasibility intger && no violation"<<std::endl;
     	lp_mode |= LP_ForceNodeAbort ;
     	//tm_stats->solve_holm=true;//stat can be removed
-    }else if(unfix<= maxszunfx || integer ){ 
+    }else if(unfix<= 0 ){ 
     	ret = lpfeaschecker.solve_opt(unfix, vars, 0, fixd, closed, mipsol, fathmval, upper_bound());
     	if(unfix ==0){ lp_mode |= LP_ForceNodeAbort; }//std::cout<<"MCND_lp::test_feasibility allfixed"<<std::endl;}
     	//tm_stats->solve_holm=true;//stat can be removed
