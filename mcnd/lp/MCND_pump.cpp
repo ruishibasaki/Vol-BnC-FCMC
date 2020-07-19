@@ -355,6 +355,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
     }
     if(validate_topology()<0)return -10;
     
+    int contloop=0;
 	bool dontbreak = true;
 	std::vector<int>modtabu(narcs,0);
     while(dontbreak){
@@ -384,6 +385,7 @@ Pump::solve( int*& fixd0, int& closed,  const BCP_vec<BCP_var*>& vars,  MCND_sol
 				dontbreak = true;
 			}
 		}
+		if(++contloop>=5) dontbreak = false;
 		//std::cout<<"final pump "<<solpump<<" volume: "<<volsolver.value<<" "<<roundwn<<std::endl;
     }
     modtabu.clear();
