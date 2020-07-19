@@ -157,7 +157,10 @@ int read_init_sol(std::string fname, std::string instance, double * xy, double& 
     file.close();
     if(val==0) return -1;
     else if(xy==0) return 0;
-    instance_inline = "../results/heursolutions/sol"+instance_inline.substr(instance_inline.find("/")+1); 
+    if(instance_inline.find("/") != std::string::npos){
+    	instance_inline = instance_inline.replace(instance.find("/"),1,"");
+    }
+    instance_inline = "../results/heursolutions/atolimos/sol"+instance_inline; 
     std::cout<<"file: "<<instance_inline<<std::endl;
     file.open(instance_inline.c_str()); 
     if (!file.is_open()) {
@@ -166,6 +169,8 @@ int read_init_sol(std::string fname, std::string instance, double * xy, double& 
         std::cout<<"no solution vector"<<std::endl;
         return 0;
     }
+    
+
     
     std::string aux;
 	int sz, arc;

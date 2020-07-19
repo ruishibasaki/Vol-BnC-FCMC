@@ -184,6 +184,11 @@ MCND_tm::change_candidate_heap(CoinSearchTreeManager& candidates,
 	//std::cout<<"The lower bound: "<<lower_bound()<<std::endl;
 	broadcast_message(BCP_ProcessType_LP,buf);
 	buf.clear();
+	double time = double( clock() - t_start ) / double( CLOCKS_PER_SEC );
+	if(time>3 &&  middle_sol<0 && middle_lb<0) {
+		middle_sol=upper_bound(); middle_lb=lower_bound();
+	}
+
 }
 /*
 //-----------------------------------------------------------------------------
@@ -226,7 +231,7 @@ MCND_tm::display_final_information(const BCP_lp_statistics& lp_stat){
 	//std::cout<<"The global lower bound: "<<Best_LB<<" / "<<lower_bound()<<std::endl;
     std::ofstream file("fileout", std::ios::app);
     file<<std::setprecision(10)<<instance<<" lb: "<<Best_LB<<" ub: "<<ub<<" gap: "<<(ub-Best_LB)/ub*100<<" nodes: "<<getTmProblemPointer()->search_tree.processed()
-    <<" t: "<<t<<std::endl;
+    <<" t: "<<t<<" midle_sol_lb: "<<middle_lb<<" midle_sol_ub: "<<middle_sol<<std::endl;
     file.close();
     /*file.open("fileout_stat", std::ios::app);
     file<<std::setprecision(10)<<instance<<" num_strongb_fix: "<<stats.num_strongb_fix<<

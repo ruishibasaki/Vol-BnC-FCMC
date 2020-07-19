@@ -18,12 +18,14 @@ public:
   double time_lim;
   std::string instance;
   //Stats stats; 
-  
+  double middle_sol;
+  double middle_lb;
+
   MCND_solution init_sol;
   
   clock_t t_start;
 public:
-  MCND_tm() : Best_LB(0) { time_lim = 3600;}
+  MCND_tm() : Best_LB(0) { time_lim = 3600; middle_sol=middle_lb=-1;}
   ~MCND_tm() {}
 
   
