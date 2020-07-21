@@ -150,8 +150,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 
     }else LBi=0;
 
-	if(!reduced_run && ((upper_bound()-LBi)/upper_bound()) < 0.01) solve_exact=true;
-	else solve_exact=false;
+	solve_exact=false;
     
     if(testconn){
      	ret = flwconnect.check_connectivity(vars, var_changed_pos, var_new_bd, arcfx, yfix);
@@ -315,7 +314,8 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
     const int tc = lpres.termcode();
     LBi = std::max(lpres.objval(),LBi);
     if(lp_mode & LP_ForceNodeAbort) return LBi;
-
+	return LBi;
+	
     double ub = upper_bound();
 	double gap = (ub  - LBi)/ub;
     if(unfix >= 500 || (lp_mode & LP_OptSolved)){
