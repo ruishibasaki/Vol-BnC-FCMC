@@ -115,7 +115,7 @@ MCND_lp::initialize_new_search_tree_node(const BCP_vec<BCP_var*>& vars,
 			times_dived=0;
 			//max_cand = 5 ;
 		}else{
-			if(times_dived >=3){ reduced_run=false;}
+			if(times_dived >=3 /*1000 for biggest inst*/){ reduced_run=false;}
 			else{ reduced_run=true;}
 		}//max_cand = 1;}
 
@@ -327,7 +327,7 @@ MCND_lp::compute_lower_bound(const double old_lower_bound,
 	double gap = (ub  - LBi)/ub;
     if(unfix >= 500 || (lp_mode & LP_OptSolved)){
     	solve_exact=false;
-    }else if(times_dived >=3){
+    }else if(times_dived >=3 /*1000 for biggest inst*/){
     	solve_exact=true;
     }else if(gap < 0.01 && !reduced_run){
     	solve_exact=true;

@@ -294,7 +294,7 @@ MCND_lp::logical_fixing(const BCP_lp_result& lpres,
 	}
 	
  	double gap= (ub  - LBi)/ub;
- 	if((gap<0.01) && !getOsiVolBabSolver()->has_checked && (!reduced_run && times_dived<3)){
+ 	if((gap<0.01) && !getOsiVolBabSolver()->has_checked && (!reduced_run && times_dived<3 /*1000 for the biggest inst*/)){
  		//std::cout<<"getOsiVolBabSolver()->test_opposites"<<std::endl;
 		//tm_stats->ls_fix_solve=true;//stat can be removed
  		int prev = changed_pos.size();
