@@ -703,8 +703,8 @@ MCND_lp::generate_heuristic_solution(const BCP_lp_result& lpres,
  	if(unfix > 0){
  		//std::cout<<"Pump::solve trypump? "<<unfix<<" "<<maxszunfx<<std::endl;
  		if(no_heur) return 0; 
-    	else if((lp_mode & LP_HeuristicRunned) && (current_level()>0 || current_iteration()>10)) return 0;
-    	else if( current_level()%20>0 || (current_iteration()>10)) return 0;
+    	else if((lp_mode & LP_HeuristicRunned) && (current_level()>0 || current_iteration()>20)) return 0;
+    	else if( current_level()%3>0 || (current_iteration()>20)) return 0;
     	
 	}
     //if(pump_heur.validate_topology()< 0) return 0;

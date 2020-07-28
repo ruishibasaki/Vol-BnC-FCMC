@@ -160,7 +160,7 @@ int read_init_sol(std::string fname, std::string instance, double * xy, double& 
     if(instance_inline.find("/") != std::string::npos){
     	instance_inline = instance_inline.replace(instance.find("/"),1,"");
     }
-    instance_inline = "../results/heursolutions/atolimos/sol"+instance_inline; 
+    instance_inline = "../results/heursolutions/"+instance_inline; 
     std::cout<<"file: "<<instance_inline<<std::endl;
     file.open(instance_inline.c_str()); 
     if (!file.is_open()) {
