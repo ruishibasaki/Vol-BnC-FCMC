@@ -182,34 +182,35 @@ libBcp_ = ../../lib/libBcp.so
 
 BCPINC = -Iconfig/ -Iinclude/ 
 BCPH   = $(includebcp_HEADERS)
+DEFS = -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_DLFCN_H=1 
 
 # dependencies: every .o from its .C + every recursively included .h- - - - -
 
 all: $(libBcp_o)  $(libBcp_) 
 
 $(bcpcg_o): build/%.o: cg/%.cpp
-	g++ -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
+	g++ $(DEFS) -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
 
 $(bcpvg_o): build/%.o: vg/%.cpp
-	g++ -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
+	g++ $(DEFS) -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
 
 $(bcptm_o): build/%.o: tm/%.cpp
-	g++ -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
+	g++ $(DEFS) -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
 	
 $(bcpm_o): build/%.o: member/%.cpp
-	g++ -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
+	g++ $(DEFS) -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
 	
 $(bcplp_o): build/%.o: lp/%.cpp
-	g++ -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
+	g++ $(DEFS) -fPIC -c $< -o $@ $(COININC) $(OSIINC) $(BCPINC) -O3
 	
 #SHARED LIBRARY
 #MAC
-$(libBcp_):
-	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libBcp.so -o $@ $(LINK) $(libBcp_o)
+# $(libBcp_):
+# 	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libBcp.so -o $@ $(LINK) $(libBcp_o)
 
 #LIMOS
-#$(libBcp_):
-#	g++ -shared  -Wl,-soname,/home/prof/rsashiba/bcp/lib/libBcp.so -o $@ $(LINK) $(libBcp_o)
+$(libBcp_):
+	g++ -shared  -Wl,-soname,/home/shibasaki/development/bcp/bcp-pump_heuristic/lib/libBcp.so -o $@ $(LINK) $(libBcp_o)
 
 # STATIC LIBRARY
 #$(libBcp_): $(COINOBJ)
