@@ -23,3 +23,6 @@ mkdir build
 
 To compile:
 ``make``
+
+To run:
+``mcnd_bcp <instance>``
