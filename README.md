@@ -25,4 +25,4 @@ To compile:
 ``make``
 
 To run:
-``mcnd_bcp <instance>``
+``./mcnd_bcp <instance>``
