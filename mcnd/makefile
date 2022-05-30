@@ -50,17 +50,10 @@ suffix_solver = OsiVolSolverInterface VolVolume
 	
 OBJ = $(suffix_tm:%=build/%.o) $(suffix_lp_cplex:%=build/%.o) $(suffix_lp:%=build/%.o) $(suffix_member:%=build/%.o) $(suffix_solver:%=build/%.o) $(suffix_cg:%=build/%.o)
 
-#SYSTEM = x86-64_linux
-#LIBFORMAT = static_pic
-#CONCERTDIR = /opt/ibm/ILOG/CPLEX_Studio128/concert
-#CPLEXDIR = 	/opt/ibm/ILOG/CPLEX_Studio128/cplex
-#CPLEXLIBDIR = $(CPLEXDIR)/lib/$(SYSTEM)/$(LIBFORMAT)
-#CONCERTLIBDIR = $(CONCERTDIR)/lib/$(SYSTEM)/$(LIBFORMAT)
-
-SYSTEM = x86-64_osx
+SYSTEM = x86-64_linux
 LIBFORMAT = static_pic
-CONCERTDIR = /Applications/CPLEX_Studio128/concert
-CPLEXDIR = 	/Applications/CPLEX_Studio128/cplex
+CONCERTDIR = /opt/ibm/ILOG/CPLEX_Studio1210/concert
+CPLEXDIR = 	/opt/ibm/ILOG/CPLEX_Studio1210/cplex
 CPLEXLIBDIR = $(CPLEXDIR)/lib/$(SYSTEM)/$(LIBFORMAT)
 CONCERTLIBDIR = $(CONCERTDIR)/lib/$(SYSTEM)/$(LIBFORMAT)
 
@@ -74,8 +67,8 @@ VOLINC = -I../src/vol/include/
 BCPINC = -I../src/bcp/include/ -I../src/bcp/config/
 INC= -I$(DIR)include
 
-LINKPATH = /Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/
-#LINKPATH = /home/prof/rsashiba/bcp/lib/
+#LINKPATH = /Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/
+LINKPATH = /home/shibasaki/development/bcp/bcp-pump_heuristic/lib/
 LINK = -Wl,-rpath,$(LINKPATH) -L$(LINKPATH) -lCoinUtils -lOsi -lBcp
 CPLEXFLAGS =   -L$(CPLEXLIBDIR) -lilocplex -lcplex -L$(CONCERTLIBDIR) -lconcert -lm -ldl -lpthread
 
