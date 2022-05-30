@@ -209,7 +209,7 @@ $(bcplp_o): build/%.o: lp/%.cpp
 
 #LIMOS
 $(libBcp_):
-	g++ -shared  -Wl,-soname,/home/shibasaki/development/bcp/Vol-BnC-FCMC-master/lib/libBcp.so -o $@ $(LINK) $(libBcp_o)
+	g++ -shared  -Wl,-soname,<modify>/lib/libBcp.so -o $@ $(LINK) $(libBcp_o)
 
 # STATIC LIBRARY
 #$(libBcp_): $(COINOBJ)
