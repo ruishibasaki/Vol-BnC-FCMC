@@ -151,12 +151,12 @@ $(libCoinUtils_suffix):
 
 #SHARED LIBRARY
 #MAC
-$(libCoinUtils_):
-	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libCoinUtils.so -o $@ $(COINOBJ) -lbz2 -lz -lm -llapack -O3
+#$(libCoinUtils_):
+#	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libCoinUtils.so -o $@ $(COINOBJ) -lbz2 -lz -lm -llapack -O3
 
 #LIMOS
-#$(libCoinUtils_):
-#	g++ -shared  -Wl,-soname,/home/prof/rsashiba/bcp/lib/libCoinUtils.so -o $@ $(COINOBJ) -lbz2 -lz
+$(libCoinUtils_):
+	g++ -shared  -Wl,-soname,/home/shibasaki/bcp/lib/libCoinUtils.so -o $@ $(COINOBJ) -lbz2 -lz -llapack -lblas
 
 # STATIC LIBRARY
 #$(libCoinUtils_): $(COINOBJ)
