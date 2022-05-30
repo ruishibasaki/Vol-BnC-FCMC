@@ -156,7 +156,7 @@ $(libCoinUtils_suffix):
 
 #LIMOS
 $(libCoinUtils_):
-	g++ -shared  -Wl,-soname,/home/shibasaki/bcp/lib/libCoinUtils.so -o $@ $(COINOBJ) -lbz2 -lz -llapack -lblas
+	g++ -shared  -Wl,-soname,/home/shibasaki/development/bcp/Vol-BnC-FCMC-master/lib/libCoinUtils.so -o $@ $(COINOBJ) -lbz2 -lz -llapack -lblas
 
 # STATIC LIBRARY
 #$(libCoinUtils_): $(COINOBJ)
