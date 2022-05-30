@@ -68,7 +68,7 @@ $(libOsi_suffix):
 
 #LIMOS
 $(libOsi_):
-	g++ -shared  -Wl,-soname,/home/shibasaki/development/bcp/Vol-BnC-FCMC-master/lib/libOsi.so -o $@ $(LINK) $(OSIOBJ)
+	g++ -shared  -Wl,-soname,<modify>/lib/libOsi.so -o $@ $(LINK) $(OSIOBJ)
 	
 # STATIC LIBRARY
 #$(libOsi_): $(OSIOBJ)
