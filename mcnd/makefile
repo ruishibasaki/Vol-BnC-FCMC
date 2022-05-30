@@ -52,8 +52,8 @@ OBJ = $(suffix_tm:%=build/%.o) $(suffix_lp_cplex:%=build/%.o) $(suffix_lp:%=buil
 
 SYSTEM = x86-64_linux
 LIBFORMAT = static_pic
-CONCERTDIR = /opt/ibm/ILOG/CPLEX_Studio1210/concert
-CPLEXDIR = 	/opt/ibm/ILOG/CPLEX_Studio1210/cplex
+CONCERTDIR = <modify>/ibm/ILOG/CPLEX_Studio1210/concert
+CPLEXDIR = 	<modify>/ibm/ILOG/CPLEX_Studio1210/cplex
 CPLEXLIBDIR = $(CPLEXDIR)/lib/$(SYSTEM)/$(LIBFORMAT)
 CONCERTLIBDIR = $(CONCERTDIR)/lib/$(SYSTEM)/$(LIBFORMAT)
 
@@ -75,7 +75,7 @@ BCPINC = -I../src/bcp/include/ -I../src/bcp/config/
 INC= -I$(DIR)include
 
 #LINKPATH = /Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/
-LINKPATH = /home/shibasaki/development/bcp/Vol-BnC-FCMC-master/lib/
+LINKPATH = <modify>/lib/
 LINK = -Wl,-rpath,$(LINKPATH) -L$(LINKPATH) -lCoinUtils -lOsi -lBcp
 CPLEXFLAGS =   -L$(CPLEXLIBDIR) -lilocplex -lcplex -L$(CONCERTLIBDIR) -lconcert -lm -ldl -lpthread
 
