@@ -1,6 +1,6 @@
 # Vol-BnC-FCMC
 
-To compile:
+```To compile:
 mkdir lib
 cd src/coinUtils/
 mkdir build
@@ -13,4 +13,4 @@ mkdir build
 make
 cd ../../mcnd/
 mkdir build
-make
+make```
