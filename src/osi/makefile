@@ -63,12 +63,12 @@ $(libOsi_suffix):
 
 #SHARED LIBRARY
 #MAC
-$(libOsi_):
-	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libOsi.so -o $@ $(LINK) $(OSIOBJ)
+# $(libOsi_):
+# 	g++ -shared  -Wl,-install_name,/Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/libOsi.so -o $@ $(LINK) $(OSIOBJ)
 
 #LIMOS
-#$(libOsi_):
-#	g++ -shared  -Wl,-soname,/home/prof/rsashiba/bcp/lib/libOsi.so -o $@ $(LINK) $(OSIOBJ)
+$(libOsi_):
+	g++ -shared  -Wl,-soname,/home/shibasaki/development/bcp/bcp-pump_heuristic/lib/libOsi.so -o $@ $(LINK) $(OSIOBJ)
 	
 # STATIC LIBRARY
 #$(libOsi_): $(OSIOBJ)
