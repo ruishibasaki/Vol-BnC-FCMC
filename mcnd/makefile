@@ -75,7 +75,7 @@ BCPINC = -I../src/bcp/include/ -I../src/bcp/config/
 INC= -I$(DIR)include
 
 #LINKPATH = /Users/ruishibasaki/Documents/thesis/development/mcnd/bcp/lib/
-LINKPATH = /home/prof/rsashiba/bcp/lib/
+LINKPATH = /home/shibasaki/development/bcp/Vol-BnC-FCMC-master/lib/
 LINK = -Wl,-rpath,$(LINKPATH) -L$(LINKPATH) -lCoinUtils -lOsi -lBcp
 CPLEXFLAGS =   -L$(CPLEXLIBDIR) -lilocplex -lcplex -L$(CONCERTLIBDIR) -lconcert -lm -ldl -lpthread
 
